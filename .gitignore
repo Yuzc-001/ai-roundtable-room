@@ -1,0 +1,8 @@
+node_modules
+dist
+roundtable-projects
+server/shares
+.env
+.DS_Store
+npm-debug.log*
+*.log
