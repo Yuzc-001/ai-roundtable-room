@@ -1,8 +1,12 @@
 # AI Roundtable Intelligence / AI 圆桌智库
 
-[English](./README_EN.md) | **简体中文**
+[English](./README.en.md) | **简体中文**
 
 一个可本地运行、可公开部署、工业级审议逻辑的 AI 圆桌会议应用。
+
+![AI Roundtable Room 首页预览](./artifacts/home-idle.png)
+
+![AI Roundtable Room 实时审议](./artifacts/live-meeting.png)
 
 ---
 
