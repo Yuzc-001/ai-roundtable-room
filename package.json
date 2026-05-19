@@ -12,7 +12,10 @@
     "test": "vitest run",
     "doctor": "node server/doctor.js",
     "check": "npm test && npm run build && npm audit --audit-level=moderate",
-    "preview": "npm run build && npm run start"
+    "preview": "npm run build && npm run start",
+    "video:studio": "remotion studio remotion/index.jsx",
+    "video:still": "remotion still remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer-frame.png --frame=430",
+    "video:render": "remotion render remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer.mp4"
   },
   "engines": {
     "node": ">=22"
@@ -31,6 +34,11 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.462",
+    "remotion": "^4.0.462",
     "vitest": "^4.0.16"
+  },
+  "overrides": {
+    "ws": "8.20.1"
   }
 }

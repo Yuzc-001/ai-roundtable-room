@@ -8,6 +8,15 @@
 
 ![AI Roundtable Room 实时审议](./artifacts/live-meeting.png)
 
+## 可视化讲解
+
+观看 24 秒项目讲解视频：[roundtable-explainer.mp4](./artifacts/roundtable-explainer.mp4)
+
+```bash
+npm run video:studio  # 打开 Remotion Studio
+npm run video:render  # 渲染 artifacts/roundtable-explainer.mp4
+```
+
 ---
 
 ## 🌟 核心亮点

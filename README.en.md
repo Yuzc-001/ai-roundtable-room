@@ -8,6 +8,15 @@ AI Roundtable Room is a local-first, deployable workspace for structured AI deli
 
 ![AI Roundtable Room preview](./artifacts/home-idle.png)
 
+## Visual Explainer
+
+Watch the 24-second project explainer: [roundtable-explainer.mp4](./artifacts/roundtable-explainer.mp4)
+
+```bash
+npm run video:studio  # Open Remotion Studio
+npm run video:render  # Render artifacts/roundtable-explainer.mp4
+```
+
 ## When to Use It
 
 - Product and engineering reviews where you need tradeoffs, objections, and launch conditions.
