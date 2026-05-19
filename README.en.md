@@ -14,7 +14,9 @@ You do not have to write six prompts by hand or stitch together several model re
 
 ## 24-Second Explainer
 
-The repo includes a Remotion explainer video: [roundtable-explainer.mp4](./artifacts/roundtable-explainer.mp4)
+<video src="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/roundtable-explainer.mp4" poster="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/home-2026-05.png" controls width="100%"></video>
+
+[Open the video if the player is not available](./artifacts/roundtable-explainer.mp4)
 
 ```bash
 npm run video:studio

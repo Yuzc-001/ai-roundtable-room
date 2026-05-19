@@ -12,7 +12,9 @@
 
 ## 24 秒看懂
 
-项目里带了一段 Remotion 可视化讲解视频：[roundtable-explainer.mp4](./artifacts/roundtable-explainer.mp4)
+<video src="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/roundtable-explainer.mp4" poster="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/home-2026-05.png" controls width="100%"></video>
+
+[播放器不可用时打开视频](./artifacts/roundtable-explainer.mp4)
 
 ```bash
 npm run video:studio
