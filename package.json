@@ -15,7 +15,8 @@
     "preview": "npm run build && npm run start",
     "video:studio": "remotion studio remotion/index.jsx",
     "video:still": "remotion still remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer-frame.png --frame=430",
-    "video:render": "remotion render remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer.mp4"
+    "video:render": "remotion render remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer.mp4",
+    "video:gif": "remotion render remotion/index.jsx RoundtableExplainer artifacts/roundtable-explainer-preview.gif --codec=gif --scale=0.35 --every-nth-frame=3"
   },
   "engines": {
     "node": ">=22"

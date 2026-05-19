@@ -14,13 +14,14 @@ You do not have to write six prompts by hand or stitch together several model re
 
 ## 24-Second Explainer
 
-<video src="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/roundtable-explainer.mp4" poster="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/home-2026-05.png" controls width="100%"></video>
+![AI Roundtable Room visual explainer](./artifacts/roundtable-explainer-preview.gif)
 
-[Open the video if the player is not available](./artifacts/roundtable-explainer.mp4)
+[Open the HD MP4](./artifacts/roundtable-explainer.mp4)
 
 ```bash
 npm run video:studio
 npm run video:render
+npm run video:gif
 ```
 
 ## When It Helps

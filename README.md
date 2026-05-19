@@ -12,13 +12,14 @@
 
 ## 24 秒看懂
 
-<video src="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/roundtable-explainer.mp4" poster="https://raw.githubusercontent.com/Yuzc-001/ai-roundtable-room/main/artifacts/home-2026-05.png" controls width="100%"></video>
+![AI 圆桌智库可视化讲解](./artifacts/roundtable-explainer-preview.gif)
 
-[播放器不可用时打开视频](./artifacts/roundtable-explainer.mp4)
+[查看高清 MP4](./artifacts/roundtable-explainer.mp4)
 
 ```bash
 npm run video:studio
 npm run video:render
+npm run video:gif
 ```
 
 ## 适合什么场景
