@@ -10,6 +10,15 @@ function joinClaudeMessagesUrl(baseUrl) {
   return clean.endsWith('/v1') ? `${clean}/messages` : `${clean}/v1/messages`;
 }
 
+function parseOpenAICompletion(completion) {
+  if (typeof completion !== 'string') return completion;
+  try {
+    return JSON.parse(completion);
+  } catch {
+    throw new Error('模型服务返回了非 JSON 内容，请检查 BASE_URL 是否指向 OpenAI 兼容接口（通常以 /v1 结尾）。');
+  }
+}
+
 export function createOpenAICompatibleProvider(settings, { client } = {}) {
   const openai = client ?? new OpenAI({
     apiKey: settings.apiKey,
@@ -32,15 +41,20 @@ export function createOpenAICompatibleProvider(settings, { client } = {}) {
         response_format: { type: 'json_object' },
         max_tokens: settings.maxTokens,
       });
-      const message = completion.choices?.[0]?.message;
+      const parsedCompletion = parseOpenAICompletion(completion);
+      const choice = parsedCompletion.choices?.[0];
+      const message = choice?.message;
       if (message?.refusal) throw new Error(message.refusal);
-      if (!message?.content) throw new Error('模型没有返回内容');
+      if (!message?.content) {
+        const reason = choice?.finish_reason ? ` (finish_reason: ${choice.finish_reason})` : '';
+        throw new Error(`模型没有返回内容${reason}`);
+      }
       return {
         content: message.content,
         usage: {
-          inputTokens: completion.usage?.prompt_tokens || 0,
-          outputTokens: completion.usage?.completion_tokens || 0,
-          totalTokens: completion.usage?.total_tokens || 0,
+          inputTokens: parsedCompletion.usage?.prompt_tokens || 0,
+          outputTokens: parsedCompletion.usage?.completion_tokens || 0,
+          totalTokens: parsedCompletion.usage?.total_tokens || 0,
         },
       };
     },

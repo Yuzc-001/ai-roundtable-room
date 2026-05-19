@@ -32,6 +32,32 @@ describe('OpenAI-compatible provider', () => {
       max_tokens: 1200,
     }));
   });
+
+  test('accepts JSON text returned by a compatible gateway', async () => {
+    const client = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue(JSON.stringify({
+            choices: [{ message: { content: '{"title":"会议"}' } }],
+            usage: { prompt_tokens: 11, completion_tokens: 7, total_tokens: 18 },
+          })),
+        },
+      },
+    };
+    const provider = createOpenAICompatibleProvider({
+      name: 'OpenAI 兼容',
+      apiKey: 'secret',
+      model: 'test-model',
+      maxTokens: 1200,
+    }, { client });
+
+    const result = await provider.generate({ systemPrompt: '只输出 JSON', userPrompt: '{"topic":"测试"}' });
+
+    expect(result).toEqual({
+      content: '{"title":"会议"}',
+      usage: { inputTokens: 11, outputTokens: 7, totalTokens: 18 },
+    });
+  });
 });
 
 describe('model router', () => {
