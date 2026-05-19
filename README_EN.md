@@ -36,7 +36,7 @@ The script will automatically copy `.env.example` to `.env`. Open `.env` and fil
 ```bash
 AI_PROVIDERS=openai
 OPENAI_API_KEY=your-api-key
-OPENAI_MODEL=gpt-4o  # Strong models recommended
+OPENAI_MODEL=gpt-5.5  # Strong models recommended
 ```
 
 Open: `http://127.0.0.1:5173`

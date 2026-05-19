@@ -40,7 +40,7 @@ bash start.sh
 ```bash
 AI_PROVIDERS=openai
 OPENAI_API_KEY=你的 API Key
-OPENAI_MODEL=gpt-4o  # 推荐使用性能较强的模型
+OPENAI_MODEL=gpt-5.5  # 推荐使用性能较强的模型
 ```
 
 启动后打开：`http://127.0.0.1:5173`
