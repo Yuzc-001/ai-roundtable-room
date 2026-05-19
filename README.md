@@ -171,3 +171,6 @@ roundtable-projects/    本地运行时保存的项目快照
 ## 许可证
 
 MIT
+
+## 同步分享
+感谢linuxdo社区支持：https://linux.do/
