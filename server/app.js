@@ -94,6 +94,10 @@ function classifyGenerationError(error) {
   };
 }
 
+function isSchemaMismatch(error) {
+  return error?.name === 'ZodError';
+}
+
 async function attachClientAssets(app, { config, rootDir }) {
   const distDir = path.join(rootDir, 'dist');
   if (config.isProduction) {
@@ -233,12 +237,19 @@ function registerApiRoutes(app, {
     }
 
     try {
-      const meeting = await generateMeeting({
+      const request = {
         provider: providerFactory(config),
         topic: req.body?.topic,
         presetId: req.body?.presetId,
         context: req.body?.context,
         personas: req.body?.personas,
+      };
+      const meeting = await generateMeeting({
+        ...request,
+      }).catch((error) => {
+        if (!isSchemaMismatch(error)) throw error;
+        logger.warn?.('模型返回结构不符合约定，自动重试一次。');
+        return generateMeeting(request);
       });
       return res.json(meeting);
     } catch (error) {

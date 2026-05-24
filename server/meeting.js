@@ -675,7 +675,10 @@ function completeDeliberationArtifacts(meeting, input) {
     })),
   };
   const memoryDiff = hasMemoryDiffContent(meeting.memoryDiff) ? meeting.memoryDiff : {
-    decisions: [{ text: decisionPacket.selectedOption.description, reason: decisionPacket.selectedOption.rationale }],
+    decisions: [{
+      text: decisionPacket.selectedOption.description,
+      reason: decisionPacket.selectedOption.rationale.slice(0, 220),
+    }],
     risks,
     assumptions: workspace.evidencePool
       .filter((evidence) => evidence.verificationStatus === 'assumption' || evidence.verificationStatus === 'unverified')

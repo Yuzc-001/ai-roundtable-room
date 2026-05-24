@@ -175,6 +175,43 @@ describe('createMeeting', () => {
     expect(provider.generate).toHaveBeenCalledTimes(1);
   });
 
+  test('keeps generated memory diffs within the public schema', async () => {
+    const provider = {
+      generate: vi.fn(async () => ({
+        content: JSON.stringify({
+          title: '长摘要圆桌',
+          turns: ['du', 'zhuo', 'li', 'heng', 'che'].map((speaker) => ({
+            speaker,
+            text: `${speaker} 发言。`,
+            thinking: [],
+            citations: [],
+            stance: 'neutral',
+            reactions: [],
+          })),
+          vote: {
+            question: '是否推进？',
+            results: ['zhuo', 'li', 'heng', 'che'].map((speaker) => ({
+              speaker,
+              vote: 'yes_with',
+              reason: '附条件推进',
+            })),
+            summary: '这是一个很长的收束理由。'.repeat(30),
+          },
+          risks: [],
+          actions: [],
+        }),
+      })),
+    };
+
+    const result = await createMeeting({
+      provider,
+      topic: '如何避免格式异常？',
+      presetId: 'product',
+    });
+
+    expect(result.memoryDiff.decisions[0].reason.length).toBeLessThanOrEqual(220);
+  });
+
   test('routes role turns across the configured provider pool', async () => {
     const makeProvider = (label) => ({
       generate: vi.fn(async ({ userPrompt }) => {

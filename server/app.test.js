@@ -177,6 +177,68 @@ describe('createApp', () => {
     }));
   });
 
+  test('accepts detailed multiline Chinese topics', async () => {
+    const generateMeeting = vi.fn().mockResolvedValue({
+      title: '测试会议',
+      turns: [{ speaker: 'du', text: '开场' }],
+      vote: { question: '是否推进？', results: {}, summary: '推进' },
+      risks: [],
+      actions: [],
+    });
+    const topic = `AI Agent 对个人用户而言，真正的核心竞争力，究竟是更聪明的模型，还是更懂你的工作流？
+
+当 AI Agent 开始进入个人生活与日常工作，人们真正需要的，究竟是一个“更强的大脑”，还是一个“更懂自己习惯”的数字助手？
+
+* 用户会更在意 Agent “聪不聪明”，还是“懂不懂我”？
+* Personal AI Agent 是否会成为每个人的第二大脑？
+* 用户会愿意把日程、邮件、文件甚至决策权交给 AI Agent 吗？`;
+    const app = await createApp({
+      config: loadConfig({ OPENAI_API_KEY: 'secret-key' }),
+      attachClient: false,
+      generateMeeting,
+    });
+
+    const response = await request(app, {
+      method: 'POST',
+      path: '/api/meetings',
+      body: { topic },
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateMeeting).toHaveBeenCalledWith(expect.objectContaining({ topic }));
+  });
+
+  test('retries once when model output fails schema validation', async () => {
+    const schemaError = Object.assign(new Error('invalid structure'), { name: 'ZodError' });
+    const generateMeeting = vi.fn()
+      .mockRejectedValueOnce(schemaError)
+      .mockResolvedValue({
+        title: '重试成功',
+        turns: [{ speaker: 'du', text: '开场' }],
+        vote: { question: '是否推进？', results: {}, summary: '推进' },
+        risks: [],
+        actions: [],
+      });
+    const logger = { error: vi.fn(), warn: vi.fn() };
+    const app = await createApp({
+      config: loadConfig({ OPENAI_API_KEY: 'secret-key' }),
+      attachClient: false,
+      generateMeeting,
+      logger,
+    });
+
+    const response = await request(app, {
+      method: 'POST',
+      path: '/api/meetings',
+      body: { topic: '测试' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('重试成功');
+    expect(generateMeeting).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith('模型返回结构不符合约定，自动重试一次。');
+  });
+
   test('accepts meetings after session verification', async () => {
     const generateMeeting = vi.fn().mockResolvedValue({
       title: '测试会议',
