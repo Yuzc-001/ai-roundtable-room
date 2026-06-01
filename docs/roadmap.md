@@ -33,3 +33,8 @@
 5. 可维护性
    - 引入端到端测试，覆盖打开页面、补充背景、导出纪要。
    - 抽出 provider adapter，方便将 OpenAI 替换为其他兼容模型服务。
+
+---
+
+**当前跟踪 (2026-05-24)**: 详细可执行计划见 `docs/superpowers/plans/2026-05-24-review-followup.md`（基于 2026-05-24 全面审查报告）。战略决策（含 A+E 升级路径）见 `docs/strategic-decisions.md`。本路线图的“下一阶段”5 项状态已在 progress.md + 新计划中建立 living tracking。
+**2026-05-25 update**: Phase 0 of 2026-05-25-professional-upgrade.md (语言/可信度 tone) completed (ee397ddb); see progress.md for execution + Roadmap Status refresh on items 1/3. Surface language now professional; protected DNA intact. Phase 1 CSS gated.

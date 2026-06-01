@@ -163,9 +163,12 @@ roundtable-projects/    本地运行时保存的项目快照
 
 ## 维护入口
 
+- 产品重塑总目标（2026-05-30）：[docs/product-reinvention-goal-2026-05-30.md](docs/product-reinvention-goal-2026-05-30.md)
 - 架构设计：[docs/architecture.md](docs/architecture.md)
+- 战略决策（A+E 路径）：[docs/strategic-decisions.md](docs/strategic-decisions.md)
 - 安全审计：[docs/security-audit.md](docs/security-audit.md)
-- 路线图：[docs/roadmap.md](docs/roadmap.md)
+- 路线图与跟踪：[docs/roadmap.md](docs/roadmap.md)（当前执行计划见 docs/superpowers/plans/2026-05-24-review-followup.md + 2026-05-25-professional-upgrade.md for 质感 surface work）
+- 专业 质感 升级计划（语言/排版/可信度层，按 e0751cfc 策略）：[docs/superpowers/plans/2026-05-25-professional-upgrade.md](docs/superpowers/plans/2026-05-25-professional-upgrade.md)（严格 A+E、保护工作系统、gated）
 - 贡献约定：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证
