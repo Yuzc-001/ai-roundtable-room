@@ -1,45 +1,19 @@
 import {
   AbsoluteFill,
-  Easing,
   Img,
   interpolate,
   staticFile,
   useCurrentFrame,
 } from 'remotion';
 
-const ease = Easing.bezier(0.16, 1, 0.3, 1);
-
-const clamp = {
-  extrapolateLeft: 'clamp',
-  extrapolateRight: 'clamp',
-};
-
-const enter = (frame, start, duration = 36) =>
-  interpolate(frame, [start, start + duration], [0, 1], {
-    ...clamp,
-    easing: ease,
-  });
-
-const exit = (frame, start, duration = 28) =>
-  interpolate(frame, [start, start + duration], [1, 0], {
-    ...clamp,
-    easing: Easing.in(Easing.cubic),
-  });
-
-const windowOpacity = (frame, start, end) =>
-  enter(frame, start) * exit(frame, end);
-
-const palette = {
-  ink: '#16261f',
-  muted: '#6f796f',
-  line: '#dfe3d4',
-  paper: '#f7f6ee',
-  green: '#1f4c41',
-  gold: '#b4894c',
-  red: '#b96f63',
-  blue: '#6f859e',
-  purple: '#9a87bd',
-};
+import {
+  palette,
+  enter,
+  exit,
+  windowOpacity,
+  Texture,
+  Callout,
+} from './lib/animation-utils.js';
 
 const roles = [
   { name: '渡', label: '主持定调', color: palette.gold, x: 250, y: 680 },
@@ -400,39 +374,6 @@ const ScreenshotScene = ({ frame, start, end, title, subtitle, image, callouts }
   );
 };
 
-const Callout = ({ callout, progress }) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: callout.x,
-      top: callout.y,
-      width: callout.w,
-      height: callout.h,
-      border: `4px solid ${palette.gold}`,
-      borderRadius: 8,
-      opacity: progress,
-      boxShadow: `0 0 0 ${interpolate(progress, [0, 1], [0, 10])}px rgba(180,137,76,0.12)`,
-    }}
-  >
-    <div
-      style={{
-        position: 'absolute',
-        left: 14,
-        top: -42,
-        background: palette.green,
-        color: '#fff',
-        borderRadius: 8,
-        padding: '9px 14px',
-        fontSize: 20,
-        fontWeight: 900,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {callout.label}
-    </div>
-  </div>
-);
-
 const PhaseRail = ({ frame, start }) => (
   <div
     style={{
@@ -623,25 +564,3 @@ const FooterPulse = ({ frame }) => {
   );
 };
 
-const Texture = () => (
-  <>
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background:
-          'radial-gradient(circle at 28% 18%, rgba(180,137,76,0.14), transparent 28%), radial-gradient(circle at 78% 26%, rgba(154,135,189,0.12), transparent 26%), radial-gradient(circle at 50% 92%, rgba(31,76,65,0.12), transparent 30%)',
-      }}
-    />
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage:
-          'linear-gradient(rgba(22,38,31,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(22,38,31,0.035) 1px, transparent 1px)',
-        backgroundSize: '54px 54px',
-        opacity: 0.45,
-      }}
-    />
-  </>
-);
