@@ -26,6 +26,215 @@ import {
   syncProjectFiles,
 } from './services/roundtableApi.js';
 
+const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
+const README_URL = `${GITHUB_URL}#readme`;
+const ISSUES_URL = `${GITHUB_URL}/issues`;
+const ROADMAP_URL = `${GITHUB_URL}/blob/main/docs/roadmap.md`;
+
+const LANDING_COPY = {
+  zh: {
+    language: 'EN',
+    nav: ['自部署', '工作流', 'FAQ', '更新'],
+    heroKicker: '开源 · 本地优先 · 可自部署',
+    title: '把复杂问题变成可复盘的决策包',
+    subtitle: 'AI 圆桌智库把一个高价值议题放进多种判断函数中碰撞，暴露分歧、标注证据缺口，并输出可执行的 Decision Packet。',
+    primary: '进入工作台',
+    demo: '查看演示',
+    github: 'GitHub',
+    badges: ['Self-hosted', 'API Key 自己掌握', '项目记忆可审批', '长期滚动更新'],
+    previewTitle: '一次审议会留下什么',
+    previewItems: ['关键分歧', '证据状态', '少数意见', '重开条件', '行动项'],
+    quickstartTitle: '本地部署',
+    quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
+    sections: [
+      ['为什么本地优先', '议题、项目记忆和 API Key 都由你自己掌控，适合私密项目、团队判断和长期知识沉淀。'],
+      ['不是多角色表演', '圆桌的价值不是头像轮流说话，而是让机会、风险、证据、用户心智和行动路径互相压测。'],
+      ['长期维护的开源项目', '面向 GitHub 公开评估持续打磨：测试、文档、路线图和自部署体验会一起演进。'],
+    ],
+    workflowTitle: '从问题到决策包',
+    workflow: [
+      ['输入议题', '写下一个需要权衡风险、证据和下一步的问题。'],
+      ['结构化审议', '主持协议推动发散、质询、分歧暴露和共识收拢。'],
+      ['沉淀资产', '输出 Decision Packet，并由你批准是否写入项目记忆。'],
+    ],
+    faqTitle: 'FAQ',
+    supportTitle: '开源支持',
+    supportCards: [
+      ['阅读文档', '从 README 和架构文档了解部署、配置和数据流。'],
+      ['提交 Issue', '反馈 bug、部署问题或产品建议。'],
+      ['参与路线图', '围绕自部署、模型适配、项目记忆和团队共享持续迭代。'],
+    ],
+    faq: [
+      ['它和直接问 ChatGPT 有什么不同？', '直接问单模型更适合事实查询和简单生成。AI 圆桌更适合高价值、含风险、证据不完整、需要保留反对意见的问题。'],
+      ['必须配置多个模型吗？', '不是。你可以先用一个已配置模型运行；多提供商适合做更强的判断差异和容错。'],
+      ['API Key 和数据会上传到哪里？', 'Key 只在本地服务端读取。议题、历史会议和项目记忆默认保存在你的本地环境中。'],
+      ['适合团队使用吗？', '适合团队先自部署评估。当前重点是个人/小团队本地工作台，团队共享和权限会按路线图推进。'],
+      ['会持续更新吗？', '会。项目目标是长期滚动更新，把本地部署、审议质量、记忆治理和导出分享做成可靠开源产品。'],
+    ],
+    footer: '开源、本地优先、为严肃判断而做。',
+  },
+  en: {
+    language: '中文',
+    nav: ['Self-host', 'Workflow', 'FAQ', 'Updates'],
+    heroKicker: 'Open source · Local-first · Self-hosted',
+    title: 'Turn complex questions into reviewable decision packets',
+    subtitle: 'AI Roundtable Room pressure-tests a high-value question through multiple judgment functions, surfaces disagreements, marks evidence gaps, and produces an actionable Decision Packet.',
+    primary: 'Enter workbench',
+    demo: 'View demo',
+    github: 'GitHub',
+    badges: ['Self-hosted', 'Bring your own API keys', 'Human-approved memory', 'Long-term updates'],
+    previewTitle: 'What one session preserves',
+    previewItems: ['Key tensions', 'Evidence status', 'Minority report', 'Reopen conditions', 'Action items'],
+    quickstartTitle: 'Self-host quickstart',
+    quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
+    sections: [
+      ['Why local-first', 'Your topics, project memory, and API keys stay under your control, suitable for private projects, team judgment, and long-lived knowledge.'],
+      ['Not role-play', 'The value is not avatars taking turns. It is opportunity, risk, evidence, user context, and next actions pressure-testing each other.'],
+      ['Maintained as open source', 'Built for public GitHub evaluation with tests, docs, roadmap, and self-hosting experience evolving together.'],
+    ],
+    workflowTitle: 'From question to packet',
+    workflow: [
+      ['Input a question', 'Start with a question that needs tradeoffs, evidence, risk, and a next move.'],
+      ['Structured deliberation', 'The moderator protocol drives divergence, examination, tension surfacing, and convergence.'],
+      ['Compound knowledge', 'Export a Decision Packet and decide what should enter project memory.'],
+    ],
+    faqTitle: 'FAQ',
+    supportTitle: 'Open-source support',
+    supportCards: [
+      ['Read the docs', 'Use the README and architecture docs to understand deployment, configuration, and data flow.'],
+      ['Open an issue', 'Report bugs, deployment friction, or product suggestions.'],
+      ['Shape the roadmap', 'Help evolve self-hosting, model adapters, project memory, and team sharing.'],
+    ],
+    faq: [
+      ['How is this different from asking ChatGPT directly?', 'Single-model chat is better for simple facts and generation. AI Roundtable Room is for high-value questions with risk, incomplete evidence, and useful dissent.'],
+      ['Do I need multiple models?', 'No. You can start with one configured provider. Multiple providers are useful for stronger judgment diversity and resilience.'],
+      ['Where do API keys and data go?', 'Keys are read by your local server. Topics, meeting history, and project memory are stored in your local environment by default.'],
+      ['Can teams use it?', 'Teams can self-host and evaluate it today. The current focus is a local workbench for individuals and small teams; sharing and permissions can evolve through the roadmap.'],
+      ['Will it keep getting updates?', 'Yes. The goal is a long-running open-source product with reliable self-hosting, better deliberation quality, memory governance, and export/share workflows.'],
+    ],
+    footer: 'Open source, local-first, built for serious judgment.',
+  },
+};
+
+function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
+  const copy = LANDING_COPY[lang] ?? LANDING_COPY.zh;
+  const supportLinks = [README_URL, ISSUES_URL, ROADMAP_URL];
+  return (
+    <div className="landing-shell">
+      <header className="landing-nav">
+        <div className="landing-brand">
+          <Logo />
+          <span>AI Roundtable Room</span>
+        </div>
+        <nav>
+          <a href="#self-host">{copy.nav[0]}</a>
+          <a href="#workflow">{copy.nav[1]}</a>
+          <a href="#faq">{copy.nav[2]}</a>
+          <a href={ROADMAP_URL} target="_blank" rel="noreferrer">{copy.nav[3]}</a>
+        </nav>
+        <div className="landing-nav-actions">
+          <button type="button" className="btn btn-ghost landing-lang" onClick={onToggleLang}>{copy.language}</button>
+          <a className="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
+          <button type="button" className="btn btn-primary" onClick={onEnter}>{copy.primary}</button>
+        </div>
+      </header>
+
+      <main>
+        <section className="landing-hero">
+          <div className="landing-hero-copy">
+            <div className="landing-kicker">{copy.heroKicker}</div>
+            <h1>{copy.title}</h1>
+            <p>{copy.subtitle}</p>
+            <div className="landing-cta-row">
+              <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
+              <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
+              <a className="btn btn-ghost landing-cta" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
+            </div>
+            <div className="landing-badges">
+              {copy.badges.map((badge) => <span key={badge}>{badge}</span>)}
+            </div>
+          </div>
+          <div className="landing-product-panel" aria-label={copy.previewTitle}>
+            <div className="landing-panel-head">
+              <span>{copy.previewTitle}</span>
+              <b>Decision Packet</b>
+            </div>
+            <img src="/remotion/live-meeting.png" alt="AI Roundtable Room workbench preview" />
+            <div className="landing-packet-list">
+              {copy.previewItems.map((item, index) => (
+                <div key={item} className="landing-packet-row">
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <b>{item}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="self-host" className="landing-band landing-two-col">
+          <div>
+            <h2>{copy.quickstartTitle}</h2>
+            <p>{copy.sections[0][1]}</p>
+          </div>
+          <pre className="landing-code"><code>{copy.quickstartLines.join('\n')}</code></pre>
+        </section>
+
+        <section className="landing-card-grid">
+          {copy.sections.map(([title, body]) => (
+            <article key={title} className="landing-info-card">
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
+          ))}
+        </section>
+
+        <section id="workflow" className="landing-band">
+          <div className="landing-section-head">
+            <h2>{copy.workflowTitle}</h2>
+          </div>
+          <div className="landing-workflow">
+            {copy.workflow.map(([title, body], index) => (
+              <article key={title}>
+                <span>{index + 1}</span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="faq" className="landing-faq">
+          <div className="landing-faq-side">
+            <h2>{copy.faqTitle}</h2>
+            <div className="landing-support">
+              <h3>{copy.supportTitle}</h3>
+              {copy.supportCards.map(([title, body], index) => (
+                <a key={title} href={supportLinks[index]} target="_blank" rel="noreferrer">
+                  <b>{title}</b>
+                  <span>{body}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="landing-faq-list">
+            {copy.faq.map(([question, answer], index) => (
+              <details key={question} open={index === 0}>
+                <summary>{question}</summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      <footer className="landing-footer">
+        <span>{copy.footer}</span>
+        <a href={GITHUB_URL} target="_blank" rel="noreferrer">github.com/Yuzc-001/ai-roundtable-room</a>
+      </footer>
+    </div>
+  );
+}
+
 export default function App() {
   const [personas, setPersonas] = useLocalStorage('roundtable:personas', PERSONAS);
   const [presetId, setPresetId] = useLocalStorage('roundtable:presetId', 'product');
@@ -33,6 +242,10 @@ export default function App() {
   const [archivedProjects, setArchivedProjects] = useLocalStorage('roundtable:archivedProjects', []);
   const [activeProjectId, setActiveProjectId] = useLocalStorage('roundtable:activeProjectId', 'default-project');
   const [theme, setTheme] = useLocalStorage('roundtable:theme', 'dark');
+  const [landingLang, setLandingLang] = useLocalStorage('roundtable:landingLang', 'zh');
+  const [viewMode, setViewMode] = useState(() => (
+    typeof window !== 'undefined' && window.location.pathname === '/app' ? 'workspace' : 'landing'
+  ));
   const [topic, setTopic] = useState('');
   const [meeting, setMeeting] = useState(DEMO_MEETING);
   const [meetingSource, setMeetingSource] = useState('idle');
@@ -99,6 +312,7 @@ export default function App() {
     const shareId = params.get('share');
     if (shareId) {
       setSharedMode(true);
+      setViewMode('workspace');
       setPlaybackStarted(true);
       getShareRequest(shareId)
         .then((data) => {
@@ -121,7 +335,12 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       syncProjectFiles({ projects: projectList, archivedProjects: archivedProjectList })
-        .catch(() => {});
+        .catch((e) => {
+          // Best-effort durability sync for project-memory FS snapshots.
+          // Errors are non-fatal (localStorage state remains); surfaced to console for ops visibility.
+          // Future: could surface via notify or doctor last-sync status.
+          console.warn('[project-memory] snapshot sync failed (best-effort, non-fatal):', e?.message || e);
+        });
     }, 300);
     return () => {
       clearTimeout(timer);
@@ -216,6 +435,14 @@ export default function App() {
     setSimPhaseIdx(0);
     setExportFeedback(null);
     setLoadedHistoryId(null);
+  };
+  const openLanding = () => {
+    returnHome();
+    setMobileMenuOpen(false);
+    setViewMode('landing');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+    }
   };
 
   // 点击历史会议 → 加载该场会议进行复盘查看
@@ -394,6 +621,19 @@ export default function App() {
     setPlaybackStarted(true);
     setLoadedHistoryId(null);
     notify('已载入演示审议');
+  };
+  const enterWorkbench = () => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/app') {
+      window.history.pushState({}, '', '/app');
+    }
+    setViewMode('workspace');
+  };
+  const showLandingDemo = () => {
+    showDemoMeeting();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/app') {
+      window.history.pushState({}, '', '/app');
+    }
+    setViewMode('workspace');
   };
 
   // #2 处理文件上传（PDF 解析并作为 Context）
@@ -614,6 +854,28 @@ export default function App() {
     notify('已忽略记忆建议（下次可重新生成）');
   };
   const canStart = topic.trim().length > 0 && status !== 'generating';
+  const healthDetail = health?.aiConfigured
+    ? `${health.providerName || '模型服务'} · ${health.model || '已配置'}`
+    : '';
+  const healthLabel = health
+    ? (health.aiConfigured ? '可生成真实审议' : '演示模式 · 未配置 API Key')
+    : '正在检查模型配置';
+  const primaryActionLabel = status === 'generating'
+    ? '审议生成中...'
+    : health?.aiConfigured === false
+      ? '查看演示审议'
+      : '启动结构化审议';
+
+  if (!sharedMode && viewMode === 'landing') {
+    return (
+      <LandingPage
+        lang={landingLang === 'en' ? 'en' : 'zh'}
+        onToggleLang={() => setLandingLang(landingLang === 'en' ? 'zh' : 'en')}
+        onEnter={enterWorkbench}
+        onDemo={showLandingDemo}
+      />
+    );
+  }
 
   return (
     <div className="app" data-focus-mode={focusMode ? 'true' : 'false'} data-mobile-menu={mobileMenuOpen ? 'true' : 'false'} data-generating={status === 'generating' ? 'true' : 'false'} data-shared={sharedMode ? 'true' : 'false'}>
@@ -627,19 +889,21 @@ export default function App() {
           <div className="sidebar-scroll">
             <nav className="nav-group">
               <div className="nav-title">决策上下文</div>
-              <select className="project-select-styled" value={activeProject?.id} onChange={(event) => { setActiveProjectId(event.target.value); setDeleteConfirmOpen(false); returnHome(); setMobileMenuOpen(false); }}>
-                {projectList.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-              </select>
+              <div className="select" style={{ maxWidth: 220 }}>
+                <select value={activeProject?.id} onChange={(event) => { setActiveProjectId(event.target.value); setDeleteConfirmOpen(false); returnHome(); setMobileMenuOpen(false); }}>
+                  {projectList.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                </select>
+              </div>
               <div className="project-nav-actions">
-                <button className="project-mini-btn" onClick={() => { setProjectCreatorOpen((open) => !open); /* keep open for form */ }}>+ 新建</button>
+                <button className="btn btn-subtle" onClick={() => { setProjectCreatorOpen((open) => !open); /* keep open for form */ }}>+ 新建</button>
                 {deleteConfirmOpen ? (
                   <div className="project-delete-confirm">
                     <span>移入归档箱？</span>
-                    <button onClick={() => setDeleteConfirmOpen(false)}>取消</button>
-                    <button className="danger" onClick={deleteActiveProject}>删除</button>
+                    <button className="btn btn-ghost" onClick={() => setDeleteConfirmOpen(false)}>取消</button>
+                    <button className="btn btn-danger" onClick={deleteActiveProject}>删除</button>
                   </div>
                 ) : (
-                  <button className="project-mini-btn danger" disabled={!canDeleteProject} onClick={() => setDeleteConfirmOpen(true)} title={canDeleteProject ? '删除当前项目' : '默认项目不能删除'}>
+                  <button className="btn btn-danger btn-sm" disabled={!canDeleteProject} onClick={() => setDeleteConfirmOpen(true)} title={canDeleteProject ? '删除当前项目' : '默认项目不能删除'}>
                     删除项目
                   </button>
                 )}
@@ -647,16 +911,16 @@ export default function App() {
               {projectCreatorOpen && (
                 <form className="project-create-form" onSubmit={createProject}>
                   <label htmlFor="project-name-input">新项目名称</label>
-                  <input id="project-name-input" value={projectDraft} onChange={(event) => setProjectDraft(event.target.value)} placeholder="例如：AI 圆桌上线" maxLength={40} />
+                  <input id="project-name-input" className="input" value={projectDraft} onChange={(event) => setProjectDraft(event.target.value)} placeholder="例如：AI 圆桌上线" maxLength={40} />
                   <div className="project-form-actions">
-                    <button type="button" onClick={() => { setProjectCreatorOpen(false); setProjectDraft(''); }}>取消</button>
-                    <button type="submit" disabled={!projectDraft.trim()}>创建</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setProjectCreatorOpen(false); setProjectDraft(''); }}>取消</button>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={!projectDraft.trim()}>创建</button>
                   </div>
                 </form>
               )}
               <div className="project-sidebar-controls">
                 <div className="nav-hint">{memoryEnabled ? '批准后的结论、风险和分歧会进入项目记忆。' : '项目记忆已关闭，只保留会议记录。'}</div>
-                <button className="memory-toggle" data-on={memoryEnabled ? 'true' : 'false'} aria-pressed={memoryEnabled} onClick={() => { toggleProjectMemory(); setMobileMenuOpen(false); }}>
+                <button className="btn btn-subtle memory-toggle" data-on={memoryEnabled ? 'true' : 'false'} aria-pressed={memoryEnabled} onClick={() => { toggleProjectMemory(); setMobileMenuOpen(false); }}>
                   <span>项目记忆</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '10px', opacity: 0.6 }}>{memoryEnabled ? '已开启' : '已关闭'}</span>
@@ -672,13 +936,13 @@ export default function App() {
                       <div><b>{project.name}</b><span>{project.meetings?.length ?? 0} 场会议</span></div>
                       {purgeConfirmId === project.id ? (
                         <div className="archive-actions">
-                          <button className="ghost-btn" onClick={() => setPurgeConfirmId(null)}>取消</button>
-                          <button className="ghost-btn ghost-btn--danger" onClick={() => purgeArchivedProject(project.id)}>确认彻底删除</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setPurgeConfirmId(null)}>取消</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => purgeArchivedProject(project.id)}>确认彻底删除</button>
                         </div>
                       ) : (
                         <div className="archive-actions">
-                          <button className="ghost-btn" onClick={() => restoreProject(project)}>恢复</button>
-                          <button className="ghost-btn ghost-btn--danger" onClick={() => setPurgeConfirmId(project.id)}>彻底删除</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => restoreProject(project)}>恢复</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setPurgeConfirmId(project.id)}>彻底删除</button>
                         </div>
                       )}
                     </div>
@@ -690,7 +954,7 @@ export default function App() {
               <div className="nav-title">审议协议</div>
               <div className="nav-list">
                 {Object.values(PRESETS).map((item) => (
-                  <button key={item.id} className={`nav-btn ${presetId === item.id ? 'active' : ''}`} onClick={() => { setPresetId(item.id); setMobileMenuOpen(false); }}>
+                  <button key={item.id} className={`btn btn-subtle nav-btn ${presetId === item.id ? 'active' : ''}`} onClick={() => { setPresetId(item.id); setMobileMenuOpen(false); }}>
                     <span className="icon">{item.icon}</span>
                     <span className="label">{item.name}</span>
                   </button>
@@ -699,12 +963,12 @@ export default function App() {
             </nav>
           </div>
           <div className="sidebar-foot">
-            <button className="nav-btn" onClick={() => { setTheme(theme === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false); }}>
-              <span className="icon">{theme === 'light' ? '☾' : '☼'}</span>
+            <button className="btn btn-subtle nav-btn" onClick={() => { setTheme(theme === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false); }}>
+              <span className="icon">{theme === 'light' ? '深' : '浅'}</span>
               <span className="label">外观：{theme === 'light' ? '深色' : '浅色'}</span>
             </button>
-            <button className="nav-btn" onClick={() => { showDemoMeeting(); setMobileMenuOpen(false); }}>
-              <span className="icon">◇</span>
+            <button className="btn btn-subtle nav-btn" onClick={() => { showDemoMeeting(); setMobileMenuOpen(false); }}>
+              <span className="icon">演</span>
               <span className="label">演示审议</span>
             </button>
           </div>
@@ -713,8 +977,19 @@ export default function App() {
       <main className="main-content">
         <header className="top-nav">
           {!sharedMode && (
-            <button className="icon-btn-lite mobile-only" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? '✕' : '☰'}
+            <button className="btn btn-subtle icon-btn-lite mobile-only" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? '关闭菜单' : '打开菜单'} title={mobileMenuOpen ? '关闭菜单' : '打开菜单'}>
+              {mobileMenuOpen ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 7h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 17h16" />
+                </svg>
+              )}
             </button>
           )}
           {sharedMode && (
@@ -725,7 +1000,7 @@ export default function App() {
             </div>
           )}
           <div className="topic-input-wrap" style={{ position: 'relative' }}>
-            <input className="topic-input" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="输入一个需要权衡、证据、风险和行动的复杂问题..." disabled={sharedMode || parsingFile || status === 'generating'} />
+            <textarea className="textarea topic-input" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="输入一个需要权衡、证据、风险和行动的复杂问题..." disabled={sharedMode || parsingFile || status === 'generating'} rows={2} />
             {!sharedMode && status !== 'generating' && (
               <label className="file-upload-lite" title="上传 PDF 报告作为背景数据">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -739,20 +1014,45 @@ export default function App() {
             )}
           </div>
           <div className="top-actions">
-            <button className={`icon-btn-lite ${focusMode ? 'active' : ''}`} onClick={() => setFocusMode(!focusMode)} title={focusMode ? '退出专注模式' : '进入专注模式'}>
-              {focusMode ? '⇲' : '⇱'}
+            {!sharedMode && (
+              <button className="btn btn-subtle workbench-home-btn" onClick={openLanding} title="返回首页">首页</button>
+            )}
+            <button className={`btn btn-subtle icon-btn-lite ${focusMode ? 'active' : ''}`} onClick={() => setFocusMode(!focusMode)} title={focusMode ? '退出专注模式' : '进入专注模式'} aria-label={focusMode ? '退出专注模式' : '进入专注模式'}>
+              {focusMode ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M8 3v5H3" />
+                  <path d="M16 3v5h5" />
+                  <path d="M8 21v-5H3" />
+                  <path d="M16 21v-5h5" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M8 3H3v5" />
+                  <path d="M16 3h5v5" />
+                  <path d="M8 21H3v-5" />
+                  <path d="M16 21h5v-5" />
+                </svg>
+              )}
             </button>
-            {playbackStarted && !sharedMode && <button className="icon-btn-lite" onClick={returnHome} title="回工作台">⌂</button>}
-            {sharedMode && (
-              <button className="primary-btn" onClick={saveToMyLibrary}>存入我的智库</button>
+            {playbackStarted && !sharedMode && (
+              <button className="btn btn-subtle icon-btn-lite" onClick={returnHome} title="回工作台" aria-label="回工作台">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m3 11 9-8 9 8" />
+                  <path d="M5 10v10h14V10" />
+                  <path d="M9 20v-6h6v6" />
+                </svg>
+              </button>
             )}
             {sharedMode && (
-              <button className="icon-btn-lite" onClick={() => { window.location.href = '/'; }} title="我也要发起审议">
+              <button className="btn btn-primary" onClick={saveToMyLibrary}>存入我的智库</button>
+            )}
+            {sharedMode && (
+              <button className="btn btn-subtle icon-btn-lite" onClick={() => { window.location.href = '/'; }} title="我也要发起审议">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             )}
             {!sharedMode && (
-              <button className="primary-btn" onClick={() => startMeeting()} disabled={!canStart}>{status === 'generating' ? '审议生成中...' : '启动结构化审议'}</button>
+              <button className="btn btn-primary" onClick={() => health?.aiConfigured === false ? showDemoMeeting() : startMeeting()} disabled={status === 'generating' || (health?.aiConfigured !== false && !canStart)}>{primaryActionLabel}</button>
             )}
           </div>
         </header>
@@ -776,22 +1076,38 @@ export default function App() {
                 </div>
               </div>
               {hasActiveMemory && (
-                <div className="gen-memory-cue">🧠 项目记忆已注入 · 历史结论/风险/分歧将参与本场审议</div>
+                <div className="gen-memory-cue">项目记忆已注入 · 历史结论/风险/分歧将参与本场认知碰撞</div>
               )}
               <p className="gen-meta">
-                这是一场多模型协作的结构化审议，我们正在协调 6 位专业大臣的观点。<br />
-                整个过程由系统自动推进，完成后将为您呈现完整的 Decision Packet。
+                这不是多角色表演，而是多判断函数的受控碰撞。<br />
+                系统会暴露关键分歧、证据缺口和下一步可选路径，再封装为 Decision Packet。
               </p>
             </div>
           ) : !playbackStarted ? (
             <div className="empty-session">
-              <div className="empty-eyebrow">Structured Deliberation</div>
-              <h1>你好，这里是你的“数字内阁”</h1>
-              <p>每场会议都会沉淀认知动作、证据状态、未解决分歧、Decision Packet 和可审批的项目记忆。</p>
+              <div className="empty-eyebrow">Local-first Decision Workbench</div>
+              <h1>把复杂问题打磨成可执行判断</h1>
+              <p>输入一个需要权衡证据、风险、用户心智和行动路径的问题。圆桌会按阶段暴露分歧、校准置信度，并把结果封装成可复盘的 Decision Packet。</p>
+              <div className="trust-strip" aria-label="产品可信度说明">
+                <span>本地优先</span>
+                <span>API Key 只在服务端读取</span>
+                <span>记忆需人工批准</span>
+                <span title={healthDetail || undefined}>{healthLabel}</span>
+              </div>
+              <div className="question-coach">
+                <div>
+                  <b>适合圆桌的问题</b>
+                  <span>高价值决策、多目标冲突、证据不完整、需要保留反对意见。</span>
+                </div>
+                <div>
+                  <b>不适合圆桌的问题</b>
+                  <span>简单事实查询、低风险润色、明确单步任务；这些更适合直接问单模型。</span>
+                </div>
+              </div>
               <div className="starter-grid">
-                <div className="starter-card" onClick={() => startMeeting('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？')}><b>产品深度评审</b><span>输出风险、分歧、重开条件和行动项。</span></div>
-                <div className="starter-card" onClick={() => startMeeting('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？')}><b>商业判断</b><span>拆解价值假设、定价风险和验证路径。</span></div>
-                <div className="starter-card" onClick={showDemoMeeting}><b>查看演示</b><span>先看一场结构化审议如何展开。</span></div>
+                <button type="button" className="starter-card btn btn-ghost" aria-label="启动产品认知压测" onClick={() => health?.aiConfigured === false ? setTopic('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？') : startMeeting('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？')}><b>产品认知压测</b><span>输出关键分歧、证据缺口、重开条件和用户下一步。</span></button>
+                <button type="button" className="starter-card btn btn-ghost" aria-label="启动商业判断" onClick={() => health?.aiConfigured === false ? setTopic('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？') : startMeeting('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？')}><b>商业判断</b><span>碰撞价值假设、定价风险和验证路径。</span></button>
+                <button type="button" className="starter-card btn btn-ghost" aria-label="启动示例演示" onClick={showDemoMeeting}><b>示例演示</b><span>无需 API Key，先观察完整审议流程与输出结构。</span></button>
               </div>
             </div>
           ) : (
@@ -800,7 +1116,7 @@ export default function App() {
                 <ModeratorConsole 
                   phase={currentTurn?.phase || (history.length > 0 ? history[history.length - 1].phase : 'Frame')} 
                   status={status}
-                  onAction={(action) => notify(`主持人已触发：${action === 'probe' ? '信息探测' : action === 'summarize' ? '阶段总结' : '强调分歧'}`)}
+                  onAction={(action) => notify(`主持协议建议：${action === 'probe' ? '补充信息缺口' : action === 'summarize' ? '收束当前判断' : '优先处理核心分歧'}`)}
                 />
               )}
               {history.map((turn, index) => (
@@ -811,8 +1127,8 @@ export default function App() {
               )}
               {showVote && (
                 <div className="final-block">
-                  {/* #5 审议完成仪式感 + 闭环引导：轻量成功提示，强化下一步（导出复盘是主CTA） */}
-                  <div className="success-ceremony">✧ 审议完成 · 6 阶段闭环 · Decision Packet 已封装 ✓ 建议审批记忆 · 一键导出 HTML 复盘</div>
+                  {/* 完成态行动面板：Decision Packet 作为核心 artifact，明确下一步 + 记忆审批闭环（per product-reinvention-goal: ending state = decision packet + clear actions + memory as first-class） */}
+                  <div className="success-ceremony">Decision Packet 已封装 · 审议闭环完成 · 请在右侧处理记忆审批以沉淀判断资产</div>
                   
                   {meeting?.usage && (
                     <div className="usage-indicator">
@@ -825,11 +1141,18 @@ export default function App() {
                   <DecisionPacketCard packet={meeting.decisionPacket} />
                   <VoteCard vote={meeting.vote} personas={personas} />
 
+                  {/* 记忆审批显性提示（仅完成态 + 有待批时）：复用现有 cue 风格，强调 human gate 价值，不改 sidebar 位置或 logic */}
+                  {pendingMemoryChanges.length > 0 && (
+                    <div className="gen-memory-cue" style={{marginTop: '12px', background: 'var(--surface-2)', borderColor: 'var(--accent)'}}>
+                      有 {pendingMemoryChanges.length} 条关键判断待审批入库 · 批准后自动用于未来审议，积累项目认知资产（核心价值闭环）
+                    </div>
+                  )}
+
                   {/* 复制模式切换 */}
                   <div className="copy-mode-switch">
                     <span className="copy-mode-label">复制模式</span>
                     <button
-                      className={`ghost-btn ${copyMode === 'concise' ? 'active' : ''}`}
+                      className={`btn btn-ghost ${copyMode === 'concise' ? 'active' : ''}`}
                       onClick={() => {
                         setCopyMode('concise');
                         localStorage.setItem('roundtable:copyMode', 'concise');
@@ -838,7 +1161,7 @@ export default function App() {
                       简洁
                     </button>
                     <button
-                      className={`ghost-btn ${copyMode === 'formal' ? 'active' : ''}`}
+                      className={`btn btn-ghost ${copyMode === 'formal' ? 'active' : ''}`}
                       onClick={() => {
                         setCopyMode('formal');
                         localStorage.setItem('roundtable:copyMode', 'formal');
@@ -850,7 +1173,7 @@ export default function App() {
 
                   <div className="finish-actions">
                     <button
-                      className={`ghost-btn-big ${exportFeedback === 'copied' ? 'export-success' : ''}`}
+                      className={`btn btn-ghost ${exportFeedback === 'copied' ? 'export-success' : ''}`}
                       onClick={() => copyCoreConclusions()}
                       disabled={exportFeedback === 'copied'}
                       title={copyMode === 'concise' 
@@ -859,30 +1182,30 @@ export default function App() {
                     >
                       {exportFeedback === 'copied' 
                         ? '✓ 已复制' 
-                        : copyMode === 'concise' ? '复制简洁结论' : '复制完整结论'}
+                        : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
                     </button>
                     <button
-                      className={`ghost-btn-big ${exportFeedback === 'md' ? 'export-success' : ''}`}
+                      className={`btn btn-ghost ${exportFeedback === 'md' ? 'export-success' : ''}`}
                       onClick={() => exportMinutes('md')}
                       disabled={!!exportFeedback}
                     >
-                      {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD'}
+                      {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
                     </button>
                     <button
-                      className={`primary-btn ${exportFeedback === 'share' ? 'export-success' : ''}`}
+                      className={`btn btn-primary ${exportFeedback === 'share' ? 'export-success' : ''}`}
                       onClick={() => generateShareLink()}
                       disabled={!!exportFeedback}
                     >
                       {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
                     </button>
                     <button
-                      className={`primary-btn ${exportFeedback === 'html' ? 'export-success' : ''}`}
+                      className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
                       onClick={() => exportMinutes('html')}
                       disabled={!!exportFeedback}
                     >
-                      {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML（推荐复盘）'}
+                      {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
                     </button>
-                    <button className="ghost-btn-big" onClick={returnHome}>返回工作台</button>
+                    <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
                   </div>
                 </div>
               )}
@@ -899,7 +1222,7 @@ export default function App() {
             <div className="project-stat-box"><span>历史场次</span><b>{activeProject.meetings?.length ?? 0}</b></div>
             <div className="project-stat-box"><span>已入库决策</span><b>{activeProject.memory?.decisions?.length ?? activeProject.memory?.summaries?.length ?? 0}</b></div>
             <div className="project-stat-box"><span>风险登记</span><b>{activeProject.memory?.riskRegister?.length ?? activeProject.memory?.risks?.length ?? 0}</b></div>
-            <div className="project-stat-box"><span>待审批记忆</span><b>{pendingMemoryChanges.length}</b></div>
+            <div className="project-stat-box"><span>记忆待审</span><b>{pendingMemoryChanges.length}</b></div>
           </div>
           {( (activeProject.memory?.decisions?.length || activeProject.memory?.summaries?.length || activeProject.memory?.riskRegister?.length || 0) > 0 ) && (
             <div className="memory-active-badge">✓ 记忆已激活 · 自动用于新审议</div>
@@ -950,7 +1273,7 @@ export default function App() {
                   {/* 主按钮：承载「复盘查看」动作，语义清晰、无角色嵌套 */}
                   <button
                     type="button"
-                    className="history-item-main"
+                    className="history-item-main btn btn-ghost"
                     aria-label={`查看历史会议复盘：${item.meeting.title}`}
                     onClick={() => viewHistoryMeeting(item)}
                   >
@@ -970,14 +1293,14 @@ export default function App() {
                       <div className="history-confirm-actions">
                         <button
                           type="button"
-                          className="ghost-btn"
+                          className="btn btn-ghost"
                           onClick={(e) => { e.stopPropagation(); cancelPermanentDelete(); }}
                         >
                           取消
                         </button>
                         <button
                           type="button"
-                          className="ghost-btn ghost-btn--danger"
+                          className="btn btn-danger"
                           onClick={(e) => { e.stopPropagation(); confirmPermanentDelete(item.id); }}
                         >
                           彻底删除
@@ -988,7 +1311,7 @@ export default function App() {
                     /* 普通删除按钮：hover 显露，触屏常驻；可撤销 */
                     <button
                       type="button"
-                      className="history-delete-btn"
+                      className="btn btn-subtle history-delete-btn"
                       aria-label={`删除历史会议：${item.meeting.title}（可撤销）`}
                       title="删除此历史记录（可撤销，5秒内可撤销）"
                       onClick={(e) => { e.stopPropagation(); deleteHistoryItem(item); }}
@@ -1020,7 +1343,7 @@ export default function App() {
           已删除「{lastDeleted.projectName || '当前项目'}」的历史会议
           <button
             type="button"
-            className="toast-undo-btn"
+            className="btn btn-ghost toast-undo-btn"
             onClick={undoDeleteHistoryItem}
           >
             撤销
