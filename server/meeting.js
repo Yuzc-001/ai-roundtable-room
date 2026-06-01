@@ -732,16 +732,16 @@ export function sanitizeMeeting(meeting, allowedSpeakerIds) {
   };
 }
 
-const SYSTEM_PROMPT = `你是“AI 圆桌会议室”的会议编排器。你的目标是围绕用户议题生成一场可上线产品可直接展示的中文圆桌讨论。
+const SYSTEM_PROMPT = `你是“AI Roundtable Room”的认知编排器。你的目标不是模拟多人会议，而是围绕用户议题生成一场可上线产品可直接展示的结构化认知增强流程。
 
 成功标准：
-- 这不是多角色表演，而是一场结构化审议。
-- 每位角色必须遵守自己的 contract，只做自己被允许的认知动作。
+- 这不是多角色表演，而是多判断函数的受控碰撞与收束。
+- 每位参与者必须遵守自己的 contract，只做自己被允许的认知动作，并证明该判断函数不可替代。
 - 每条发言必须标注 act、phase、confidence、evidenceLabel。
-- 主持人是协议执行器，负责探询、门控、分歧保留和最终封装，不替用户做价值判断。
+- 主持人是协议执行器，负责探询、门控、分歧保留、用户介入节点和最终封装，不替用户做价值判断。
 - 每段发言不超过 3 句话，避免空话。
 - 不要伪造论文、链接或具体来源；没有用户提供来源时 citations 返回空数组。
-- 必须保留风险、未解决分歧、证据状态、行动项和重开条件。
+- 必须保留风险、未解决分歧、证据状态、行动项、重开条件和下一步可选路径。
 - 只输出 JSON 对象，不要 Markdown，不要解释。`;
 
 const JSON_OUTPUT_CONTRACT = `JSON 结构：
@@ -850,7 +850,7 @@ async function generateWithProviderFallback({ router, speakerId, index, request,
 
 function buildTurnPrompt({ input, speaker, transcript, workspaceSnapshot, currentPhase }) {
   return JSON.stringify({
-    task: '请以指定角色完成这一轮圆桌发言，并回应前文。必须参考当前 Workspace 状态中的 tensions/evidence/openQuestions，必要时在发言中自然引用其 id 或核心描述。',
+    task: '请以指定判断函数完成这一轮认知碰撞，并回应前文。必须参考当前 Workspace 状态中的 tensions/evidence/openQuestions，必要时在发言中自然引用其 id 或核心描述；目标是暴露盲区、压迫假设或给出下一步选择，而不是完成角色表演。',
     topic: input.topic,
     context: input.context,
     preset: input.preset,
@@ -864,7 +864,7 @@ function buildTurnPrompt({ input, speaker, transcript, workspaceSnapshot, curren
 
 function buildSummaryPrompt({ input, transcript, workspace }) {
   return JSON.stringify({
-    task: '请作为主持人收束这场多 API 圆桌，输出投票、风险和行动。必须参考最终 workspace 里的真实 tensions 和 evidence 来填充 residualObjections、evidenceUsed 和 disagreements。',
+    task: '请作为主持协议收束这场多判断函数碰撞，输出投票、风险、行动和用户下一步可选路径。必须参考最终 workspace 里的真实 tensions 和 evidence 来填充 residualObjections、evidenceUsed 和 disagreements。',
     topic: input.topic,
     context: input.context,
     personas: input.personas,
@@ -877,12 +877,13 @@ async function createCompleteMeeting({ provider, input }) {
   const { content, usage } = await provider.generate({
     systemPrompt: `${SYSTEM_PROMPT}\n${JSON_OUTPUT_CONTRACT}`,
     userPrompt: JSON.stringify({
-      task: '请一次性生成一场完整中文圆桌会议。让发言之间互相回应，最后由主持人收束。',
+      task: '请一次性生成一场完整中文认知增强流程。让不同判断函数互相回应、挑战和修正，最后由主持协议收束为 Decision Packet 与用户下一步选择。',
       requirements: [
         'turns 必须是 5 到 8 轮，不能超过 8 轮。',
-        '每轮只允许一个角色发言，speaker 必须来自 personas 的 id。',
+        '每轮只允许一个判断函数发言，speaker 必须来自 personas 的 id。',
         '使用 Frame、Diverge、Surface、Examine、Converge、Decide、Document 的阶段思路组织内容。',
         '至少包含 1 条 OBJECTION、1 条 EVIDENCE、1 条 EMPATHY 和 1 条未解决 tension。',
+        '必须显式说明至少一个关键用户介入点：用户接下来应该选择继续深挖、收束决策、补充信息或切换方向。',
         'workspace 必须真实演化：tensions 仅来自 OBJECTION/PROBE 发言的 claim，evidencePool 仅来自 EVIDENCE 发言；每个条目必须可追溯到具体 turn。',
         'Decision Packet 必须包含 minorityReport、residualObjections、reopenConditions、evidenceUsed 和 actionItems。',
         'memoryDiff 只是建议入库变更，不能写成已经长期记忆。',
@@ -926,7 +927,7 @@ async function createRoutedMeeting({ router, input }) {
       speakerId: speaker.id,
       index,
       request: {
-        systemPrompt: `你是“${speaker.name}”，身份是“${speaker.title}”。${speaker.background}\n\n角色职责合约：${JSON.stringify(speaker.contract ?? {})}\n\n当前阶段：${currentPhase}。请参考 userPrompt 中的 workspace 快照（tensions/evidence/openQuestions）来组织回应，必要时自然引用其中的 id 或描述。保持 contract 边界。\n${TURN_OUTPUT_CONTRACT}`,
+        systemPrompt: `你是“${speaker.name}”，身份是“${speaker.title}”。${speaker.background}\n\n判断函数职责合约：${JSON.stringify(speaker.contract ?? {})}\n\n当前阶段：${currentPhase}。请参考 userPrompt 中的 workspace 快照（tensions/evidence/openQuestions）来组织回应，必要时自然引用其中的 id 或描述。保持 contract 边界；目标是让问题经受你的独特认知压力，而不是完成角色表演。\n${TURN_OUTPUT_CONTRACT}`,
         userPrompt: buildTurnPrompt({ input, speaker, transcript: turns, workspaceSnapshot: snap, currentPhase }),
       },
       parse: (text) => TurnDraftSchema.parse(parseModelJson(text)),
@@ -1024,7 +1025,7 @@ async function createRoutedMeeting({ router, input }) {
     speakerId: modPersona.id,
     index: speakers.length,
     request: {
-      systemPrompt: `你是“AI 圆桌会议室”的主持人。根据已经发生的多 API 讨论收束会议。参考最终 Workspace 状态输出完整决策所需信息。\n${SUMMARY_OUTPUT_CONTRACT}`,
+      systemPrompt: `你是“AI Roundtable Room”的主持协议。根据已经发生的多判断函数碰撞收束本轮认知增强流程。参考最终 Workspace 状态输出完整决策所需信息，并明确哪些分歧需要用户裁决或继续深挖。\n${SUMMARY_OUTPUT_CONTRACT}`,
       userPrompt: buildSummaryPrompt({ input, transcript: turns, workspace: finalSnap }),
     },
     parse: (text) => MeetingSummarySchema.parse(parseModelJson(text)),

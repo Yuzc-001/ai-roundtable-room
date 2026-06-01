@@ -51,10 +51,21 @@ export function Stage({ allPersonas, speakerId, onSeatClick }) {
                 bottom: `${yOffset}px`
               }}
             >
+              {/* 
+                Seat is intentionally a <div> (not native <button>) to preserve the complex JS arc positioning,
+                breathing animation, .avatar-wrap layering, persona color vars, and "克制正式" visual language
+                required by the product design (see ui-redesign-proposal.md and Stage component history).
+                Full native button conversion would require significant reflow/positioning changes and risk
+                visual regression in Focus/Mobile/generating modes. Minimal safe a11y (role, tabIndex, aria, key handler) added.
+              */}
               <div
                 className="seat"
                 data-state={isSpeaker ? 'speaking' : 'audience'}
+                role="button"
+                tabIndex={0}
+                aria-label={`${persona.name} 席位${isSpeaker ? '（发言中）' : ''}`}
                 onClick={() => onSeatClick?.(persona)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSeatClick?.(persona); } }}
                 style={{
                   '--ai-color': persona.color,
                   '--ai-soft': persona.softColor,
@@ -122,18 +133,18 @@ export function Bubble({ persona, text, isLive, citations, stance, isUser, isStr
         <div className="avatar" style={{ width: 36, height: 36, fontSize: 18, borderRadius: 10 }}>
           {persona.name}
         </div>
-        <div className="bubble-name">{persona.name} 大臣</div>
+        <div className="bubble-name">{persona.name}</div>
         {stance && (
           <div className="bubble-stance" data-stance={stance}>{stanceLabels[stance]}</div>
         )}
       </div>
       {(act || phase || evidenceLabel || typeof confidence === 'number' || providerName) && (
         <div className="bubble-protocol">
-          {phase && <span>{phase}</span>}
-          {act && <span>{ACT_LABELS[act] || act}</span>}
-          {evidenceLabel && <span>{EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}</span>}
-          {typeof confidence === 'number' && <span>置信度 {Math.round(confidence * 100)}%</span>}
-          {providerName && <span>{providerName}</span>}
+          {phase && <span className="tag tag-phase">{phase}</span>}
+          {act && <span className={`tag tag-act-${(act || '').toLowerCase()}`}>{ACT_LABELS[act] || act}</span>}
+          {evidenceLabel && <span className="tag">{EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}</span>}
+          {typeof confidence === 'number' && <span className="tag">置信度 {Math.round(confidence * 100)}%</span>}
+          {providerName && <span className="tag">{providerName}</span>}
         </div>
       )}
       <div className="bubble-text">
@@ -206,7 +217,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
       <div className="structured-panel-head">
         <div className="panel-title-wrap">
           <span className="panel-icon">▤</span>
-          <span>审议工作台 · Session Workspace</span>
+          <span>认知碰撞台 · Session Workspace</span>
         </div>
         <b>{tensions.filter((item) => item.status === 'open').length} 个开放分歧</b>
       </div>
@@ -218,7 +229,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
               <p>{item.description}</p>
               {item.status === 'resolved' && <span className="item-tag success">已解决</span>}
             </div>
-          )) : <p className="empty-text">暂无实质分歧。</p>}
+          )) : <p className="empty-text">暂无被命名的核心分歧。</p>}
         </div>
         <div className="workspace-section">
           <h4><span className="dot warning"></span> 开放问题</h4>
@@ -226,7 +237,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
             <div key={item.id} className="workspace-item">
               <p>{item.question}</p>
             </div>
-          )) : <p className="empty-text">暂无阻塞问题。</p>}
+          )) : <p className="empty-text">暂无需要用户补充或裁决的问题。</p>}
         </div>
         <div className="workspace-section">
           <h4><span className="dot info"></span> 证据池</h4>
@@ -310,7 +321,7 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
   return (
     <div className="moderator-console" data-generating={generating ? 'true' : undefined}>
       <div className="console-head">
-        <span className="console-label">主持控制台 · MODERATOR</span>
+        <span className="console-label">主持协议 · INTERVENTION</span>
         <div className="status-badge" data-busy={status === 'generating'}>
           {status === 'generating' ? '生成中...' : '待命'}
         </div>
@@ -331,26 +342,26 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
 
       {!generating && (
         <div className="console-actions">
-          <button className="console-btn" onClick={() => onAction?.('probe')}>
+          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('probe')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
-            探测缺口
+            补缺口
           </button>
-          <button className="console-btn" onClick={() => onAction?.('summarize')}>
+          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('summarize')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 6h18M3 12h18M3 18h12" />
             </svg>
-            阶段总结
+            收束判断
           </button>
-          <button className="console-btn" onClick={() => onAction?.('tensions')}>
+          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('tensions')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m17 5 5 5-5 5" />
               <path d="m7 19-5-5 5-5" />
               <path d="M2 14h20" />
             </svg>
-            强调分歧
+            处理分歧
           </button>
         </div>
       )}
@@ -363,7 +374,7 @@ export function DecisionPacketCard({ packet }) {
   return (
     <div className="decision-packet">
       <div className="decision-head">
-        <span>Decision Packet</span>
+        <span>Decision Packet · 下一步选择</span>
         <b>{packet.decisionType}</b>
       </div>
       <h3>{packet.selectedOption.description}</h3>
@@ -373,7 +384,7 @@ export function DecisionPacketCard({ packet }) {
         <b>{Math.round(packet.selectedOption.confidence * 100)}%</b>
       </div>
       <div className="decision-section">
-        <h4>保留异议</h4>
+        <h4>保留异议 / 需要用户裁决</h4>
         {(packet.residualObjections ?? []).length ? packet.residualObjections.map((item, index) => (
           <p key={index}>{item.objection}{item.addressedBy ? ` / 应对：${item.addressedBy}` : ''}</p>
         )) : <p>无保留异议。</p>}
@@ -383,7 +394,7 @@ export function DecisionPacketCard({ packet }) {
         <p>{packet.minorityReport?.position || '无少数意见。'}</p>
       </div>
       <div className="decision-section">
-        <h4>重开条件</h4>
+        <h4>重开条件 / 继续深挖触发器</h4>
         {(packet.reopenConditions ?? []).length ? packet.reopenConditions.map((item, index) => (
           <p key={index}>{item.condition} / {item.checkMechanism}</p>
         )) : <p>暂无重开条件。</p>}
@@ -405,24 +416,25 @@ export function MemoryReviewPanel({ changes = [], onApprove, onReject }) {
   return (
     <div className="memory-review">
       <div className="memory-review-head">
-        <span>待入库记忆</span>
+        <span>项目记忆审批</span>
         <b>{changes.length}</b>
       </div>
+      <div style={{fontSize:'11px', color:'var(--ink-3)', marginBottom:'12px', lineHeight:1.4}}>批准后这些判断将成为未来审议的认知资产，减少重复探索（核心价值闭环）</div>
       {changes.slice(0, 8).map((change) => (
         <div key={change.id} className="memory-change">
           <small>{CHANGE_LABELS[change.type] || change.type}</small>
           <p>{change.text || change.issue}</p>
           {change.mitigation && <em>{change.mitigation}</em>}
           <div className="memory-change-actions">
-            <button className="ghost-btn" onClick={() => onReject([change.id])}>忽略</button>
-            <button className="ghost-btn primary" onClick={() => onApprove([change.id])}>批准入库</button>
+            <button className="btn btn-ghost" onClick={() => onReject([change.id])}>暂不入库</button>
+            <button className="btn btn-primary" onClick={() => onApprove([change.id])}>确认入库此判断</button>
           </div>
         </div>
       ))}
       {changes.length > 1 && (
         <div className="memory-review-actions">
-          <button className="ghost-btn" onClick={() => onReject(changes.map((item) => item.id))}>全部忽略</button>
-          <button className="ghost-btn primary" onClick={() => onApprove(changes.map((item) => item.id))}>全部批准</button>
+          <button className="btn btn-ghost" onClick={() => onReject(changes.map((item) => item.id))}>全部暂不入库</button>
+          <button className="btn btn-primary" onClick={() => onApprove(changes.map((item) => item.id))}>全部确认入库</button>
         </div>
       )}
     </div>
@@ -442,25 +454,25 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
         <div className="drawer-head">
           <div className="avatar lg" style={{ '--ai-color': draft.color }}>{draft.name}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>档案：{draft.name} 大臣</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>档案：{draft.name}</div>
             <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>此配置将同步至机要处</div>
           </div>
-          <button onClick={onClose} style={{ fontSize: 24, opacity: 0.4 }}>✕</button>
+          <button className="btn btn-subtle" onClick={onClose} style={{ fontSize: 24, opacity: 0.4 }}>✕</button>
         </div>
         <div className="drawer-body">
           <div className="field">
             <label className="field-label">官衔姓名</label>
-            <input className="field-input" value={draft.name} maxLength={4}
+            <input className="input field-input" value={draft.name} maxLength={4}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
           </div>
           <div className="field">
             <label className="field-label">专业领域</label>
-            <input className="field-input" value={draft.title}
+            <input className="input field-input" value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
           </div>
           <div className="field">
             <label className="field-label">战略背景</label>
-            <textarea className="field-textarea" value={draft.background || ''} rows={5}
+            <textarea className="textarea field-textarea" value={draft.background || ''} rows={5}
               onChange={(e) => setDraft({ ...draft, background: e.target.value })}
               placeholder="例：宏观经济学泰斗，专注于非对称风险分析..." />
           </div>
@@ -468,11 +480,13 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
             <label className="field-label">勋章色调</label>
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               {colorOptions.map((color) => (
-                <div
+                <button
+                  type="button"
                   key={color}
+                  aria-label={`选择颜色 ${color}`}
                   onClick={() => setDraft({ ...draft, color })}
                   style={{
-                    width: 28, height: 28, borderRadius: 8, background: color, cursor: 'pointer',
+                    width: 28, height: 28, borderRadius: 8, background: color, cursor: 'pointer', padding: 0,
                     border: draft.color === color ? '2.5px solid var(--moderator)' : '1px solid var(--line)',
                     boxShadow: draft.color === color ? '0 0 12px rgba(181, 148, 16, 0.4)' : 'none'
                   }}
@@ -482,8 +496,8 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
           </div>
         </div>
         <div className="drawer-foot">
-          <button className="ghost-btn ghost-btn--reset" onClick={onReset}>恢复初始</button>
-          <button className="primary-btn" onClick={() => { onSave(draft); onClose(); }}>保存档案</button>
+          <button className="btn btn-ghost" onClick={onReset}>恢复初始</button>
+          <button className="btn btn-primary" onClick={() => { onSave(draft); onClose(); }}>保存档案</button>
         </div>
       </div>
     </>
