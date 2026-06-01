@@ -166,6 +166,9 @@ function registerApiRoutes(app, {
   });
 
   app.post('/api/project-files', async (req, res) => {
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
     try {
       const result = await saveProjectSnapshot({
         rootDir,

@@ -67,6 +67,16 @@ export async function saveProjectSnapshot({ rootDir, projects = [], archivedProj
   const activeList = Array.isArray(projects) ? projects : [];
   const archivedList = Array.isArray(archivedProjects) ? archivedProjects : [];
 
+  // Best-effort full-replace snapshot (rm + mkdir + parallel writes).
+  // **Accepted trade-off (final closure, post rereview-round-1)**: Unconditional destructive replace + no internal atomic rename / structured error return wrapper inside this module.
+  // Rationale for local-first single-user model (no shared DB, single-process deploys, human-in-loop via MemoryReviewPanel):
+  // - Mitigations already in place and documented: pendingMemoryChanges capped (40), memory lists capped (summaries 8, risks 16/24, etc.), explicit human approve gate before long-term persistence, 300ms debounced best-effort sync in App with now-improved console.warn logging + context, caller (app.js route) catches and returns 5xx.
+  // - No observed breakage in 71+ tests + repeated full verification runs (including post-fix-round).
+  // - Full atomic (temp dir + rename) or internal try/catch + structured return would be larger change than "smallest" and add complexity for a local durability path that is already best-effort by design (contrasts with the strong in-memory + localStorage + human gate primary paths).
+  // - Architecture.md and strategic-decisions.md frame the entire project-memory system (roundtable-projects/ + App wiring) as "best-effort local audit trail alongside browser state" under the A (extreme local professional) path.
+  // The comment + App logging improvement + architecture note make the assumption fully transparent. Future elevation of durability guarantees can revisit (see plan Task 5 deferred items).
+  // See architecture.md (Data Flow + project-files module), plan Execution Complete (accepted trade-offs), and merged review Responses for Issue 4/5.
+  // Errors bubble to caller for handling.
   await fs.mkdir(folder, { recursive: true });
   await Promise.all([
     fs.writeFile(path.join(folder, 'README.md'), [
