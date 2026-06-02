@@ -1,6 +1,6 @@
 {
   "name": "ai-roundtable-room",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A production-ready AI roundtable room for multi-perspective meeting generation.",
   "license": "MIT",
   "private": false,
