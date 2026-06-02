@@ -67,6 +67,9 @@ import { getLandingPageFromPath, getLandingPath, isWorkbenchPath } from './lib/l
 import { formatHealthCheckError, mergeHealthOnCheckFailure } from './lib/healthCheck.js';
 import { MIN_ENV_SNIPPET, SETUP_STEPS } from './lib/setup.js';
 import pkg from '../package.json';
+import { Button, Chip, IconButton } from './ui/index.js';
+
+const SIDEBAR_SCENARIO_LIMIT = 5;
 
 function resolveAppView(pathname) {
   return isWorkbenchPath(pathname) ? 'workspace' : 'landing';
@@ -146,6 +149,11 @@ export default function App() {
   );
   const activeProject = useMemo(() => projectList.find((project) => project.id === activeProjectId) || projectList[0], [projectList, activeProjectId]);
   const allScenarios = useMemo(() => listScenarios(userScenarios, scenarioPrefs), [userScenarios, scenarioPrefs]);
+  const sidebarScenarios = useMemo(
+    () => allScenarios.slice(0, SIDEBAR_SCENARIO_LIMIT),
+    [allScenarios],
+  );
+  const hasMoreScenarios = allScenarios.length > SIDEBAR_SCENARIO_LIMIT;
   const selectedScenario = useMemo(
     () => findScenario(allScenarios, selectedScenarioId) || allScenarios[0],
     [allScenarios, selectedScenarioId],
@@ -965,6 +973,18 @@ export default function App() {
     : health?.aiConfigured === false
       ? '查看演示审议'
       : '启动结构化审议';
+  const showWorkbenchPrimary = !sharedMode && playbackStarted;
+  const startDeliberationDisabled = status === 'generating' || (health?.aiConfigured !== false && !canStart);
+
+  const handleStartDeliberation = () => {
+    if (health?.aiConfigured === false) showDemoMeeting();
+    else startMeeting();
+  };
+
+  const scrollToWorkbenchSection = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setMobileMenuOpen(false);
+  };
 
   if (!sharedMode && viewMode === 'landing') {
     return (
@@ -991,7 +1011,7 @@ export default function App() {
           </div>
           <div className="sidebar-scroll">
             <nav className="nav-group">
-              <div className="nav-title">决策上下文</div>
+              <div className="nav-title">项目</div>
               <div className="select" style={{ maxWidth: 220 }}>
                 <select value={activeProject?.id} onChange={(event) => { setActiveProjectId(event.target.value); setDeleteConfirmOpen(false); returnHome(); setMobileMenuOpen(false); }}>
                   {projectList.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
@@ -1054,9 +1074,9 @@ export default function App() {
               )}
             </nav>
             <nav className="nav-group">
-              <div className="nav-title">审议场景</div>
+              <div className="nav-title">当前场景</div>
               <div className="nav-list">
-                {allScenarios.map((item) => (
+                {sidebarScenarios.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -1068,36 +1088,99 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <button type="button" className="btn btn-ghost btn-sm scenario-manage-btn" onClick={() => { setScenarioManagerOpen(true); setMobileMenuOpen(false); }}>
-                管理场景…
-              </button>
-              <a
-                className="btn btn-ghost btn-sm scenario-manage-btn"
-                href="/scenario-guide"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
+              <div className="sidebar-scenario-links">
+                {hasMoreScenarios && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="scenario-manage-btn"
+                    onClick={() => { setScenarioManagerOpen(true); setMobileMenuOpen(false); }}
+                  >
+                    更多场景…
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="scenario-manage-btn"
+                  onClick={() => { setScenarioManagerOpen(true); setMobileMenuOpen(false); }}
+                >
+                  管理场景
+                </Button>
+              </div>
+            </nav>
+            <nav className="nav-group">
+              <div className="nav-title">任务</div>
+              <p className="nav-hint sidebar-task-hint">
+                {activeTask ? `当前：${activeTask.title}` : '未绑定任务 · 新审议可挂入任务线'}
+              </p>
+              <Button
+                type="button"
+                variant="subtle"
+                className="nav-btn"
+                onClick={() => scrollToWorkbenchSection('workbench-tasks')}
               >
-                场景编写说明
-              </a>
+                <span className="icon">务</span>
+                <span className="label">审议任务 ({activeProject?.tasks?.length ?? 0})</span>
+              </Button>
+            </nav>
+            <nav className="nav-group">
+              <div className="nav-title">历史</div>
+              <Button
+                type="button"
+                variant="subtle"
+                className="nav-btn"
+                onClick={() => scrollToWorkbenchSection('workbench-history')}
+              >
+                <span className="icon">史</span>
+                <span className="label">会议记录 ({activeProject?.meetings?.length ?? 0})</span>
+              </Button>
             </nav>
           </div>
           <div className="sidebar-foot">
-            <button className="btn btn-subtle nav-btn" onClick={() => { setTheme(theme === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false); }}>
+            {!playbackStarted && (
+              <Button
+                type="button"
+                variant="primary"
+                className="sidebar-primary-cta"
+                loading={status === 'generating'}
+                disabled={startDeliberationDisabled}
+                onClick={handleStartDeliberation}
+              >
+                发起审议
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="subtle"
+              className="nav-btn"
+              onClick={() => { setTheme(theme === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false); }}
+            >
               <span className="icon">{theme === 'light' ? '深' : '浅'}</span>
               <span className="label">外观：{theme === 'light' ? '深色' : '浅色'}</span>
-            </button>
-            <button className="btn btn-subtle nav-btn" onClick={() => { showDemoMeeting(); setMobileMenuOpen(false); }}>
+            </Button>
+            <Button
+              type="button"
+              variant="subtle"
+              className="nav-btn"
+              onClick={() => { showDemoMeeting(); setMobileMenuOpen(false); }}
+            >
               <span className="icon">演</span>
               <span className="label">演示审议</span>
-            </button>
+            </Button>
           </div>
         </aside>
       )}
       <main className="main-content">
         <header className="top-nav">
           {!sharedMode && (
-            <button className="btn btn-subtle icon-btn-lite mobile-only" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? '关闭菜单' : '打开菜单'} title={mobileMenuOpen ? '关闭菜单' : '打开菜单'}>
+            <IconButton
+              className="mobile-only"
+              label={mobileMenuOpen ? '关闭菜单' : '打开菜单'}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
               {mobileMenuOpen ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6 6 18" />
@@ -1110,7 +1193,7 @@ export default function App() {
                   <path d="M4 17h16" />
                 </svg>
               )}
-            </button>
+            </IconButton>
           )}
           {sharedMode && (
             <div className="brand-section" style={{ border: 'none', height: 'auto', padding: 0 }}>
@@ -1135,9 +1218,13 @@ export default function App() {
           </div>
           <div className="top-actions">
             {!sharedMode && (
-              <button className="btn btn-subtle workbench-home-btn" onClick={openLanding} title="返回首页">首页</button>
+              <Button variant="subtle" className="workbench-home-btn" onClick={openLanding} title="返回首页">首页</Button>
             )}
-            <button className={`btn btn-subtle icon-btn-lite ${focusMode ? 'active' : ''}`} onClick={() => setFocusMode(!focusMode)} title={focusMode ? '退出专注模式' : '进入专注模式'} aria-label={focusMode ? '退出专注模式' : '进入专注模式'}>
+            <IconButton
+              active={focusMode}
+              label={focusMode ? '退出专注模式' : '进入专注模式'}
+              onClick={() => setFocusMode(!focusMode)}
+            >
               {focusMode ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M8 3v5H3" />
@@ -1153,26 +1240,33 @@ export default function App() {
                   <path d="M16 21h5v-5" />
                 </svg>
               )}
-            </button>
+            </IconButton>
             {playbackStarted && !sharedMode && (
-              <button className="btn btn-subtle icon-btn-lite" onClick={returnHome} title="回工作台" aria-label="回工作台">
+              <IconButton label="回工作台" onClick={returnHome}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m3 11 9-8 9 8" />
                   <path d="M5 10v10h14V10" />
                   <path d="M9 20v-6h6v6" />
                 </svg>
-              </button>
+              </IconButton>
             )}
             {sharedMode && (
-              <button className="btn btn-primary" onClick={saveToMyLibrary}>存入我的智库</button>
+              <Button variant="primary" onClick={saveToMyLibrary}>存入我的智库</Button>
             )}
             {sharedMode && (
-              <button className="btn btn-subtle icon-btn-lite" onClick={() => { window.location.href = '/'; }} title="我也要发起审议">
+              <IconButton label="我也要发起审议" onClick={() => { window.location.href = '/'; }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </button>
+              </IconButton>
             )}
-            {!sharedMode && (
-              <button className="btn btn-primary" onClick={() => health?.aiConfigured === false ? showDemoMeeting() : startMeeting()} disabled={status === 'generating' || (health?.aiConfigured !== false && !canStart)}>{primaryActionLabel}</button>
+            {showWorkbenchPrimary && (
+              <Button
+                variant="primary"
+                loading={status === 'generating'}
+                disabled={startDeliberationDisabled}
+                onClick={handleStartDeliberation}
+              >
+                {primaryActionLabel}
+              </Button>
             )}
           </div>
         </header>
@@ -1245,9 +1339,23 @@ export default function App() {
             </div>
           ) : !playbackStarted ? (
             <div className="empty-session">
-              <div className="empty-eyebrow">Local-first Decision Workbench</div>
+              <div className="empty-eyebrow">议事厅 · 本地决策档案</div>
               <h1>把复杂问题打磨成可执行判断</h1>
               <p>输入一个需要权衡证据、风险、用户心智和行动路径的问题。圆桌会按阶段暴露分歧、校准置信度，并把结果封装成可复盘的 Decision Packet。</p>
+              <div className="empty-session-cta">
+                <Button
+                  variant="primary"
+                  className="empty-session-primary"
+                  loading={status === 'generating'}
+                  disabled={startDeliberationDisabled}
+                  onClick={handleStartDeliberation}
+                >
+                  {primaryActionLabel}
+                </Button>
+                {health?.aiConfigured === false && (
+                  <Button variant="secondary" onClick={showDemoMeeting}>先看演示审议</Button>
+                )}
+              </div>
               <div className="trust-strip" aria-label="产品可信度说明">
                 <span>本地优先</span>
                 <span>API Key 只在服务端读取</span>
@@ -1282,28 +1390,32 @@ export default function App() {
                   {activeTask && <span className="active-task-pill">当前任务：{activeTask.title}</span>}
                 </div>
                 <div className="template-picker-chips">
-                  {allScenarios.map((s) => (
-                    <button
+                  {sidebarScenarios.map((s) => (
+                    <Chip
                       key={s.id}
-                      type="button"
-                      className={`template-chip btn btn-ghost${selectedScenarioId === s.id ? ' active' : ''}`}
+                      active={selectedScenarioId === s.id}
+                      className="template-chip"
                       onClick={() => handleSelectScenario(s.id)}
                     >
                       <span className="template-chip-category">{s.builtin ? '内置' : '自定义'}</span>
                       {s.icon} {s.name}
-                    </button>
+                    </Chip>
                   ))}
-                  <button type="button" className="template-chip btn btn-ghost" onClick={() => setScenarioManagerOpen(true)}>+ 管理场景</button>
+                  {hasMoreScenarios && (
+                    <Chip className="template-chip" onClick={() => setScenarioManagerOpen(true)}>更多</Chip>
+                  )}
+                  <Button type="button" variant="ghost" size="sm" className="template-manage-link" onClick={() => setScenarioManagerOpen(true)}>
+                    管理场景
+                  </Button>
                 </div>
               </div>
               <div className="template-picker template-picker--secondary">
                 <div className="template-picker-label">议题快捷填入</div>
                 <div className="template-picker-chips">
                   {TOPIC_TEMPLATES.map((tpl) => (
-                    <button
+                    <Chip
                       key={tpl.id}
-                      type="button"
-                      className="template-chip btn btn-ghost"
+                      className="template-chip"
                       title={tpl.hint}
                       aria-label={`使用议题模板：${tpl.label}`}
                       onClick={() => {
@@ -1313,7 +1425,7 @@ export default function App() {
                     >
                       <span className="template-chip-category">{tpl.category}</span>
                       {tpl.label}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               </div>
@@ -1504,6 +1616,7 @@ export default function App() {
           )}
         </div>
         <MemoryReviewPanel changes={pendingMemoryChanges} onApprove={approveMemoryChanges} onReject={rejectMemoryChanges} />
+        <div id="workbench-tasks">
         <TaskPanel
           project={activeProject}
           scenarios={allScenarios}
@@ -1530,13 +1643,14 @@ export default function App() {
           }}
           onOpenMeeting={viewHistoryMeeting}
         />
+        </div>
         {meeting?.workspace && playbackStarted && (
           <>
             <div className="info-header">本场审议实况</div>
             <WorkspacePanel workspace={meeting.workspace} isCompact={focusMode} />
           </>
         )}
-        <div className="info-header">会议历史</div>
+        <div id="workbench-history" className="info-header">历史</div>
         {showHistorySearch && (
           <input
             id="history-search"

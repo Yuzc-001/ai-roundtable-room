@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2 — 2026-06-02
+
+### 议事厅视觉重构与统一按钮体系
+
+- 新增 `docs/ui-principles.md` 与 `src/ui/`（`Button` / `Chip` / `IconButton`）五级按钮组件
+- 样式分层：`tokens.css`、`components/buttons.css`、`layout/shell.css`、`landing.css` 由 `styles.css` 导入
+- 工作台侧栏分组：项目 / 当前场景 / 任务 / 历史；底栏单一主行动「发起审议」
+- 空会话：场景 chip 最多 5 个 +「更多」；主 CTA 与侧栏/顶栏遵守「一屏一 primary」
+- 场景管理行操作改为溢出菜单；任务卡片层级与 `secondary` 新建任务
+- 官网 `--lp-*` 与 workspace 色板对齐；标题 serif（LXGW WenKai）；探索区卡片样式收紧
+
 ## 1.3.1 — 2026-06-02
 
 ### 场景易用性与官网体验

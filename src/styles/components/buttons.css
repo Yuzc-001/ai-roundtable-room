@@ -1,0 +1,104 @@
+﻿/* Buttons — every <button> in the app must use these classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s var(--ease-fast);
+  -webkit-font-smoothing: antialiased;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(0.985); }
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 40%, transparent);
+  border-color: var(--focus-ring);
+}
+.btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  transform: none;
+}
+
+/* Variants */
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--primary) 88%, #000); border-color: color-mix(in srgb, var(--primary) 88%, #000); }
+.btn-primary:active { background: color-mix(in srgb, var(--primary) 78%, #000); }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--line-strong));
+}
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  border-color: var(--primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--ink); }
+.btn-ghost:focus-visible { border-color: var(--focus-ring); }
+
+.btn-danger {
+  background: var(--risk);
+  color: #fff;
+  border-color: var(--risk);
+}
+.btn-danger:hover { background: color-mix(in srgb, var(--risk) 88%, #000); }
+
+.btn-subtle {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.btn-subtle:hover { background: var(--surface-2); color: var(--ink); }
+
+/* Sizes */
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+
+.btn-loading { position: relative; }
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+.btn-label--loading { opacity: 0.85; }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .btn-spinner { animation: none; border-top-color: currentColor; }
+  .btn:hover { transform: none; }
+}
+
+.ui-chip {
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 13px;
+}
+.ui-chip--active,
+.template-chip.ui-chip--active {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface));
+  color: var(--teal);
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from './ui/index.js';
 import { getVerifyStepContinueLabel } from './lib/healthCheck.js';
 import { formatDecisionTypeLabel } from './lib/minutes.js';
 
@@ -924,15 +925,9 @@ export function ContinueDeliberationPanel({
         placeholder="例如：如果预算砍半，最小验证路径是什么？"
         disabled={disabled}
       />
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={onSubmit}
-        disabled={disabled}
-        title={disabledHint}
-      >
+      <Button type="button" variant="primary" onClick={onSubmit} disabled={disabled} title={disabledHint}>
         基于此发起继续审议
-      </button>
+      </Button>
     </section>
   );
 }

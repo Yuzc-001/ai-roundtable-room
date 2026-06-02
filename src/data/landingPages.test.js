@@ -45,10 +45,10 @@ describe('landingPages', () => {
   test('RELEASE_NOTES includes current version with EN highlights', () => {
     const release = RELEASE_NOTES.find((r) => r.version === packageVersion);
     expect(release).toBeDefined();
-    expect(release.highlights.join(' ')).toMatch(/场景编写|scenario-guide|内置场景|审议任务/i);
+    expect(release.highlights.join(' ')).toMatch(/议事厅|五级按钮|发起审议|侧栏分组/i);
     expect(release.highlightsEn?.length).toBeGreaterThanOrEqual(3);
     const enFirst = getLocalizedReleaseNotes('en')[0].highlights.join(' ');
-    expect(enFirst).toMatch(/scenario writing guide|built-ins editable/i);
+    expect(enFirst).toMatch(/Archival UI|five-level button|Start deliberation/i);
     expect(enFirst).not.toMatch(/官网文案/);
   });
 

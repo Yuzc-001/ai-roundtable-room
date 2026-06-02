@@ -1,7 +1,21 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '1.3.1',
+    version: '1.3.2',
+    date: '2026-06-02',
+    highlights: [
+      '议事厅档案感视觉重构：统一五级按钮（primary / secondary / ghost / subtle / danger）',
+      '侧栏分组（项目·场景·任务·历史）与单一主行动「发起审议」；空会话场景最多展示 5 个',
+      '样式分层导入与官网色板对齐；场景管理行操作改为溢出菜单',
+    ],
+    highlightsEn: [
+      'Archival UI refresh: five-level button system (primary / secondary / ghost / subtle / danger)',
+      'Sidebar sections (project · scenario · task · history) with one primary “Start deliberation”; up to 5 scenario chips on empty state',
+      'Split CSS imports and aligned landing palette; scenario row actions in overflow menu',
+    ],
+  },
+  {
+    version: '1.3.2',
     date: '2026-06-02',
     highlights: [
       '场景编写说明页 /scenario-guide；内置场景可编辑、隐藏、复制为我的场景',
@@ -140,7 +154,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.3.1',
+    version: '1.3.2',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -256,7 +270,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.3.1',
+    version: '1.3.2',
     language: '中文',
     brand: 'Roundtable',
     nav: [

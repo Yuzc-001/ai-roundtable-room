@@ -1,4 +1,5 @@
 import { Logo } from './components.jsx';
+import { Button } from './ui/index.js';
 import { getLocalizedReleaseNotes, LANDING_SITE } from './data/landingPages.js';
 import { SCENARIO_GUIDE } from './data/scenarioGuide.js';
 import { getLandingPath } from './lib/landingRoutes.js';
@@ -29,9 +30,9 @@ function LandingNav({ copy, page, onNavigate, onToggleLang, onEnter }) {
         ))}
       </nav>
       <div className="landing-nav-actions">
-        <button type="button" className="btn btn-ghost landing-lang" onClick={onToggleLang}>{copy.language}</button>
+        <Button type="button" variant="ghost" className="landing-lang" onClick={onToggleLang}>{copy.language}</Button>
         <a className="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
-        <button type="button" className="btn btn-primary" onClick={onEnter}>{copy.primary}</button>
+        <Button type="button" variant="primary" onClick={onEnter}>{copy.primary}</Button>
       </div>
     </header>
   );
@@ -39,9 +40,9 @@ function LandingNav({ copy, page, onNavigate, onToggleLang, onEnter }) {
 
 function LandingBack({ label, onNavigate }) {
   return (
-    <button type="button" className="landing-back btn btn-ghost" onClick={() => onNavigate('home')}>
+    <Button type="button" variant="ghost" className="landing-back" onClick={() => onNavigate('home')}>
       ← {label}
-    </button>
+    </Button>
   );
 }
 
@@ -72,8 +73,8 @@ function LandingScenarioGuide({ copy, lang, onNavigate, onEnter }) {
         </ul>
       </section>
       <div className="landing-cta-row landing-guide-cta">
-        <button type="button" className="btn btn-primary" onClick={onEnter}>{g.ctaWorkbench}</button>
-        <button type="button" className="btn btn-ghost" onClick={() => onNavigate('scenarios')}>查看适用场景</button>
+        <Button type="button" variant="primary" onClick={onEnter}>{g.ctaWorkbench}</Button>
+        <Button type="button" variant="ghost" onClick={() => onNavigate('scenarios')}>查看适用场景</Button>
       </div>
     </article>
   );
@@ -88,8 +89,8 @@ function LandingHome({ copy, onNavigate, onEnter, onDemo }) {
         <h1>{h.title}</h1>
         <p className="landing-deck">{h.deck}</p>
         <div className="landing-cta-row">
-          <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
-          <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
+          <Button type="button" variant="primary" className="landing-cta" onClick={onEnter}>{copy.primary}</Button>
+          <Button type="button" variant="secondary" className="landing-cta" onClick={onDemo}>{copy.demo}</Button>
         </div>
       </section>
       <section className="landing-shot landing-animate-in landing-animate-in--delay-1">

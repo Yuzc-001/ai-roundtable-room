@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PERSONAS, PRESETS } from '../data/personas.js';
 import { SCENARIO_GUIDE, SCENARIO_TOPIC_PLACEHOLDER } from '../data/scenarioGuide.js';
 import {
@@ -16,6 +16,7 @@ import {
   validateScenarioForSave,
 } from '../lib/scenarios.js';
 import { getLandingPath } from '../lib/landingRoutes.js';
+import { Button, Chip, IconButton } from '../ui/index.js';
 
 const EMPTY_DRAFT = {
   id: '',
@@ -28,6 +29,51 @@ const EMPTY_DRAFT = {
   builtin: false,
   builtinId: null,
 };
+
+function ScenarioRowMenu({ scenario, onEdit, onFork, onDelete, onRestoreOverride, hasOverride }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [open]);
+
+  return (
+    <div className="scenario-row-menu" ref={rootRef}>
+      <IconButton
+        variant="ghost"
+        className="scenario-row-menu-trigger"
+        label={`${scenario.name} 的操作`}
+        active={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="12" cy="19" r="1.8" />
+        </svg>
+      </IconButton>
+      {open && (
+        <div className="scenario-row-menu-panel" role="menu">
+          <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onEdit(); setOpen(false); }}>编辑</Button>
+          <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onFork(); setOpen(false); }}>复制</Button>
+          <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onDelete(); setOpen(false); }}>删除</Button>
+          {hasOverride && (
+            <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onRestoreOverride(); setOpen(false); }}>还原</Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ScenarioManager({
   open,
@@ -142,8 +188,8 @@ export function ScenarioManager({
   };
 
   const toggleParticipant = (id) => {
-    const preset = PRESETS[draft.presetId] ?? PRESETS.product;
-    if (id === preset.moderator) return;
+    const mod = PRESETS[draft.presetId]?.moderator;
+    if (id === mod) return;
     setDraft((prev) => {
       const set = new Set(prev.customParticipants || []);
       if (set.has(id)) set.delete(id);
@@ -167,17 +213,17 @@ export function ScenarioManager({
           <h2 id="scenario-manager-title">审议场景</h2>
           <p className="modal-lead">
             场景支持增删改：内置可编辑覆盖或隐藏；自定义场景可完全管理。
-            <button type="button" className="scenario-guide-link btn btn-ghost btn-sm" onClick={openGuidePage}>
+            <Button type="button" variant="ghost" size="sm" className="scenario-guide-link" onClick={openGuidePage}>
               如何编写场景（说明页）→
-            </button>
+            </Button>
           </p>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>关闭</button>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>关闭</Button>
         </header>
 
         {showTips && (
           <aside className="scenario-tips" aria-label="编写提示">
             <p><b>快速提示</b>：先选审议预设，再写 2–4 句默认议题（背景 + 约束 + 待决问题）。</p>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowTips(false)}>收起</button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowTips(false)}>收起</Button>
           </aside>
         )}
 
@@ -203,34 +249,29 @@ export function ScenarioManager({
                     </small>
                   </span>
                 </button>
-                <div className="scenario-row-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => startEdit(s)}>编辑</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleFork(s)}>复制</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleDelete(s)}>删除</button>
-                  {s.builtin && s.overridden && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => onSaveScenarioPrefs(clearBuiltinOverride(scenarioPrefs, s.id))}
-                    >
-                      还原
-                    </button>
-                  )}
-                </div>
+                <ScenarioRowMenu
+                  scenario={s}
+                  hasOverride={Boolean(s.builtin && s.overridden)}
+                  onEdit={() => startEdit(s)}
+                  onFork={() => handleFork(s)}
+                  onDelete={() => handleDelete(s)}
+                  onRestoreOverride={() => onSaveScenarioPrefs(clearBuiltinOverride(scenarioPrefs, s.id))}
+                />
               </div>
             ))}
             {hiddenBuiltins.length > 0 && (
               <div className="scenario-hidden">
                 <p className="scenario-hidden-label">已隐藏的内置场景</p>
                 {hiddenBuiltins.map((id) => (
-                  <button
+                  <Button
                     key={id}
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleRestoreBuiltin(id)}
                   >
                     恢复 {id.replace('builtin:', '')}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -281,15 +322,14 @@ export function ScenarioManager({
                     const mod = PRESETS[draft.presetId]?.moderator;
                     const on = mod === p.id || (draft.customParticipants || []).includes(p.id);
                     return (
-                      <button
+                      <Chip
                         key={p.id}
-                        type="button"
-                        className={`btn btn-ghost btn-sm${on ? ' active' : ''}`}
+                        active={on}
                         disabled={mod === p.id}
                         onClick={() => toggleParticipant(p.id)}
                       >
                         {p.name}{mod === p.id ? '（主持）' : ''}
-                      </button>
+                      </Chip>
                     );
                   })}
                 </div>
@@ -303,19 +343,19 @@ export function ScenarioManager({
                 <p className="scenario-form-error">{formError || draftErrors.join('；')}</p>
               )}
               <div className="scenario-form-actions">
-                <button type="submit" className="btn btn-primary">保存场景</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setDraft(null)}>取消</button>
+                <Button type="submit" variant="primary">保存场景</Button>
+                <Button type="button" variant="ghost" onClick={() => setDraft(null)}>取消</Button>
               </div>
             </form>
           )}
         </div>
 
         <footer className="modal-foot">
-          <button type="button" className="btn btn-ghost" onClick={startCreate}>新建场景</button>
-          <button type="button" className="btn btn-ghost" onClick={openGuidePage}>编写说明</button>
-          <button
+          <Button type="button" variant="ghost" onClick={startCreate}>新建场景</Button>
+          <Button type="button" variant="ghost" onClick={openGuidePage}>编写说明</Button>
+          <Button
             type="button"
-            className="btn btn-ghost"
+            variant="ghost"
             onClick={() => {
               const blob = new Blob([exportUserScenariosJson(userScenarios)], { type: 'application/json' });
               const a = document.createElement('a');
@@ -326,8 +366,8 @@ export function ScenarioManager({
             }}
           >
             导出 JSON
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={handleImport}>导入 JSON</button>
+          </Button>
+          <Button type="button" variant="ghost" onClick={handleImport}>导入 JSON</Button>
         </footer>
       </div>
     </div>
