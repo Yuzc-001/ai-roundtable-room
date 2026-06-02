@@ -212,16 +212,23 @@ export function VoteCard({ vote, personas }) {
   );
 }
 
+function clipWorkspaceText(text, max = 200) {
+  const clean = String(text || '').trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max)}…`;
+}
+
 export function WorkspacePanel({ workspace, isCompact }) {
   if (!workspace) return null;
   const tensions = workspace.tensions ?? [];
+  const openTensions = tensions.filter((item) => item.status === 'open');
   const questions = workspace.openQuestions ?? [];
   const evidence = workspace.evidencePool ?? [];
 
   if (isCompact) {
     return (
       <div className="workspace-mini">
-        <div className="mini-stat"><span>分歧</span><b>{tensions.filter(t => t.status === 'open').length}</b></div>
+        <div className="mini-stat"><span>分歧</span><b>{openTensions.length}</b></div>
         <div className="mini-stat"><span>开放问题</span><b>{questions.length}</b></div>
         <div className="mini-stat"><span>证据点</span><b>{evidence.length}</b></div>
       </div>
@@ -235,23 +242,22 @@ export function WorkspacePanel({ workspace, isCompact }) {
           <span className="panel-icon">▤</span>
           <span>认知碰撞台 · Session Workspace</span>
         </div>
-        <b>{tensions.filter((item) => item.status === 'open').length} 个开放分歧</b>
+        <b>{openTensions.length} 个开放分歧</b>
       </div>
       <div className="structured-grid">
         <div className="workspace-section">
           <h4><span className="dot danger"></span> 未解决分歧</h4>
-          {tensions.length ? tensions.slice(0, 5).map((item) => (
+          {openTensions.length ? openTensions.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
-              <p>{item.description}</p>
-              {item.status === 'resolved' && <span className="item-tag success">已解决</span>}
+              <p title={item.description}>{clipWorkspaceText(item.description)}</p>
             </div>
-          )) : <p className="empty-text">暂无被命名的核心分歧。</p>}
+          )) : <p className="empty-text">暂无开放中的核心分歧。</p>}
         </div>
         <div className="workspace-section">
           <h4><span className="dot warning"></span> 开放问题</h4>
           {questions.length ? questions.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
-              <p>{item.question}</p>
+              <p title={item.question}>{clipWorkspaceText(item.question)}</p>
             </div>
           )) : <p className="empty-text">暂无需要用户补充或裁决的问题。</p>}
         </div>
@@ -259,7 +265,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
           <h4><span className="dot info"></span> 证据池</h4>
           {evidence.length ? evidence.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
-              <p>{item.claim}</p>
+              <p title={item.claim}>{clipWorkspaceText(item.claim)}</p>
               <small className="evidence-source">{item.verificationStatus || '待核实'}</small>
             </div>
           )) : <p className="empty-text">本场尚未登记外部证据。</p>}

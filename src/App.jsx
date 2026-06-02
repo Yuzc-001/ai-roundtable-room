@@ -1357,8 +1357,10 @@ export default function App() {
                     onClick={() => viewHistoryMeeting(item)}
                   >
                     <div className="history-item-body">
-                      <span className="history-item-title">{item.meeting.title}</span>
-                      <span className="history-item-topic">{item.topic}</span>
+                      <span className="history-item-title" title={item.topic || item.meeting.title}>{item.topic || item.meeting.title}</span>
+                      {item.topic && item.meeting.title && item.topic !== item.meeting.title && (
+                        <span className="history-item-topic" title={item.meeting.title}>{item.meeting.title}</span>
+                      )}
                       <span className="history-item-meta">
                         {item.savedAt ? new Date(item.savedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '未记录时间'}
                         {' · '}

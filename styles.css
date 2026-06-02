@@ -612,11 +612,14 @@ body {
 
 .workspace-item p {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--ink-2);
   margin-bottom: 0 !important;
   border: none !important;
   padding-left: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .item-tag {
@@ -1180,7 +1183,26 @@ button:active,
 /* ────────── Info Panel ────────── */
 .info-panel { 
   width: var(--info-w); flex-shrink: 0; background: var(--bg-side); border-left: 1px solid var(--line); 
-  padding: 32px 24px; overflow-y: auto; transition: all 0.5s var(--ease); z-index: 100;
+  padding: 32px 24px; overflow-y: auto; overflow-x: hidden; transition: all 0.5s var(--ease); z-index: 100;
+  min-width: 0;
+}
+.info-panel .structured-panel {
+  padding: 16px;
+  margin-bottom: 24px;
+  min-width: 0;
+}
+.info-panel .structured-panel-head {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+.info-panel .structured-panel-head b {
+  flex-shrink: 0;
+}
+.info-panel .structured-grid,
+.info-panel .workspace-section,
+.info-panel .workspace-item {
+  min-width: 0;
 }
 .info-header { 
   font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--ink-4); 
@@ -1255,33 +1277,65 @@ button:active,
   border-radius: var(--r-md);
   padding: 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  /* 按钮重置，确保与原 div 视觉一致 */
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  /* 覆盖 .btn 的 nowrap，否则长标题会被裁切 */
   display: block;
+  white-space: normal;
+  align-items: stretch;
+  justify-content: flex-start;
   font: inherit;
   color: inherit;
   line-height: inherit;
-  border-style: solid; /* 覆盖 UA 可能的其他边框 */
+  border-style: solid;
+  overflow: visible;
+  min-width: 0;
 }
 .history-item:hover .history-item-main,
 .history-item-main:hover {
   border-color: var(--primary);
-  transform: translateX(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
 /* 正文右侧预留空间：让删除图标（hover 出现或触屏常驻）永远不遮挡文字，无布局抖动 */
 .history-item-body {
   padding-right: 26px;
+  min-width: 0;
+  width: 100%;
 }
 
-.history-item-title { display: block; font-family: var(--serif); font-weight: 700; font-size: 15px; color: var(--ink); }
-.history-item-topic { display: block; font-size: 12px; color: var(--ink-3); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.history-item-meta { 
-  font-size: 11px; 
-  color: var(--primary); 
-  margin-top: 8px; 
-  opacity: 0.7; 
+.history-item-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.history-item-topic {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 4px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-item-meta {
+  display: block;
+  font-size: 11px;
+  color: var(--primary);
+  margin-top: 8px;
+  opacity: 0.7;
   font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   transition: opacity 0.2s;
 }
 .history-item-main:hover .history-item-meta { opacity: 1; }

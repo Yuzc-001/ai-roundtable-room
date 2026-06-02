@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 — 2026-06-02
+
+- Fix history meeting cards: override `.btn` `nowrap` so titles wrap instead of clipping; show user topic as primary line.
+- Fix Session Workspace sidebar: only list `open` tensions under unresolved; wrap long text and clip with hover title.
+
 ## 1.1.0 — 2026-06-02
 
 - Add `docker-compose.yml` for one-command self-hosted deployment.
