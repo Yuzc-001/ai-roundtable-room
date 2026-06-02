@@ -45,10 +45,10 @@ describe('landingPages', () => {
   test('RELEASE_NOTES includes current version with EN highlights', () => {
     const release = RELEASE_NOTES.find((r) => r.version === packageVersion);
     expect(release).toBeDefined();
-    expect(release.highlights.join(' ')).toMatch(/证据矩阵|议题模板|会议历史/);
+    expect(release.highlights.join(' ')).toMatch(/场景库|审议任务|继续审议/);
     expect(release.highlightsEn?.length).toBeGreaterThanOrEqual(3);
     const enFirst = getLocalizedReleaseNotes('en')[0].highlights.join(' ');
-    expect(enFirst).toMatch(/evidence matrix|topic template/i);
+    expect(enFirst).toMatch(/scenario library|deliberation task/i);
     expect(enFirst).not.toMatch(/官网文案/);
   });
 

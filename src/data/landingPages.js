@@ -1,7 +1,21 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '1.3.0',
+    version: '1.4.0',
+    date: '2026-06-02',
+    highlights: [
+      '用户场景库：内置预设场景 + 自定义场景（议题骨架、席位、导入导出）',
+      '审议任务：项目下跨多场会议的时间线，新会议自动归入当前任务',
+      '继续审议与历史记录保留任务 / 场景关联',
+    ],
+    highlightsEn: [
+      'User scenario library: built-in presets plus custom scenarios with import/export',
+      'Deliberation tasks: multi-session timeline per project; new meetings attach to the active task',
+      'Continue deliberation and history retain task and scenario links',
+    ],
+  },
+  {
+    version: '1.4.0',
     date: '2026-06-02',
     highlights: [
       '证据矩阵导出：发言轮次与证据池对照表（HTML / 复盘包内嵌）',
@@ -112,7 +126,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.3.0',
+    version: '1.4.0',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -226,7 +240,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.3.0',
+    version: '1.4.0',
     language: '中文',
     brand: 'Roundtable',
     nav: [

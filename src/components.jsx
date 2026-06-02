@@ -936,3 +936,6 @@ export function ContinueDeliberationPanel({
     </section>
   );
 }
+
+export { ScenarioManager } from './components/ScenarioManager.jsx';
+export { TaskPanel } from './components/TaskPanel.jsx';

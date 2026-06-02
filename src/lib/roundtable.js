@@ -1,3 +1,7 @@
+import { linkMeetingEntryToTask, migrateProject } from './deliberationTasks.js';
+
+export { migrateProject } from './deliberationTasks.js';
+
 export function getPresetRoster({ personas, preset }) {
   return [preset.moderator, ...preset.participants]
     .map((id) => personas[id])
@@ -68,6 +72,8 @@ export function createDefaultProject({ id = 'default-project', name = '默认项
     updatedAt: now,
     memoryEnabled: true,
     meetings: [],
+    tasks: [],
+    activeTaskId: null,
     memory: createEmptyMemory(),
     pendingMemoryChanges: [],
     rejectedMemoryChanges: [],
@@ -182,22 +188,30 @@ function buildMemoryChanges(entry, savedAt) {
   return changes.filter((change) => change.text || change.issue);
 }
 
-export function updateProjectWithMeeting(project, entry) {
+export function updateProjectWithMeeting(project, entry, meta = {}) {
   const savedAt = entry.savedAt || new Date().toISOString();
-  const meetings = [entry, ...(project.meetings ?? [])].slice(0, 12);
-  if (project.memoryEnabled === false) {
-    return {
-      ...project,
-      updatedAt: savedAt,
-      meetings,
-    };
-  }
-  const changes = buildMemoryChanges(entry, savedAt);
-
-  return {
+  const enriched = {
+    ...entry,
+    savedAt,
+    ...(meta.taskId ? { taskId: meta.taskId } : {}),
+    ...(meta.scenarioId ? { scenarioId: meta.scenarioId } : {}),
+  };
+  const meetings = [enriched, ...(project.meetings ?? [])].slice(0, 12);
+  let next = migrateProject({
     ...project,
     updatedAt: savedAt,
     meetings,
+  });
+  if (meta.taskId) {
+    next = linkMeetingEntryToTask(next, meta.taskId, enriched.id);
+  }
+  if (project.memoryEnabled === false) {
+    return next;
+  }
+  const changes = buildMemoryChanges(enriched, savedAt);
+
+  return {
+    ...next,
     memory: normalizeMemory(project.memory),
     pendingMemoryChanges: [...changes, ...(project.pendingMemoryChanges ?? [])].slice(0, 40),
   };

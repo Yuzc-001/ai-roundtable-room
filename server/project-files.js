@@ -62,10 +62,11 @@ async function writeProjectFiles(dir, projects, status) {
   }));
 }
 
-export async function saveProjectSnapshot({ rootDir, projects = [], archivedProjects = [] }) {
+export async function saveProjectSnapshot({ rootDir, projects = [], archivedProjects = [], userScenarios = [] }) {
   const folder = path.join(rootDir, PROJECT_FOLDER_NAME);
   const activeList = Array.isArray(projects) ? projects : [];
   const archivedList = Array.isArray(archivedProjects) ? archivedProjects : [];
+  const scenariosList = Array.isArray(userScenarios) ? userScenarios : [];
 
   // Best-effort full-replace snapshot (rm + mkdir + parallel writes).
   // **Accepted trade-off (final closure, post rereview-round-1)**: Unconditional destructive replace + no internal atomic rename / structured error return wrapper inside this module.
@@ -88,8 +89,10 @@ export async function saveProjectSnapshot({ rootDir, projects = [], archivedProj
       '- `archived-projects.json`: 归档项目完整快照',
       '- `active/`: 每个当前项目的 JSON 与 Markdown',
       '- `archived/`: 每个归档项目的 JSON 与 Markdown',
+      '- `user-scenarios.json`: 用户自定义审议场景',
       '',
     ].join('\n'), 'utf8'),
+    fs.writeFile(path.join(folder, 'user-scenarios.json'), JSON.stringify(scenariosList, null, 2), 'utf8'),
     fs.writeFile(path.join(folder, 'active-projects.json'), JSON.stringify(activeList, null, 2), 'utf8'),
     fs.writeFile(path.join(folder, 'archived-projects.json'), JSON.stringify(archivedList, null, 2), 'utf8'),
     writeProjectFiles(path.join(folder, 'active'), activeList, '当前项目'),

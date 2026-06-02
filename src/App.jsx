@@ -11,7 +11,9 @@ import {
   OnboardingWizard,
   PersonaDrawer,
   SetupGuidePanel,
+  ScenarioManager,
   Stage,
+  TaskPanel,
   VoteCard,
   WorkspacePanel,
 } from './components.jsx';
@@ -24,13 +26,26 @@ import { formatEvidenceMatrixExportPage } from './lib/evidenceMatrix.js';
 import { filterMeetings } from './lib/historyFilter.js';
 import { TOPIC_TEMPLATES } from './data/topicTemplates.js';
 import {
+  addTaskToProject,
+  createDeliberationTask,
+  migrateProject,
+  removeTaskFromProject,
+  setProjectActiveTask,
+  updateTaskInProject,
+} from './lib/deliberationTasks.js';
+import {
+  applyScenarioToWorkbench,
+  findScenario,
+  getScenarioRoster,
+  listScenarios,
+} from './lib/scenarios.js';
+import {
   approveProjectMemoryChanges,
   archiveProject,
   buildContinuationContext,
   buildMeetingPayload,
   buildProjectMemoryContext,
   createDefaultProject,
-  getPresetRoster,
   rejectProjectMemoryChanges,
   removeMeetingFromProject,
   restoreArchivedProject,
@@ -60,6 +75,9 @@ function resolveAppView(pathname) {
 export default function App() {
   const [personas, setPersonas] = useLocalStorage('roundtable:personas', PERSONAS);
   const [presetId, setPresetId] = useLocalStorage('roundtable:presetId', 'product');
+  const [userScenarios, setUserScenarios] = useLocalStorage('roundtable:userScenarios', []);
+  const [selectedScenarioId, setSelectedScenarioId] = useLocalStorage('roundtable:selectedScenarioId', 'builtin:product');
+  const [scenarioManagerOpen, setScenarioManagerOpen] = useState(false);
   const [projects, setProjects] = useLocalStorage('roundtable:projects', [createDefaultProject()]);
   const [archivedProjects, setArchivedProjects] = useLocalStorage('roundtable:archivedProjects', []);
   const [activeProjectId, setActiveProjectId] = useLocalStorage('roundtable:activeProjectId', 'default-project');
@@ -114,19 +132,54 @@ export default function App() {
   const [refreshingClosure, setRefreshingClosure] = useState(false);
   const onboarding = useOnboarding({ health, viewMode });
 
-  const projectList = useMemo(() => (Array.isArray(projects) && projects.length ? projects : [createDefaultProject()]), [projects]);
-  const archivedProjectList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []), [archivedProjects]);
+  const projectList = useMemo(
+    () => (Array.isArray(projects) && projects.length ? projects : [createDefaultProject()]).map(migrateProject),
+    [projects],
+  );
+  const archivedProjectList = useMemo(
+    () => (Array.isArray(archivedProjects) ? archivedProjects : []).map(migrateProject),
+    [archivedProjects],
+  );
   const activeProject = useMemo(() => projectList.find((project) => project.id === activeProjectId) || projectList[0], [projectList, activeProjectId]);
+  const allScenarios = useMemo(() => listScenarios(userScenarios), [userScenarios]);
+  const selectedScenario = useMemo(
+    () => findScenario(allScenarios, selectedScenarioId) || allScenarios[0],
+    [allScenarios, selectedScenarioId],
+  );
   const filteredHistoryMeetings = useMemo(
     () => filterMeetings(activeProject?.meetings, historySearchQuery),
     [activeProject?.meetings, historySearchQuery],
   );
   const showHistorySearch = (activeProject?.meetings?.length ?? 0) > 3;
-  const preset = PRESETS[presetId] ?? PRESETS.product;
+  const preset = PRESETS[selectedScenario?.presetId ?? presetId] ?? PRESETS.product;
   const memoryEnabled = activeProject?.memoryEnabled !== false;
   const canDeleteProject = activeProject?.id !== 'default-project';
   const pendingMemoryChanges = activeProject?.pendingMemoryChanges ?? [];
-  const allOnStage = useMemo(() => getPresetRoster({ personas, preset }), [personas, preset]);
+  const allOnStage = useMemo(
+    () => getScenarioRoster({ scenario: selectedScenario, personas }),
+    [selectedScenario, personas],
+  );
+  const activeTask = useMemo(
+    () => (activeProject?.tasks ?? []).find((t) => t.id === activeProject?.activeTaskId) || null,
+    [activeProject],
+  );
+
+  const patchActiveProject = (fn) => {
+    setProjects((items) => {
+      const list = Array.isArray(items) && items.length ? items : [activeProject];
+      return list.map((p) => (p.id === activeProject.id ? fn(migrateProject(p)) : migrateProject(p)));
+    });
+  };
+
+  const handleSelectScenario = (scenarioId) => {
+    setSelectedScenarioId(scenarioId);
+    const scenario = findScenario(allScenarios, scenarioId);
+    if (!scenario) return;
+    const { presetId: pid, topic: tplTopic } = applyScenarioToWorkbench(scenario);
+    setPresetId(pid);
+    if (tplTopic) setTopic(tplTopic);
+    setMobileMenuOpen(false);
+  };
   const projectMemoryContext = useMemo(() => buildProjectMemoryContext(activeProject), [activeProject]);
   const baseScript = useMemo(() => (playbackStarted ? (meeting.turns ?? []).map((turn) => ({ kind: 'turn', ...turn })) : []), [meeting, playbackStarted]);
   const currentTurn = currentIdx < baseScript.length ? baseScript[currentIdx] : null;
@@ -198,7 +251,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const timer = setTimeout(() => {
-      syncProjectFiles({ projects: projectList, archivedProjects: archivedProjectList })
+      syncProjectFiles({ projects: projectList, archivedProjects: archivedProjectList, userScenarios })
         .catch((e) => {
           // Best-effort durability sync for project-memory FS snapshots.
           // Errors are non-fatal (localStorage state remains); surfaced to console for ops visibility.
@@ -209,7 +262,7 @@ export default function App() {
     return () => {
       clearTimeout(timer);
     };
-  }, [projectList, archivedProjectList]);
+  }, [projectList, archivedProjectList, userScenarios]);
   useEffect(() => {
     if (!currentTurn || !done || status === 'generating') return;
     const timer = setTimeout(() => {
@@ -475,10 +528,23 @@ export default function App() {
     setFocusSpeakerId(null);
     try {
       const payload = await createMeetingRequest({ payload: buildMeetingPayload({ topic: finalTopic, presetId, contextNotes, roster: allOnStage }) });
-      const entry = { id: Date.now(), topic: finalTopic, meeting: payload, contextNotes, source: 'live', savedAt: new Date().toISOString() };
+      const entry = {
+        id: Date.now(),
+        topic: finalTopic,
+        meeting: payload,
+        contextNotes,
+        source: 'live',
+        savedAt: new Date().toISOString(),
+      };
+      const meetingMeta = {
+        taskId: activeProject.activeTaskId || undefined,
+        scenarioId: selectedScenario?.id,
+      };
       setProjects((items) => {
         const list = Array.isArray(items) && items.length ? items : [activeProject];
-        return list.map((project) => (project.id === activeProject.id ? updateProjectWithMeeting(project, entry) : project));
+        return list.map((project) => (
+          project.id === activeProject.id ? updateProjectWithMeeting(project, entry, meetingMeta) : migrateProject(project)
+        ));
       });
       setMeeting(payload);
       setMeetingSource('live');
@@ -977,15 +1043,23 @@ export default function App() {
               )}
             </nav>
             <nav className="nav-group">
-              <div className="nav-title">审议协议</div>
+              <div className="nav-title">审议场景</div>
               <div className="nav-list">
-                {Object.values(PRESETS).map((item) => (
-                  <button key={item.id} className={`btn btn-subtle nav-btn ${presetId === item.id ? 'active' : ''}`} onClick={() => { setPresetId(item.id); setMobileMenuOpen(false); }}>
+                {allScenarios.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`btn btn-subtle nav-btn ${selectedScenarioId === item.id ? 'active' : ''}`}
+                    onClick={() => handleSelectScenario(item.id)}
+                  >
                     <span className="icon">{item.icon}</span>
-                    <span className="label">{item.name}</span>
+                    <span className="label">{item.name}{item.builtin ? '' : ' · 自定义'}</span>
                   </button>
                 ))}
               </div>
+              <button type="button" className="btn btn-ghost btn-sm scenario-manage-btn" onClick={() => { setScenarioManagerOpen(true); setMobileMenuOpen(false); }}>
+                管理场景…
+              </button>
             </nav>
           </div>
           <div className="sidebar-foot">
@@ -1183,7 +1257,27 @@ export default function App() {
                 <button type="button" className="starter-card btn btn-ghost" aria-label="启动示例演示" onClick={showDemoMeeting}><b>示例演示</b><span>无需 API Key，先观察完整审议流程与输出结构。</span></button>
               </div>
               <div className="template-picker">
-                <div className="template-picker-label">议题模板</div>
+                <div className="template-picker-label">
+                  审议场景
+                  {activeTask && <span className="active-task-pill">当前任务：{activeTask.title}</span>}
+                </div>
+                <div className="template-picker-chips">
+                  {allScenarios.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`template-chip btn btn-ghost${selectedScenarioId === s.id ? ' active' : ''}`}
+                      onClick={() => handleSelectScenario(s.id)}
+                    >
+                      <span className="template-chip-category">{s.builtin ? '内置' : '自定义'}</span>
+                      {s.icon} {s.name}
+                    </button>
+                  ))}
+                  <button type="button" className="template-chip btn btn-ghost" onClick={() => setScenarioManagerOpen(true)}>+ 管理场景</button>
+                </div>
+              </div>
+              <div className="template-picker template-picker--secondary">
+                <div className="template-picker-label">议题快捷填入</div>
                 <div className="template-picker-chips">
                   {TOPIC_TEMPLATES.map((tpl) => (
                     <button
@@ -1194,7 +1288,7 @@ export default function App() {
                       aria-label={`使用议题模板：${tpl.label}`}
                       onClick={() => {
                         setTopic(tpl.topic);
-                        if (tpl.presetId && PRESETS[tpl.presetId]) setPresetId(tpl.presetId);
+                        if (tpl.presetId) handleSelectScenario(`builtin:${tpl.presetId}`);
                       }}
                     >
                       <span className="template-chip-category">{tpl.category}</span>
@@ -1390,6 +1484,32 @@ export default function App() {
           )}
         </div>
         <MemoryReviewPanel changes={pendingMemoryChanges} onApprove={approveMemoryChanges} onReject={rejectMemoryChanges} />
+        <TaskPanel
+          project={activeProject}
+          scenarios={allScenarios}
+          selectedScenarioId={selectedScenarioId}
+          onSelectScenario={handleSelectScenario}
+          onSetActiveTask={(taskId) => {
+            patchActiveProject((p) => setProjectActiveTask(p, taskId));
+            notify(taskId ? '已切换当前审议任务' : '已取消任务绑定（新会议将不归入任务）');
+          }}
+          onCreateTask={({ title, goal, scenarioId }) => {
+            try {
+              const task = createDeliberationTask({ title, goal, scenarioId: scenarioId || selectedScenarioId });
+              patchActiveProject((p) => addTaskToProject(p, task));
+              if (scenarioId) handleSelectScenario(scenarioId);
+              notify('审议任务已创建并设为当前');
+            } catch (e) {
+              notify(e.message || '创建失败');
+            }
+          }}
+          onUpdateTask={(taskId, patch) => patchActiveProject((p) => updateTaskInProject(p, taskId, patch))}
+          onDeleteTask={(taskId) => {
+            patchActiveProject((p) => removeTaskFromProject(p, taskId));
+            notify('任务已删除');
+          }}
+          onOpenMeeting={viewHistoryMeeting}
+        />
         {meeting?.workspace && playbackStarted && (
           <>
             <div className="info-header">本场审议实况</div>
@@ -1460,6 +1580,10 @@ export default function App() {
                         {item.savedAt ? new Date(item.savedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '未记录时间'}
                         {' · '}
                         {item.meeting?.turns?.length ?? 0} 轮发言
+                        {item.taskId && (() => {
+                          const t = (activeProject.tasks ?? []).find((x) => x.id === item.taskId);
+                          return t ? ` · 任务：${t.title}` : '';
+                        })()}
                         {item.source === 'demo' ? ' · 演示' : ''}
                         {' · 点击复盘'}
                       </span>
@@ -1533,6 +1657,17 @@ export default function App() {
           <span className="toast-countdown" aria-hidden="true">5s</span>
         </div>
       )}
+      <ScenarioManager
+        open={scenarioManagerOpen}
+        userScenarios={userScenarios}
+        selectedScenarioId={selectedScenarioId}
+        onClose={() => setScenarioManagerOpen(false)}
+        onSaveUserScenarios={setUserScenarios}
+        onSelectScenario={(id) => {
+          handleSelectScenario(id);
+          setScenarioManagerOpen(false);
+        }}
+      />
     </div>
   );
 }

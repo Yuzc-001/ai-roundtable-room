@@ -181,6 +181,7 @@ function registerApiRoutes(app, {
         rootDir,
         projects: req.body?.projects,
         archivedProjects: req.body?.archivedProjects,
+        userScenarios: req.body?.userScenarios,
       });
       return res.json({ ok: true, ...result });
     } catch (error) {

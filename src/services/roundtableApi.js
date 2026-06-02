@@ -17,12 +17,12 @@ export async function getProjectFilesInfo() {
   return response.json();
 }
 
-export async function syncProjectFiles({ projects, archivedProjects }) {
+export async function syncProjectFiles({ projects, archivedProjects, userScenarios }) {
   const response = await fetch('/api/project-files', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ projects, archivedProjects }),
+    body: JSON.stringify({ projects, archivedProjects, userScenarios }),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || '项目本地文件夹同步失败');
