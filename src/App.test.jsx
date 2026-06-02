@@ -9,9 +9,10 @@ describe('App initial experience', () => {
 
     expect(html).toContain('本地运行 · 开源');
     expect(html).toContain('议题写出来，判断留得住');
-    expect(html).toContain('本地安装');
+    expect(html).toContain('进一步了解');
     expect(html).toContain('圆桌智库');
     expect(html).toContain('/remotion/home-2026-05.png');
+    expect(html).toContain('适用场景');
     expect(html).toContain('FAQ');
     expect(html).toContain('https://github.com/Yuzc-001/ai-roundtable-room');
     expect(html).toContain('进入工作台');
@@ -23,7 +24,9 @@ describe('App initial experience', () => {
   test('keeps the interactive workbench behind an explicit entry action', async () => {
     const source = await readFile(new URL('./App.jsx', import.meta.url), 'utf8');
 
-    expect(source).toContain("window.location.pathname === '/app' ? 'workspace' : 'landing'");
+    expect(source).toContain('resolveAppView');
+    expect(source).toContain('navigateLanding');
+    expect(source).toContain('LandingSite');
     expect(source).toContain("setViewMode('workspace')");
     expect(source).toContain('onEnter={enterWorkbench}');
     expect(source).toContain('<textarea');

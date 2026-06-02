@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4 — 2026-06-02
+
+- Landing navigation: dedicated pages for scenarios, workflow, FAQ, and release notes (`/scenarios`, `/workflow`, `/faq`, `/updates`).
+- Browser back/forward works via History API; each sub-page has「返回首页」and expanded intro copy.
+- Updates page lists notable releases (not the external roadmap link).
+
 ## 1.1.3 — 2026-06-02
 
 - Landing v2: single-column hero (no floating product card), one screenshot strip, ink/brown palette without grid texture or green SaaS accents.

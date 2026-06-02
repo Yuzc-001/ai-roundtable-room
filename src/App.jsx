@@ -26,198 +26,13 @@ import {
   getShareRequest,
   syncProjectFiles,
 } from './services/roundtableApi.js';
+import LandingSite from './LandingSite.jsx';
+import { getLandingPageFromPath, getLandingPath, isWorkbenchPath } from './lib/landingRoutes.js';
 import { MIN_ENV_SNIPPET, SETUP_STEPS } from './lib/setup.js';
+import pkg from '../package.json';
 
-const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
-const README_URL = `${GITHUB_URL}#readme`;
-const ISSUES_URL = `${GITHUB_URL}/issues`;
-const ROADMAP_URL = `${GITHUB_URL}/blob/main/docs/roadmap.md`;
-
-const LANDING_COPY = {
-  zh: {
-    language: 'EN',
-    brand: '圆桌智库',
-    nav: ['适用场景', '审议流程', '常见问题', '更新'],
-    heroKicker: '本地运行 · 开源',
-    title: '议题写出来，判断留得住',
-    deck: '一场审议对应一份纪要：分歧、证据标注、行动项与重开条件，都可回看、导出、继续追问。',
-    points: ['产品取舍与上线节奏', '商业假设与验证路径', '长期项目的结论沉淀'],
-    primary: '进入工作台',
-    demo: '查看演示',
-    github: '源码',
-    shotAlt: '圆桌智库工作台界面',
-    quickstartTitle: '本地安装',
-    quickstartLead: '复制仓库、填写 .env、启动服务。无云账号，无强制联网存储。',
-    quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
-    sections: [
-      ['数据留在本机', '适合私密议题与长期项目。历史会议、导出纪要与项目记忆默认保存在本地。'],
-      ['审议而非表演', '价值在于暴露未对齐之处、标出证据缺口、保留反对意见，而不是让头像轮流发言。'],
-      ['持续维护的开源项目', '文档、测试与自部署体验随版本迭代；欢迎通过 Issue 参与改进。'],
-    ],
-    workflowTitle: '怎么用',
-    workflow: [
-      ['写下议题', '一个需要权衡风险、证据与下一步的具体问题。'],
-      ['分阶段推进', '发散、质询、暴露分歧、收拢结论，过程可追溯。'],
-      ['导出与沉淀', '生成纪要包；你决定是否把结论写入项目记忆。'],
-    ],
-    faqTitle: '常见问题',
-    supportTitle: '参与项目',
-    supportCards: [
-      ['阅读文档', '部署、配置与数据流说明见 README 与架构文档。'],
-      ['提交 Issue', '反馈缺陷、部署问题或产品建议。'],
-      ['查看路线图', '了解自部署、模型适配与记忆治理的后续计划。'],
-    ],
-    faq: [
-      ['和直接问大模型有什么不同？', '单轮问答适合查事实、写草稿。这里适合证据不完整、存在反对意见、需要留下过程记录的判断类问题。'],
-      ['一定要接很多模型吗？', '不必。配置一个可用模型即可开始；多个供应商主要用于拉开视角差异。'],
-      ['密钥和数据会去哪？', 'API Key 由本地服务读取；浏览器不接触密钥。议题与会议数据默认留在你的环境。'],
-      ['适合团队吗？', '可先自部署试用。当前侧重个人与小团队本地工作台；共享与权限按路线图推进。'],
-      ['还会更新吗？', '会。版本迭代聚焦审议质量、记忆治理、导出分享与部署体验。'],
-    ],
-    footer: '圆桌智库 · 开源 · 本地运行',
-  },
-  en: {
-    language: '中文',
-    brand: 'Roundtable',
-    nav: ['Use cases', 'Flow', 'FAQ', 'Updates'],
-    heroKicker: 'Local · Open source',
-    title: 'Write the question. Keep the judgment.',
-    deck: 'Each session becomes minutes you can revisit: tensions, evidence notes, actions, and reopen triggers.',
-    points: ['Product scope and launch timing', 'Business assumptions and validation', 'Long-running project memory'],
-    primary: 'Open workbench',
-    demo: 'View demo',
-    github: 'Source',
-    shotAlt: 'Roundtable workbench',
-    quickstartTitle: 'Install locally',
-    quickstartLead: 'Clone, configure .env, start the server. No cloud account required.',
-    quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
-    sections: [
-      ['Data stays local', 'For private topics and long projects. History, exports, and memory default to your machine.'],
-      ['Deliberation, not theater', 'Surface misalignment, mark evidence gaps, keep dissent—rather than avatars taking turns.'],
-      ['Maintained in the open', 'Docs, tests, and self-hosting improve with each release. Issues welcome.'],
-    ],
-    workflowTitle: 'How it works',
-    workflow: [
-      ['Write the question', 'Something that needs risk, evidence, and a next move.'],
-      ['Move in stages', 'Diverge, examine, surface tension, converge—with a traceable path.'],
-      ['Export and retain', 'Minutes package; you choose what enters project memory.'],
-    ],
-    faqTitle: 'Questions',
-    supportTitle: 'Get involved',
-    supportCards: [
-      ['Read the docs', 'Deployment, config, and data flow in README and architecture notes.'],
-      ['Open an issue', 'Bugs, deployment friction, or product feedback.'],
-      ['See the roadmap', 'Self-hosting, adapters, and memory governance plans.'],
-    ],
-    faq: [
-      ['How is this different from one-shot chat?', 'Chat fits facts and drafts. This fits judgment calls with risk, incomplete evidence, and useful dissent.'],
-      ['Do I need many models?', 'No. One configured provider is enough to start; several help widen perspective.'],
-      ['Where do keys and data go?', 'Keys stay on your server; the browser never sees them. Sessions default to local storage.'],
-      ['Can teams use it?', 'Self-host and evaluate first. Sharing and permissions are on the roadmap.'],
-      ['Still updated?', 'Yes—deliberation quality, memory governance, exports, and deployment keep improving.'],
-    ],
-    footer: 'Roundtable · Open source · Local-first',
-  },
-};
-
-function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
-  const copy = LANDING_COPY[lang] ?? LANDING_COPY.zh;
-  const supportLinks = [README_URL, ISSUES_URL, ROADMAP_URL];
-  return (
-    <div className="landing-shell">
-      <header className="landing-nav">
-        <div className="landing-brand">
-          <Logo />
-          <span>{copy.brand}</span>
-        </div>
-        <nav>
-          <a href="#use-cases">{copy.nav[0]}</a>
-          <a href="#workflow">{copy.nav[1]}</a>
-          <a href="#faq">{copy.nav[2]}</a>
-          <a href={ROADMAP_URL} target="_blank" rel="noreferrer">{copy.nav[3]}</a>
-        </nav>
-        <div className="landing-nav-actions">
-          <button type="button" className="btn btn-ghost landing-lang" onClick={onToggleLang}>{copy.language}</button>
-          <a className="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
-          <button type="button" className="btn btn-primary" onClick={onEnter}>{copy.primary}</button>
-        </div>
-      </header>
-
-      <main className="landing-main">
-        <section className="landing-hero">
-          <p className="landing-kicker">{copy.heroKicker}</p>
-          <h1>{copy.title}</h1>
-          <p className="landing-deck">{copy.deck}</p>
-          <div className="landing-cta-row">
-            <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
-            <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
-          </div>
-          <ul id="use-cases" className="landing-points">
-            {copy.points.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="landing-shot" aria-hidden="false">
-          <img src="/remotion/home-2026-05.png" alt={copy.shotAlt} loading="lazy" />
-        </section>
-
-        <section id="workflow" className="landing-flow">
-          <h2>{copy.workflowTitle}</h2>
-          <ol>
-            {copy.workflow.map(([title, body]) => (
-              <li key={title}>
-                <b>{title}</b>
-                <span>{body}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section id="self-host" className="landing-install">
-          <div className="landing-install-copy">
-            <h2>{copy.quickstartTitle}</h2>
-            <p>{copy.quickstartLead}</p>
-            <ul className="landing-install-notes">
-              {copy.sections.map(([title, body]) => (
-                <li key={title}><b>{title}</b>{body}</li>
-              ))}
-            </ul>
-          </div>
-          <pre className="landing-code"><code>{copy.quickstartLines.join('\n')}</code></pre>
-        </section>
-
-        <section id="faq" className="landing-faq">
-          <div className="landing-faq-side">
-            <h2>{copy.faqTitle}</h2>
-            <div className="landing-support">
-              <h3>{copy.supportTitle}</h3>
-              {copy.supportCards.map(([title, body], index) => (
-                <a key={title} href={supportLinks[index]} target="_blank" rel="noreferrer">
-                  <b>{title}</b>
-                  <span>{body}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          <div className="landing-faq-list">
-            {copy.faq.map(([question, answer], index) => (
-              <details key={question} open={index === 0}>
-                <summary>{question}</summary>
-                <p>{answer}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-      </main>
-
-      <footer className="landing-footer">
-        <span>{copy.footer}</span>
-        <a href={GITHUB_URL} target="_blank" rel="noreferrer">github.com/Yuzc-001/ai-roundtable-room</a>
-      </footer>
-    </div>
-  );
+function resolveAppView(pathname) {
+  return isWorkbenchPath(pathname) ? 'workspace' : 'landing';
 }
 
 export default function App() {
@@ -229,7 +44,10 @@ export default function App() {
   const [theme, setTheme] = useLocalStorage('roundtable:theme', 'dark');
   const [landingLang, setLandingLang] = useLocalStorage('roundtable:landingLang', 'zh');
   const [viewMode, setViewMode] = useState(() => (
-    typeof window !== 'undefined' && window.location.pathname === '/app' ? 'workspace' : 'landing'
+    typeof window !== 'undefined' ? resolveAppView(window.location.pathname) : 'landing'
+  ));
+  const [landingPage, setLandingPage] = useState(() => (
+    typeof window !== 'undefined' ? getLandingPageFromPath(window.location.pathname) : 'home'
   ));
   const [topic, setTopic] = useState('');
   const [meeting, setMeeting] = useState(DEMO_MEETING);
@@ -293,6 +111,30 @@ export default function App() {
   const hasActiveMemory = !!(projectMemoryContext && projectMemoryContext.length > 20); // #4 让记忆价值被感知：生成中可见注入状态
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+  useEffect(() => {
+    const syncFromLocation = () => {
+      const pathname = window.location.pathname;
+      setViewMode(resolveAppView(pathname));
+      if (!isWorkbenchPath(pathname)) {
+        setLandingPage(getLandingPageFromPath(pathname));
+      }
+    };
+    window.addEventListener('popstate', syncFromLocation);
+    return () => window.removeEventListener('popstate', syncFromLocation);
+  }, []);
+
+  const navigateLanding = (page) => {
+    const path = getLandingPath(page);
+    if (typeof window !== 'undefined' && window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    setViewMode('landing');
+    setLandingPage(page);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
   useEffect(() => {
     // 检查分享链接
     const params = new URLSearchParams(window.location.search);
@@ -425,13 +267,10 @@ export default function App() {
     setFollowUpNote('');
     setFocusSpeakerId(null);
   };
-  const openLanding = () => {
+  const openLanding = (page = 'home') => {
     returnHome();
     setMobileMenuOpen(false);
-    setViewMode('landing');
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      window.history.pushState({}, '', '/');
-    }
+    navigateLanding(page);
   };
 
   // 点击历史会议 → 加载该场会议进行复盘查看
@@ -873,8 +712,11 @@ export default function App() {
 
   if (!sharedMode && viewMode === 'landing') {
     return (
-      <LandingPage
+      <LandingSite
+        page={landingPage}
         lang={landingLang === 'en' ? 'en' : 'zh'}
+        currentVersion={pkg.version}
+        onNavigate={navigateLanding}
         onToggleLang={() => setLandingLang(landingLang === 'en' ? 'zh' : 'en')}
         onEnter={enterWorkbench}
         onDemo={showLandingDemo}
