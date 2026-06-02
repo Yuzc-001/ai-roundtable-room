@@ -4,8 +4,6 @@ import { Button } from '../ui/index.js';
 export function TaskPanel({
   project,
   scenarios,
-  selectedScenarioId,
-  onSelectScenario,
   onSetActiveTask,
   onCreateTask,
   onUpdateTask,
@@ -13,7 +11,6 @@ export function TaskPanel({
   onOpenMeeting,
 }) {
   const tasks = project?.tasks ?? [];
-  const activeId = project?.activeTaskId ?? null;
 
   return (
     <section className="task-panel" aria-label="审议任务">
@@ -33,7 +30,6 @@ export function TaskPanel({
           onCreateTask({
             title: String(title),
             goal: String(goal || ''),
-            scenarioId: selectedScenarioId,
           });
           e.target.reset();
         }}
@@ -49,18 +45,19 @@ export function TaskPanel({
         <ul className="task-list">
           {tasks.map((task) => {
             const meetings = getMeetingsForTask(project, task.id);
-            const isActive = activeId === task.id;
+            const isActive = (project?.activeTaskId ?? null) === task.id;
             return (
               <li key={task.id} className={`task-card${isActive ? ' is-active' : ''}`}>
                 <div className="task-card-head">
-                  <button
+                  <Button
                     type="button"
-                    className="task-card-select btn btn-ghost"
+                    variant="ghost"
+                    className="task-card-select"
                     onClick={() => onSetActiveTask(isActive ? null : task.id)}
                   >
                     <b>{task.title}</b>
                     <span className="task-status">{TASK_STATUS_LABELS[task.status] || task.status}</span>
-                  </button>
+                  </Button>
                   <select
                     className="task-status-select"
                     value={task.status}
@@ -71,7 +68,13 @@ export function TaskPanel({
                       <option key={k} value={k}>{label}</option>
                     ))}
                   </select>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => onDeleteTask(task.id)} aria-label={`删除任务 ${task.title}`}>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => onDeleteTask(task.id)}
+                    aria-label={`删除任务 ${task.title}`}
+                  >
                     删除
                   </Button>
                 </div>

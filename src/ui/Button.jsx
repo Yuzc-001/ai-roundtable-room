@@ -1,3 +1,5 @@
+import { forwardRef } from 'react';
+
 const VARIANT_CLASS = {
   primary: 'btn-primary',
   secondary: 'btn-secondary',
@@ -15,7 +17,7 @@ function joinClasses(...parts) {
  * @param {'primary'|'secondary'|'ghost'|'subtle'|'danger'} variant
  * @param {'sm'|'md'} [size]
  */
-export function Button({
+export const Button = forwardRef(function Button({
   variant = 'ghost',
   size = 'md',
   className = '',
@@ -24,14 +26,19 @@ export function Button({
   type = 'button',
   children,
   ...rest
-}) {
+}, ref) {
+  const mapped = VARIANT_CLASS[variant];
+  if (!mapped && import.meta.env?.DEV) {
+    console.warn(`[Button] Unknown variant "${variant}", falling back to ghost.`);
+  }
   const isDisabled = disabled || loading;
   return (
     <button
+      ref={ref}
       type={type}
       className={joinClasses(
         'btn',
-        VARIANT_CLASS[variant] || VARIANT_CLASS.ghost,
+        mapped || VARIANT_CLASS.ghost,
         size === 'sm' && 'btn-sm',
         loading && 'btn-loading',
         className,
@@ -44,4 +51,4 @@ export function Button({
       <span className={loading ? 'btn-label btn-label--loading' : 'btn-label'}>{children}</span>
     </button>
   );
-}
+});

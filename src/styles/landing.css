@@ -25,14 +25,28 @@
 }
 
 .landing-shell {
-  /* Archival landing palette — aligned with workspace tokens, fixed light chamber */
+  /* Light chamber — pins workspace tokens so saved dark theme does not leak */
+  --bg: #F6F5F0;
+  --bg-side: #FFFEFA;
+  --surface: #FFFEFA;
+  --surface-2: #F4F1E9;
+  --surface-3: #EBE6DC;
+  --ink: #1A211D;
+  --ink-2: #3A413D;
+  --ink-3: #5F6762;
+  --ink-4: #8A918C;
   --primary: #1E3A5F;
   --accent: #B38B4D;
   --teal: #2E5A4D;
-  --lp-bg: #F6F5F0;
-  --lp-ink: #1A211D;
-  --lp-muted: #5F6762;
-  --lp-line: rgba(26, 33, 29, 0.12);
+  --moderator: #B38B4D;
+  --academy: #2E5A4D;
+  --line: rgba(26, 33, 29, 0.08);
+  --line-strong: rgba(26, 33, 29, 0.15);
+  --focus-ring: #1E3A5F;
+  --lp-bg: var(--bg);
+  --lp-ink: var(--ink);
+  --lp-muted: var(--ink-3);
+  --lp-line: var(--line-strong);
   --lp-accent: var(--primary);
   --lp-accent-hover: color-mix(in srgb, var(--primary) 82%, #000);
   --lp-serif: var(--serif);
@@ -131,6 +145,16 @@
   background: transparent;
   border-color: var(--lp-line);
   color: var(--lp-ink);
+}
+
+.landing-shell .btn-secondary {
+  background: var(--surface);
+  color: var(--lp-accent);
+  border-color: color-mix(in srgb, var(--lp-accent) 35%, var(--lp-line));
+}
+.landing-shell .btn-secondary:hover {
+  background: color-mix(in srgb, var(--lp-accent) 8%, var(--surface));
+  border-color: var(--lp-accent);
 }
 
 .landing-lang {
@@ -887,6 +911,9 @@
   background: var(--surface); border-radius: var(--r-lg);
   border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg);
 }
+.scenario-manager.modal-panel { overflow: visible; }
+.scenario-manager .scenario-manager-body { overflow-y: auto; overflow-x: visible; }
+.scenario-manager .scenario-list { overflow: visible; }
 .modal-head { padding: 20px 24px 12px; border-bottom: 1px solid var(--line); }
 .modal-head h2 { margin: 0 0 8px; font-size: 18px; }
 .modal-lead { margin: 0; font-size: 13px; color: var(--ink-3); line-height: 1.5; }

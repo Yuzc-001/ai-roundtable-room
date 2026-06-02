@@ -44,9 +44,23 @@ describe('App initial experience', () => {
     expect(source).toContain('恢复');
     expect(source).toContain('彻底删除');
 
-    // Base UI migration smoke (static source): new system classes present after full sweep
-    expect(source).toContain('btn btn-primary');
-    expect(source).toContain('btn btn-ghost');
+    // 1.3.2 UI kit wiring (meaningful guard — not only legacy btn strings)
+    expect(source).toContain("from './ui/index.js'");
+    expect(source).toContain('<Button');
+    expect(source).toContain('<Chip');
+    expect(source).toContain('<IconButton');
+    expect(source).toContain('SIDEBAR_SCENARIO_LIMIT');
+    expect(source).toContain('议事厅 · 本地决策档案');
+    expect(source).toContain('primaryActionLabel');
+    expect(source).toContain('showEmptySessionPrimary');
+    expect(source).toContain('showSidebarStartCta');
+    expect(source).toContain('workbench-tasks');
+    expect(source).toContain('workbench-history');
+    expect(source).toContain('data-mobile-info-panel');
+
+    const scenarioSource = await readFile(new URL('./components/ScenarioManager.jsx', import.meta.url), 'utf8');
+    expect(scenarioSource).toContain('aria-expanded={open}');
+    expect(scenarioSource).toContain('aria-modal="true"');
 
     // Additional a11y + state smoke for migrated elements (no new deps)
     expect(source).toContain('aria-label="启动产品认知压测"');

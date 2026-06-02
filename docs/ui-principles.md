@@ -7,28 +7,32 @@
 - **字体**：中文标题用 `--serif`（LXGW WenKai）；正文 `--sans`；动效尊重 `prefers-reduced-motion`
 - **色角色**：海军蓝 `--primary` 主行动；金 `--accent` 主持/洞察；青 `--teal` 证据/任务；`--risk` 仅破坏性操作
 
-## 一屏一主行动（One primary per viewport）
+## 一屏一主行动（One primary per viewport region）
 
-每个视区（侧栏底、顶栏、空会话主区、模态主操作）**最多一个** `variant="primary"` 按钮。
+每个**视区**最多一个 `variant="primary"`。同一物理屏幕可有多视区，但同一视区内不得并列两个 primary。
 
 | 视区 | 主行动 | 其余 |
 |------|--------|------|
-| 侧栏底（未播放） | 发起审议 | 主题/演示用 subtle |
-| 顶栏（播放中） | 启动/继续审议 | 首页、专注用 subtle/icon |
-| 空会话主区 | 启动结构化审议 | 样例卡、场景 chip 用 ghost |
-| 模态 | 保存/确认 | 关闭、导入用 ghost |
+| 官网导航 | ghost / secondary（进入工作台） | **hero 独占 primary** |
+| 官网 hero | 进入工作台 | 演示 = secondary |
+| 侧栏底（未播放） | secondary「发起审议」（主区已有 primary 时） | 演示 = subtle |
+| 顶栏（播放中，非完成态） | 启动/继续审议 | 首页、专注 = subtle/icon |
+| 空会话主区 | `primaryActionLabel` | 样例/场景 chip = ghost；**向导显示时隐藏本区 primary** |
+| 带走成果 | 导出 HTML = primary | 复制/分享 = ghost |
+| 后续动作 | （无 primary） | 继续审议 = **secondary** |
+| 模态 | 保存/确认 | 关闭、导入 = ghost |
 
 ## 五级按钮矩阵（仅此五种）
 
 | Level | class / variant | 用途 |
 |-------|-----------------|------|
 | primary | `btn-primary` | 当前视区唯一主 CTA |
-| secondary | `btn-secondary` | 次重要、仍可见（如「查看演示」） |
+| secondary | `btn-secondary` | 次重要、仍可见（如侧栏发起、演示） |
 | ghost | `btn-ghost` | 边框弱、列表行、卡片内操作 |
 | subtle | `btn-subtle` | 导航、图标条、低优先级 |
 | danger | `btn-danger` | 删除、彻底移除 |
 
-**禁止**新增 `btn-*` 变体；chip、行操作、图标钮映射到上表（`Chip` → ghost/subtle，`IconButton` → subtle/ghost）。
+**禁止**新增 `btn-*` 变体；chip、行操作、图标钮映射到上表。
 
 ## 组件入口
 
@@ -40,17 +44,17 @@
 
 ```
 styles.css
-  → tokens.css          # 色板、字体、间距
+  → tokens.css
   → components/buttons.css
-  → layout/shell.css    # body data-app-view、侧栏壳
-  → landing.css         # 官网；--lp-* 与 workspace 对齐
+  → layout/shell.css
+  → landing.css         # .landing-shell 固定浅色议事厅色板
 ```
 
 ## 落地检查清单
 
-- [ ] 该屏是否只有一个 primary？
-- [ ] 新按钮是否用五级之一？
-- [ ] 中文标题是否 `font-family: var(--serif)`？
-- [ ] 破坏性操作是否仅用 danger？
-- [ ] `body[data-app-view]` 是否为 landing / workspace？
-- [ ] 减少动效下动画是否关闭？
+- [x] 各视区是否只有一个 primary？
+- [x] 新按钮是否用五级之一？
+- [x] 中文标题是否 `font-family: var(--serif)`？
+- [x] 破坏性操作是否 `danger`？
+- [x] `body[data-app-view]` landing / workspace？
+- [x] `prefers-reduced-motion` 已处理？

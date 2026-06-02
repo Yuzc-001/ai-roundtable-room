@@ -24,6 +24,9 @@ const ZH_12X_MARKERS = [
   '项目记忆',
 ];
 
+const ZH_13X_EXPLORE = ['场景编写', '审议流程', '适用场景'];
+const EN_13X_EXPLORE = ['Writing scenarios', 'Deliberation flow', 'Use cases'];
+
 const EN_12X_MARKERS = [
   'outcome overview',
   'a single turn can be regenerated',
@@ -59,6 +62,25 @@ describe('landingPages', () => {
       LANDING_SITE.en.workflow.artifacts.length,
     );
     expect(LANDING_SITE.zh.scenarios.items.length).toBe(LANDING_SITE.en.scenarios.items.length);
+  });
+
+  test('zh home explore grid includes 1.3.2 IA entries', () => {
+    const exploreText = LANDING_SITE.zh.home.explore.map((row) => row[0]).join(' ');
+    for (const marker of ZH_13X_EXPLORE) {
+      expect(exploreText).toContain(marker);
+    }
+    const notes = RELEASE_NOTES.filter((r) => r.version === packageVersion);
+    expect(notes.length).toBeGreaterThanOrEqual(1);
+    expect(notes[0].highlights.join(' ')).toMatch(/五级按钮|侧栏分组/);
+  });
+
+  test('en home explore grid includes 1.3.2 IA entries', () => {
+    const exploreText = LANDING_SITE.en.home.explore.map((row) => row[0]).join(' ');
+    for (const marker of EN_13X_EXPLORE) {
+      expect(exploreText).toMatch(new RegExp(marker, 'i'));
+    }
+    const enNotes = getLocalizedReleaseNotes('en').filter((r) => r.version === packageVersion);
+    expect(enNotes[0].highlights.join(' ')).toMatch(/five-level button|sidebar sections/i);
   });
 
   test('zh home and workflow mention 1.2.x capabilities', () => {

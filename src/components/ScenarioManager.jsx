@@ -30,26 +30,54 @@ const EMPTY_DRAFT = {
   builtinId: null,
 };
 
-function ScenarioRowMenu({ scenario, onEdit, onFork, onDelete, onRestoreOverride, hasOverride }) {
+function ScenarioRowMenu({
+  scenario,
+  isBuiltin,
+  onEdit,
+  onFork,
+  onDelete,
+  onRestoreOverride,
+  hasOverride,
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuId = `scenario-menu-${scenario.id.replace(/[^a-z0-9-]/gi, '-')}`;
 
   useEffect(() => {
     if (!open) return undefined;
-    const close = (e) => {
+    const onDoc = (e) => {
       if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
     };
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('click', onDoc);
+    document.addEventListener('keydown', onKey);
+    const firstItem = rootRef.current?.querySelector('[role="menuitem"]');
+    firstItem?.focus();
+    return () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
+
+  const removeLabel = isBuiltin ? '隐藏' : '删除';
 
   return (
     <div className="scenario-row-menu" ref={rootRef}>
       <IconButton
+        ref={triggerRef}
         variant="ghost"
         className="scenario-row-menu-trigger"
         label={`${scenario.name} 的操作`}
         active={open}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -62,10 +90,18 @@ function ScenarioRowMenu({ scenario, onEdit, onFork, onDelete, onRestoreOverride
         </svg>
       </IconButton>
       {open && (
-        <div className="scenario-row-menu-panel" role="menu">
+        <div className="scenario-row-menu-panel" id={menuId} role="menu">
           <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onEdit(); setOpen(false); }}>编辑</Button>
           <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onFork(); setOpen(false); }}>复制</Button>
-          <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onDelete(); setOpen(false); }}>删除</Button>
+          <Button
+            type="button"
+            variant={isBuiltin ? 'ghost' : 'danger'}
+            size="sm"
+            role="menuitem"
+            onClick={() => { onDelete(); setOpen(false); }}
+          >
+            {removeLabel}
+          </Button>
           {hasOverride && (
             <Button type="button" variant="ghost" size="sm" role="menuitem" onClick={() => { onRestoreOverride(); setOpen(false); }}>还原</Button>
           )}
@@ -95,6 +131,22 @@ export function ScenarioManager({
   const [draft, setDraft] = useState(null);
   const [formError, setFormError] = useState('');
   const [showTips, setShowTips] = useState(true);
+  const panelRef = useRef(null);
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.activeElement;
+    closeRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (prev && typeof prev.focus === 'function') prev.focus();
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -204,8 +256,10 @@ export function ScenarioManager({
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
+        ref={panelRef}
         className="modal-panel scenario-manager"
         role="dialog"
+        aria-modal="true"
         aria-labelledby="scenario-manager-title"
         onClick={(e) => e.stopPropagation()}
       >
@@ -217,7 +271,7 @@ export function ScenarioManager({
               如何编写场景（说明页）→
             </Button>
           </p>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>关闭</Button>
+          <Button ref={closeRef} type="button" variant="ghost" size="sm" onClick={onClose}>关闭</Button>
         </header>
 
         {showTips && (
@@ -251,6 +305,7 @@ export function ScenarioManager({
                 </button>
                 <ScenarioRowMenu
                   scenario={s}
+                  isBuiltin={Boolean(s.builtin)}
                   hasOverride={Boolean(s.builtin && s.overridden)}
                   onEdit={() => startEdit(s)}
                   onFork={() => handleFork(s)}

@@ -117,6 +117,7 @@ export default function App() {
   const [parsingFile, setParsingFile] = useState(false);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileInfoPanelOpen, setMobileInfoPanelOpen] = useState(false);
 
   // For generation progress perception (simulated phase advance while waiting for backend)
   const [simPhaseIdx, setSimPhaseIdx] = useState(0);
@@ -210,7 +211,10 @@ export default function App() {
   const genRemaining = Math.max(6, (genPhaseCount - genCurrentIdx - 1) * 6);
   const hasActiveMemory = !!(projectMemoryContext && projectMemoryContext.length > 20); // #4 让记忆价值被感知：生成中可见注入状态
 
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+  useEffect(() => {
+    const effectiveTheme = !sharedMode && viewMode === 'landing' ? 'light' : theme;
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
+  }, [theme, viewMode, sharedMode]);
 
   useEffect(() => {
     document.body.dataset.appView = sharedMode || viewMode !== 'landing' ? 'workspace' : 'landing';
@@ -973,7 +977,9 @@ export default function App() {
     : health?.aiConfigured === false
       ? '查看演示审议'
       : '启动结构化审议';
-  const showWorkbenchPrimary = !sharedMode && playbackStarted;
+  const showWorkbenchPrimary = !sharedMode && playbackStarted && !showVote;
+  const showEmptySessionPrimary = !playbackStarted && !onboarding.shouldShow;
+  const showSidebarStartCta = !playbackStarted && !projectCreatorOpen && !onboarding.shouldShow;
   const startDeliberationDisabled = status === 'generating' || (health?.aiConfigured !== false && !canStart);
 
   const handleStartDeliberation = () => {
@@ -981,7 +987,19 @@ export default function App() {
     else startMeeting();
   };
 
+  const isMobileLayout = () => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+
   const scrollToWorkbenchSection = (id) => {
+    if (isMobileLayout()) {
+      setMobileInfoPanelOpen(true);
+      setMobileMenuOpen(false);
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return;
+    }
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setMobileMenuOpen(false);
   };
@@ -1001,8 +1019,28 @@ export default function App() {
   }
 
   return (
-    <div className="app" data-focus-mode={focusMode ? 'true' : 'false'} data-mobile-menu={mobileMenuOpen ? 'true' : 'false'} data-generating={status === 'generating' ? 'true' : 'false'} data-shared={sharedMode ? 'true' : 'false'}>
-      <div className="mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)} />
+    <div
+      className="app"
+      data-focus-mode={focusMode ? 'true' : 'false'}
+      data-mobile-menu={mobileMenuOpen ? 'true' : 'false'}
+      data-mobile-info-panel={mobileInfoPanelOpen ? 'open' : 'false'}
+      data-generating={status === 'generating' ? 'true' : 'false'}
+      data-shared={sharedMode ? 'true' : 'false'}
+    >
+      <button
+        type="button"
+        className="mobile-menu-backdrop"
+        aria-label="关闭菜单"
+        tabIndex={mobileMenuOpen ? 0 : -1}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+      <button
+        type="button"
+        className="mobile-info-panel-backdrop"
+        aria-label="关闭任务与历史面板"
+        tabIndex={mobileInfoPanelOpen ? 0 : -1}
+        onClick={() => setMobileInfoPanelOpen(false)}
+      />
       {!sharedMode && (
         <aside className="sidebar">
           <div className="brand-section">
@@ -1140,16 +1178,16 @@ export default function App() {
             </nav>
           </div>
           <div className="sidebar-foot">
-            {!playbackStarted && (
+            {showSidebarStartCta && (
               <Button
                 type="button"
-                variant="primary"
+                variant={showEmptySessionPrimary ? 'secondary' : 'primary'}
                 className="sidebar-primary-cta"
                 loading={status === 'generating'}
                 disabled={startDeliberationDisabled}
                 onClick={handleStartDeliberation}
               >
-                发起审议
+                {primaryActionLabel}
               </Button>
             )}
             <Button
@@ -1342,20 +1380,19 @@ export default function App() {
               <div className="empty-eyebrow">议事厅 · 本地决策档案</div>
               <h1>把复杂问题打磨成可执行判断</h1>
               <p>输入一个需要权衡证据、风险、用户心智和行动路径的问题。圆桌会按阶段暴露分歧、校准置信度，并把结果封装成可复盘的 Decision Packet。</p>
-              <div className="empty-session-cta">
-                <Button
-                  variant="primary"
-                  className="empty-session-primary"
-                  loading={status === 'generating'}
-                  disabled={startDeliberationDisabled}
-                  onClick={handleStartDeliberation}
-                >
-                  {primaryActionLabel}
-                </Button>
-                {health?.aiConfigured === false && (
-                  <Button variant="secondary" onClick={showDemoMeeting}>先看演示审议</Button>
-                )}
-              </div>
+              {showEmptySessionPrimary && (
+                <div className="empty-session-cta">
+                  <Button
+                    variant="primary"
+                    className="empty-session-primary"
+                    loading={status === 'generating'}
+                    disabled={startDeliberationDisabled}
+                    onClick={handleStartDeliberation}
+                  >
+                    {primaryActionLabel}
+                  </Button>
+                </div>
+              )}
               <div className="trust-strip" aria-label="产品可信度说明">
                 <span>本地优先</span>
                 <span>API Key 只在服务端读取</span>
@@ -1620,8 +1657,6 @@ export default function App() {
         <TaskPanel
           project={activeProject}
           scenarios={allScenarios}
-          selectedScenarioId={selectedScenarioId}
-          onSelectScenario={handleSelectScenario}
           onSetActiveTask={(taskId) => {
             patchActiveProject((p) => setProjectActiveTask(p, taskId));
             notify(taskId ? '已切换当前审议任务' : '已取消任务绑定（新会议将不归入任务）');

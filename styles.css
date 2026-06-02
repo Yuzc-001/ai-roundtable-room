@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   padding: 0 32px;
-  background: rgba(var(--bg), 0.8);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--line);
   z-index: 50;
@@ -56,8 +56,7 @@
   border: 1px solid transparent;
 }
 .icon-btn-lite:hover { background: var(--surface); color: var(--ink); border-color: var(--line); }
-.icon-btn-lite.active { background: var(--primary); color: white; border-color: var(--primary); }
-.icon-btn-lite:focus-visible { outline: 2px solid var(--moderator); outline-offset: 2px; }
+.icon-btn-lite.active { background: color-mix(in srgb, var(--teal) 12%, var(--surface)); color: var(--teal); border-color: color-mix(in srgb, var(--teal) 35%, var(--line-strong)); }
 
 .workbench-home-btn {
   height: 40px;
@@ -79,28 +78,21 @@
 .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 .primary-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30, 58, 95, 0.35); }
 
-/* Focus visibility (键盘导航细节 + a11y) — 补全覆盖所有交互元素，提升强度 */
-button:focus-visible,
-.nav-btn:focus-visible,
-.icon-btn-lite:focus-visible,
+/* Focus — non-.btn controls only; .btn uses buttons.css --focus-ring */
+.nav-btn:focus-visible:not(.btn),
 .project-mini-btn:focus-visible,
-.console-btn:focus-visible,
+.console-btn:focus-visible:not(.btn),
 .ghost-btn-big:focus-visible,
 .primary-btn:focus-visible,
-.memory-toggle:focus-visible,
-.memory-change-actions button:focus-visible,
-.memory-review-actions button:focus-visible,
-.finish-actions button:focus-visible,
-.drawer-foot button:focus-visible,
-.starter-card:focus-visible,
+.memory-toggle:focus-visible:not(.btn),
+.starter-card:focus-visible:not(.btn),
 .seat:focus-visible,
-.history-item-main:focus-visible,
+.history-item-main:focus-visible:not(.btn),
 select:focus-visible,
 .project-select-styled:focus-visible,
 .topic-input:focus-visible {
-  outline: 2.5px solid var(--moderator);
+  outline: 2.5px solid var(--focus-ring);
   outline-offset: 3px;
-  box-shadow: 0 0 0 1px rgba(179, 139, 77, 0.2);
 }
 
 /* #6 全局微交互 + 触感反馈 + 卡片 hover 强化（最小添加，尊重现有视觉） */
@@ -1013,10 +1005,11 @@ h2.finish-actions-label {
   min-height: 24px;
   border-radius: 999px;
 }
-.copy-mode-switch .ghost-btn.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
+.copy-mode-switch .ghost-btn.active,
+.copy-mode-switch .btn.active {
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface));
+  color: var(--teal);
+  border-color: color-mix(in srgb, var(--teal) 32%, var(--line));
 }
 
 /* 审议结论分区标题（给用户清晰的视觉断点） */
@@ -1110,7 +1103,7 @@ h2.finish-actions-label {
   border-radius: var(--r-md);
   box-shadow: var(--shadow-md);
 }
-.scenario-row-actions { display: none; }
+
 .task-panel-title { margin-bottom: 0; }
 .task-card { transition: border-color 0.15s var(--ease-fast), box-shadow 0.15s var(--ease-fast); }
 .task-card:hover { border-color: var(--line-strong); }

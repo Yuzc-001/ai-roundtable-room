@@ -635,14 +635,14 @@ export function MemoryReviewPanel({ changes = [], onApprove, onReject }) {
           {change.mitigation && <em>{change.mitigation}</em>}
           <div className="memory-change-actions">
             <button className="btn btn-ghost" onClick={() => onReject([change.id])}>暂不入库</button>
-            <button className="btn btn-primary" onClick={() => onApprove([change.id])}>确认入库此判断</button>
+            <button className="btn btn-secondary" onClick={() => onApprove([change.id])}>确认入库此判断</button>
           </div>
         </div>
       ))}
       {changes.length > 1 && (
         <div className="memory-review-actions">
           <button className="btn btn-ghost" onClick={() => onReject(changes.map((item) => item.id))}>全部暂不入库</button>
-          <button className="btn btn-primary" onClick={() => onApprove(changes.map((item) => item.id))}>全部确认入库</button>
+          <button className="btn btn-secondary" onClick={() => onApprove(changes.map((item) => item.id))}>全部确认入库</button>
         </div>
       )}
     </div>
@@ -915,7 +915,7 @@ export function ContinueDeliberationPanel({
     >
       <div className="continue-panel-head">
         <b>继续审议</b>
-        <span>{disabledHint || '带着本场结论与风险登记，发起下一场继续审议。'}</span>
+        <span id="continue-panel-hint">{disabledHint || '带着本场结论与风险登记，发起下一场继续审议。'}</span>
       </div>
       <textarea
         className="textarea continue-panel-input"
@@ -924,8 +924,22 @@ export function ContinueDeliberationPanel({
         onChange={(event) => onChange(event.target.value)}
         placeholder="例如：如果预算砍半，最小验证路径是什么？"
         disabled={disabled}
+        aria-describedby="continue-panel-hint"
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey && !disabled) {
+            event.preventDefault();
+            onSubmit?.();
+          }
+        }}
       />
-      <Button type="button" variant="primary" onClick={onSubmit} disabled={disabled} title={disabledHint}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={onSubmit}
+        disabled={disabled}
+        title={disabledHint}
+        aria-describedby="continue-panel-hint"
+      >
         基于此发起继续审议
       </Button>
     </section>

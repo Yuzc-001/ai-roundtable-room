@@ -39,7 +39,17 @@ npm test   → 26 files, 147 tests passed
 npm run build → success (vite)
 ```
 
+## Fix round (review b7947346)
+
+- **Primary hierarchy:** empty-session primary; sidebar secondary + `primaryActionLabel`; hide during onboarding/project form; top primary gated by `playbackStarted && !showVote`; continue = secondary, export = primary.
+- **Mobile:** `data-mobile-info-panel` drawer for tasks/history when info-panel hidden.
+- **Landing:** forced light theme on landing; `.landing-shell` full token chamber; nav CTA = secondary.
+- **A11y:** scenario menu `aria-expanded`/Escape; dialog `aria-modal`; backdrop buttons.
+- **CSS:** valid top-nav bg; teal nav active; focus ring split; BOM removed.
+- **Tests:** +Chip/IconButton/styles-import; App.test ui-kit guards; landing 1.3.2 explore asserts.
+- **Tracker:** `agent-tools/grok-review-b7947346.md`
+
 ## Notes
 
 - `body[data-app-view]` unchanged (`landing` | `workspace`) — already set in `App.jsx`.
-- Remaining raw `btn btn-*` in low-traffic components (onboarding, exports) still valid via shared CSS; high-traffic paths wired to `src/ui`.
+- Remaining raw `btn btn-*` in onboarding/export blocks — tracked for 1.3.3 hygiene (ISSUE-002).

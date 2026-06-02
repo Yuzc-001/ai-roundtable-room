@@ -28,4 +28,14 @@ describe('Button', () => {
     const html = renderToString(<Button size="sm">Small</Button>);
     expect(html).toContain('btn-sm');
   });
+
+  test('merges custom className and loading label class', () => {
+    const html = renderToString(
+      <Button variant="primary" className="empty-session-primary" loading>
+        Go
+      </Button>,
+    );
+    expect(html).toContain('empty-session-primary');
+    expect(html).toContain('btn-label--loading');
+  });
 });

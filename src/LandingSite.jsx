@@ -32,7 +32,7 @@ function LandingNav({ copy, page, onNavigate, onToggleLang, onEnter }) {
       <div className="landing-nav-actions">
         <Button type="button" variant="ghost" className="landing-lang" onClick={onToggleLang}>{copy.language}</Button>
         <a className="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
-        <Button type="button" variant="primary" onClick={onEnter}>{copy.primary}</Button>
+        <Button type="button" variant="secondary" onClick={onEnter}>{copy.primary}</Button>
       </div>
     </header>
   );

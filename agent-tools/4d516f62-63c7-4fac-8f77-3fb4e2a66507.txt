@@ -1,0 +1,365 @@
+
+> ai-roundtable-room@1.1.3 test
+> vitest run
+
+
+ RUN  v4.1.5 D:/AI Pro/ai-roundtable-room
+
+ ✓ server/project-files.test.js (1 test) 32ms
+ ✓ server/config.test.js (8 tests) 7ms
+ ✓ server/session.test.js (3 tests) 5ms
+ ✓ src/lib/roundtable.test.js (15 tests) 16ms
+ ✓ src/components.workspace.test.js (2 tests) 6ms
+ ✓ src/lib/minutes.test.js (2 tests) 4ms
+ ✓ server/rate-limit.test.js (2 tests) 5ms
+ ✓ src/lib/setup.test.js (2 tests) 5ms
+ ✓ src/services/roundtableApi.test.js (1 test) 7ms
+ ✓ server/env.test.js (2 tests) 13ms
+ ❯ src/App.test.jsx (3 tests | 2 failed) 32ms
+     × renders the open-source landing page before the workbench 24ms
+     ✓ keeps the interactive workbench behind an explicit entry action 2ms
+     × renders project controls without browser prompts 4ms
+ ✓ server/meeting.test.js (16 tests) 22ms
+ ✓ server/model-providers.test.js (5 tests) 8ms
+ ✓ server/app.test.js (13 tests) 139ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/App.test.jsx > App initial experience > renders the open-source landing page before the workbench
+AssertionError: expected '<div class="landing-shell"><header cl…' to contain 'FAQ'
+
+- Expected
++ Received
+
+- FAQ
++ <div class="landing-shell"><header class="landing-nav"><div class="landing-brand"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><circle cx="12" cy="12" r="10" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 2"></circle><path d="M12 2C12 2 12 5 12 7" stroke="var(--moderator)" stroke-width="2.5" stroke-linecap="round"></path><path d="M12 22V17" stroke="var(--moderator)" stroke-width="2.5" stroke-linecap="round"></path><path d="M2 12H7" stroke="var(--moderator)" stroke-width="2.5" stroke-linecap="round"></path><path d="M22 12H17" stroke="var(--moderator)" stroke-width="2.5" stroke-linecap="round"></path><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="var(--academy)" stroke="var(--moderator)" stroke-width="0.5"></rect></svg><span>圆桌智库</span></div><nav><a href="#use-cases">适用场景</a><a href="#workflow">审议流程</a><a href="#faq">常见问题</a><a href="https://github.com/Yuzc-001/ai-roundtable-room/blob/main/docs/roadmap.md" target="_blank" rel="noreferrer">更新</a></nav><div class="landing-nav-actions"><button type="button" class="btn btn-ghost landing-lang">EN</button><a class="btn btn-ghost" href="https://github.com/Yuzc-001/ai-roundtable-room" target="_blank" rel="noreferrer">源码</a><button type="button" class="btn btn-primary">进入工作台</button></div></header><main class="landing-main"><section class="landing-hero"><p class="landing-kicker">本地运行 · 开源</p><h1>议题写出来，判断留得住</h1><p class="landing-deck">一场审议对应一份纪要：分歧、证据标注、行动项与重开条件，都可回看、导出、继续追问。</p><div class="landing-cta-row"><button type="button" class="btn btn-primary landing-cta">进入工作台</button><button type="button" class="btn btn-ghost landing-cta">查看演示</button></div><ul id="use-cases" class="landing-points"><li>产品取舍与上线节奏</li><li>商业假设与验证路径</li><li>长期项目的结论沉淀</li></ul></section><section class="landing-shot" aria-hidden="false"><img src="/remotion/home-2026-05.png" alt="圆桌智库工作台界面" loading="lazy"/></section><section id="workflow" class="landing-flow"><h2>怎么用</h2><ol><li><b>写下议题</b><span>一个需要权衡风险、证据与下一步的具体问题。</span></li><li><b>分阶段推进</b><span>发散、质询、暴露分歧、收拢结论，过程可追溯。</span></li><li><b>导出与沉淀</b><span>生成纪要包；你决定是否把结论写入项目记忆。</span></li></ol></section><section id="self-host" class="landing-install"><div class="landing-install-copy"><h2>本地安装</h2><p>复制仓库、填写 .env、启动服务。无云账号，无强制联网存储。</p><ul class="landing-install-notes"><li><b>数据留在本机</b>适合私密议题与长期项目。历史会议、导出纪要与项目记忆默认保存在本地。</li><li><b>审议而非表演</b>价值在于暴露未对齐之处、标出证据缺口、保留反对意见，而不是让头像轮流发言。</li><li><b>持续维护的开源项目</b>文档、测试与自部署体验随版本迭代；欢迎通过 Issue 参与改进。</li></ul></div><pre class="landing-code"><code>git clone https://github.com/Yuzc-001/ai-roundtable-room.git
++ cd ai-roundtable-room
++ npm install
++ cp .env.example .env
++ npm run dev</code></pre></section><section id="faq" class="landing-faq"><div class="landing-faq-side"><h2>常见问题</h2><div class="landing-support"><h3>参与项目</h3><a href="https://github.com/Yuzc-001/ai-roundtable-room#readme" target="_blank" rel="noreferrer"><b>阅读文档</b><span>部署、配置与数据流说明见 README 与架构文档。</span></a><a href="https://github.com/Yuzc-001/ai-roundtable-room/issues" target="_blank" rel="noreferrer"><b>提交 Issue</b><span>反馈缺陷、部署问题或产品建议。</span></a><a href="https://github.com/Yuzc-001/ai-roundtable-room/blob/main/docs/roadmap.md" target="_blank" rel="noreferrer"><b>查看路线图</b><span>了解自部署、模型适配与记忆治理的后续计划。</span></a></div></div><div class="landing-faq-list"><details open=""><summary>和直接问大模型有什么不同？</summary><p>单轮问答适合查事实、写草稿。这里适合证据不完整、存在反对意见、需要留下过程记录的判断类问题。</p></details><details><summary>一定要接很多模型吗？</summary><p>不必。配置一个可用模型即可开始；多个供应商主要用于拉开视角差异。</p></details><details><summary>密钥和数据会去哪？</summary><p>API Key 由本地服务读取；浏览器不接触密钥。议题与会议数据默认留在你的环境。</p></details><details><summary>适合团队吗？</summary><p>可先自部署试用。当前侧重个人与小团队本地工作台；共享与权限按路线图推进。</p></details><details><summary>还会更新吗？</summary><p>会。版本迭代聚焦审议质量、记忆治理、导出分享与部署体验。</p></details></div></section></main><footer class="landing-footer"><span>圆桌智库 · 开源 · 本地运行</span><a href="https://github.com/Yuzc-001/ai-roundtable-room" target="_blank" rel="noreferrer">github.com/Yuzc-001/ai-roundtable-room</a></footer></div>
+
+ ❯ src/App.test.jsx:15:18
+     13|     expect(html).toContain('圆桌智库');
+     14|     expect(html).toContain('/remotion/home-2026-05.png');
+     15|     expect(html).toContain('FAQ');
+       |                  ^
+     16|     expect(html).toContain('https://github.com/Yuzc-001/ai-roundtable-…
+     17|     expect(html).toContain('进入工作台');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/App.test.jsx > App initial experience > renders project controls without browser prompts
+AssertionError: expected 'import { useEffect, useMemo, useRef, …' to contain 'bubble--dimmed'
+
+- Expected
++ Received
+
+- bubble--dimmed
++ import { useEffect, useMemo, useRef, useState } from 'react';
++ import { Bubble, ContinueDeliberationPanel, DecisionPacketCard, DELIBERATION_PHASES, Logo, MemoryReviewPanel, ModeratorConsole, PersonaDrawer, SetupGuidePanel, Stage, VoteCard, WorkspacePanel } from './components.jsx';
++ import { DEFAULT_TOPIC, DEMO_MEETING, PERSONAS, PRESETS } from './data/personas.js';
++ import { useLocalStorage } from './hooks/useLocalStorage.js';
++ import { useTypewriter } from './hooks/useTypewriter.js';
++ import { formatMeetingMarkdown, formatMeetingHTML, sanitizeDownloadName } from './lib/minutes.js';
++ import {
++   approveProjectMemoryChanges,
++   archiveProject,
++   buildContinuationContext,
++   buildMeetingPayload,
++   buildProjectMemoryContext,
++   createDefaultProject,
++   getPresetRoster,
++   rejectProjectMemoryChanges,
++   removeMeetingFromProject,
++   restoreArchivedProject,
++   updateProjectWithMeeting,
++ } from './lib/roundtable.js';
++ import {
++   createMeetingRequest,
++   createSessionRequest,
++   createShareRequest,
++   extractTextRequest,
++   getHealth,
++   getShareRequest,
++   syncProjectFiles,
++ } from './services/roundtableApi.js';
++ import { MIN_ENV_SNIPPET, SETUP_STEPS } from './lib/setup.js';
++
++ const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
++ const README_URL = `${GITHUB_URL}#readme`;
++ const ISSUES_URL = `${GITHUB_URL}/issues`;
++ const ROADMAP_URL = `${GITHUB_URL}/blob/main/docs/roadmap.md`;
++
++ const LANDING_COPY = {
++   zh: {
++     language: 'EN',
++     brand: '圆桌智库',
++     nav: ['适用场景', '审议流程', '常见问题', '更新'],
++     heroKicker: '本地运行 · 开源',
++     title: '议题写出来，判断留得住',
++     deck: '一场审议对应一份纪要：分歧、证据标注、行动项与重开条件，都可回看、导出、继续追问。',
++     points: ['产品取舍与上线节奏', '商业假设与验证路径', '长期项目的结论沉淀'],
++     primary: '进入工作台',
++     demo: '查看演示',
++     github: '源码',
++     shotAlt: '圆桌智库工作台界面',
++     quickstartTitle: '本地安装',
++     quickstartLead: '复制仓库、填写 .env、启动服务。无云账号，无强制联网存储。',
++     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
++     sections: [
++       ['数据留在本机', '适合私密议题与长期项目。历史会议、导出纪要与项目记忆默认保存在本地。'],
++       ['审议而非表演', '价值在于暴露未对齐之处、标出证据缺口、保留反对意见，而不是让头像轮流发言。'],
++       ['持续维护的开源项目', '文档、测试与自部署体验随版本迭代；欢迎通过 Issue 参与改进。'],
++     ],
++     workflowTitle: '怎么用',
++     workflow: [
++       ['写下议题', '一个需要权衡风险、证据与下一步的具体问题。'],
++       ['分阶段推进', '发散、质询、暴露分歧、收拢结论，过程可追溯。'],
++       ['导出与沉淀', '生成纪要包；你决定是否把结论写入项目记忆。'],
++     ],
++     faqTitle: '常见问题',
++     supportTitle: '参与项目',
++     supportCards: [
++       ['阅读文档', '部署、配置与数据流说明见 README 与架构文档。'],
++       ['提交 Issue', '反馈缺陷、部署问题或产品建议。'],
++       ['查看路线图', '了解自部署、模型适配与记忆治理的后续计划。'],
++     ],
++     faq: [
++       ['和直接问大模型有什么不同？', '单轮问答适合查事实、写草稿。这里适合证据不完整、存在反对意见、需要留下过程记录的判断类问题。'],
++       ['一定要接很多模型吗？', '不必。配置一个可用模型即可开始；多个供应商主要用于拉开视角差异。'],
++       ['密钥和数据会去哪？', 'API Key 由本地服务读取；浏览器不接触密钥。议题与会议数据默认留在你的环境。'],
++       ['适合团队吗？', '可先自部署试用。当前侧重个人与小团队本地工作台；共享与权限按路线图推进。'],
++       ['还会更新吗？', '会。版本迭代聚焦审议质量、记忆治理、导出分享与部署体验。'],
++     ],
++     footer: '圆桌智库 · 开源 · 本地运行',
++   },
++   en: {
++     language: '中文',
++     brand: 'Roundtable',
++     nav: ['Use cases', 'Flow', 'FAQ', 'Updates'],
++     heroKicker: 'Local · Open source',
++     title: 'Write the question. Keep the judgment.',
++     deck: 'Each session becomes minutes you can revisit: tensions, evidence notes, actions, and reopen triggers.',
++     points: ['Product scope and launch timing', 'Business assumptions and validation', 'Long-running project memory'],
++     primary: 'Open workbench',
++     demo: 'View demo',
++     github: 'Source',
++     shotAlt: 'Roundtable workbench',
++     quickstartTitle: 'Install locally',
++     quickstartLead: 'Clone, configure .env, start the server. No cloud account required.',
++     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
++     sections: [
++       ['Data stays local', 'For private topics and long projects. History, exports, and memory default to your machine.'],
++       ['Deliberation, not theater', 'Surface misalignment, mark
+
+... (output truncated) ...
+
+copyCoreConclusions()}
++                       disabled={exportFeedback === 'copied'}
++                       title={copyMode === 'concise' 
++                         ? "简洁版：适合直接发消息" 
++                         : "完整版：适合进文档/正式复盘"}
++                     >
++                       {exportFeedback === 'copied' 
++                         ? '✓ 已复制' 
++                         : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
++                     </button>
++                     <button
++                       className={`btn btn-ghost ${exportFeedback === 'md' ? 'export-success' : ''}`}
++                       onClick={() => exportMinutes('md')}
++                       disabled={!!exportFeedback}
++                     >
++                       {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
++                     </button>
++                     <button
++                       className={`btn btn-primary ${exportFeedback === 'share' ? 'export-success' : ''}`}
++                       onClick={() => generateShareLink()}
++                       disabled={!!exportFeedback}
++                     >
++                       {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
++                     </button>
++                     <button
++                       className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
++                       onClick={() => exportMinutes('html')}
++                       disabled={!!exportFeedback}
++                     >
++                       {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
++                     </button>
++                     <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
++                   </div>
++                 </div>
++               )}
++             </div>
++           )}
++         </div>
++         {error && <div className="error-banner">{error}</div>}
++       </main>
++       <aside className="info-panel">
++         <div className="info-header">项目情报</div>
++         <div className="project-card">
++           <div className="project-card-name">{activeProject.name}</div>
++           <div className="project-stat-grid">
++             <div className="project-stat-box"><span>历史场次</span><b>{activeProject.meetings?.length ?? 0}</b></div>
++             <div className="project-stat-box"><span>已入库决策</span><b>{activeProject.memory?.decisions?.length ?? activeProject.memory?.summaries?.length ?? 0}</b></div>
++             <div className="project-stat-box"><span>风险登记</span><b>{activeProject.memory?.riskRegister?.length ?? activeProject.memory?.risks?.length ?? 0}</b></div>
++             <div className="project-stat-box"><span>记忆待审</span><b>{pendingMemoryChanges.length}</b></div>
++           </div>
++           {( (activeProject.memory?.decisions?.length || activeProject.memory?.summaries?.length || activeProject.memory?.riskRegister?.length || 0) > 0 ) && (
++             <div className="memory-active-badge">✓ 记忆已激活 · 自动用于新审议</div>
++           )}
++         </div>
++         <MemoryReviewPanel changes={pendingMemoryChanges} onApprove={approveMemoryChanges} onReject={rejectMemoryChanges} />
++         {meeting?.workspace && playbackStarted && (
++           <>
++             <div className="info-header">本场审议实况</div>
++             <WorkspacePanel workspace={meeting.workspace} isCompact={focusMode} />
++           </>
++         )}
++         <div className="info-header">会议历史</div>
++         <div className="history-list">
++           {(activeProject.meetings?.length ?? 0) === 0 ? (
++             <div className="history-empty">审批后的决策、风险和行动会沉淀在项目里。</div>
++           ) : (
++             (activeProject.meetings ?? []).map((item) => {
++               const isConfirmingPermanent = permanentConfirmId === item.id;
++ 
++               return (
++                 <div 
++                   key={item.id} 
++                   className={`history-item ${isConfirmingPermanent ? 'history-item--confirm' : ''}`}
++                   title="右键或长按可彻底删除（不可撤销）"
++                   onContextMenu={(e) => {
++                     e.preventDefault();
++                     triggerPermanentDeleteConfirm(item);
++                   }}
++                   onTouchStart={() => {
++                     longPressTimerRef.current = setTimeout(() => {
++                       triggerPermanentDeleteConfirm(item);
++                     }, 650);
++                   }}
++                   onTouchEnd={() => {
++                     if (longPressTimerRef.current) {
++                       clearTimeout(longPressTimerRef.current);
++                       longPressTimerRef.current = null;
++                     }
++                   }}
++                   onTouchMove={() => {
++                     if (longPressTimerRef.current) {
++                       clearTimeout(longPressTimerRef.current);
++                       longPressTimerRef.current = null;
++                     }
++                   }}
++                 >
++                   {/* 主按钮：承载「复盘查看」动作，语义清晰、无角色嵌套 */}
++                   <button
++                     type="button"
++                     className="history-item-main btn btn-ghost"
++                     aria-label={`查看历史会议复盘：${item.meeting.title}`}
++                     onClick={() => viewHistoryMeeting(item)}
++                   >
++                     <div className="history-item-body">
++                       <span className="history-item-title" title={item.topic || item.meeting.title}>{item.topic || item.meeting.title}</span>
++                       {item.topic && item.meeting.title && item.topic !== item.meeting.title && (
++                         <span className="history-item-topic" title={item.meeting.title}>{item.meeting.title}</span>
++                       )}
++                       <span className="history-item-meta">
++                         {item.savedAt ? new Date(item.savedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '未记录时间'}
++                         {' · '}
++                         {item.meeting?.turns?.length ?? 0} 轮发言
++                         {item.source === 'demo' ? ' · 演示' : ''}
++                         {' · 点击复盘'}
++                       </span>
++                     </div>
++                   </button>
++ 
++                   {isConfirmingPermanent ? (
++                     /* 就地确认条（A方案）：始终保留上方正常内容（标题+议题可见），下方追加紧凑确认区 */
++                     <div className="history-confirm-bar">
++                       <div className="history-confirm-text">
++                         确定要彻底删除吗？此操作无法撤销。
++                       </div>
++                       <div className="history-confirm-actions">
++                         <button
++                           type="button"
++                           className="btn btn-ghost"
++                           onClick={(e) => { e.stopPropagation(); cancelPermanentDelete(); }}
++                         >
++                           取消
++                         </button>
++                         <button
++                           type="button"
++                           className="btn btn-danger"
++                           onClick={(e) => { e.stopPropagation(); confirmPermanentDelete(item.id); }}
++                         >
++                           彻底删除
++                         </button>
++                       </div>
++                     </div>
++                   ) : (
++                     /* 普通删除按钮：hover 显露，触屏常驻；可撤销 */
++                     <button
++                       type="button"
++                       className="btn btn-subtle history-delete-btn"
++                       aria-label={`删除历史会议：${item.meeting.title}（可撤销）`}
++                       title="删除此历史记录（可撤销，5秒内可撤销）"
++                       onClick={(e) => { e.stopPropagation(); deleteHistoryItem(item); }}
++                       onKeyDown={(e) => {
++                         if (e.key === 'Enter' || e.key === ' ') {
++                           e.stopPropagation();
++                           deleteHistoryItem(item);
++                         }
++                       }}
++                     >
++                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
++                         <line x1="18" y1="6" x2="6" y2="18" />
++                         <line x1="6" y1="6" x2="18" y2="18" />
++                       </svg>
++                     </button>
++                   )}
++                 </div>
++               );
++             })
++           )}
++         </div>
++       </aside>
++       {editingId && <PersonaDrawer persona={personas[editingId]} onSave={(persona) => { setPersonas({ ...personas, [persona.id]: persona }); notify('专家配置已更新'); }} onClose={() => setEditingId(null)} />}
++       {/* 普通 toast（短反馈） */}
++       {toast && typeof toast === 'string' && !lastDeleted && <div className="toast" role="status">{toast}</div>}
++       {/* 删除后的可撤销 toast（5s 窗口，带操作按钮 + 项目名 + 5s 提示，更用心） */}
++       {lastDeleted && (
++         <div className="toast toast--with-action" role="status" aria-live="polite">
++           已删除「{lastDeleted.projectName || '当前项目'}」的历史会议
++           <button
++             type="button"
++             className="btn btn-ghost toast-undo-btn"
++             onClick={undoDeleteHistoryItem}
++           >
++             撤销
++           </button>
++           <span className="toast-countdown" aria-hidden="true">5s</span>
++         </div>
++       )}
++     </div>
++   );
++ }
++
+
+ ❯ src/App.test.jsx:56:20
+     54|     expect(source).toContain('buildContinuationContext');
+     55|     expect(source).toContain('focusSpeakerId');
+     56|     expect(source).toContain('bubble--dimmed');
+       |                    ^
+     57|   });
+     58| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+vite v7.3.3 building client environment for production...
+transforming...
+✓ 38 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.86 kB │ gzip:  0.55 kB
+dist/assets/index-B3xjD97c.css   54.07 kB │ gzip: 10.75 kB
+dist/assets/index-CEmiFLCx.js   291.76 kB │ gzip: 94.39 kB
+✓ built in 787ms
