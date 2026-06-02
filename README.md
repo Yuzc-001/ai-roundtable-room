@@ -148,6 +148,12 @@ docker build -t ai-roundtable-room .
 docker run --rm -p 5173:5173 --env-file .env ai-roundtable-room
 ```
 
+或使用 Docker Compose（需已配置 `.env`）：
+
+```bash
+docker compose up --build
+```
+
 ## 项目结构
 
 ```text
@@ -160,6 +166,10 @@ artifacts/              README 截图和讲解视频
 docs/                   架构、安全审计、路线图和产品说明
 roundtable-projects/    本地运行时保存的项目快照
 ```
+
+## 版本记录
+
+详见 [CHANGELOG.md](./CHANGELOG.md)。当前版本 **1.1.0**（2026-06-02 五连版：配置引导、证据可信度、追问续议、发言聚焦、Compose 部署）。
 
 ## 维护入口
 

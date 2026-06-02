@@ -2,6 +2,7 @@
 
 ## 已做
 
+- **v1.0.6–1.1.0（2026-06-02）**：UI 内首次配置引导（复制最小 `.env`）；证据标签视觉区分与 tooltip；完成态「继续追问」接入 `buildContinuationContext`；回放时席位聚焦过滤；历史会议元数据；`docker-compose.yml` 与 `CHANGELOG.md`。
 - 项目目录改为 `ai-roundtable-room`，和包名、镜像名一致。
 - 自动读取 `.env`，降低首次运行困惑。
 - 增加 `npm run doctor`，快速检查运行配置。

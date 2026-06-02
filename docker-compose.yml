@@ -1,0 +1,10 @@
+services:
+  roundtable:
+    build: .
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - ./roundtable-projects:/app/roundtable-projects
+    restart: unless-stopped

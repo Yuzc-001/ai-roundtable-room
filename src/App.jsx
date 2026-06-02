@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bubble, DecisionPacketCard, DELIBERATION_PHASES, Logo, MemoryReviewPanel, ModeratorConsole, PersonaDrawer, Stage, VoteCard, WorkspacePanel } from './components.jsx';
+import { Bubble, ContinueDeliberationPanel, DecisionPacketCard, DELIBERATION_PHASES, Logo, MemoryReviewPanel, ModeratorConsole, PersonaDrawer, SetupGuidePanel, Stage, VoteCard, WorkspacePanel } from './components.jsx';
 import { DEFAULT_TOPIC, DEMO_MEETING, PERSONAS, PRESETS } from './data/personas.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useTypewriter } from './hooks/useTypewriter.js';
@@ -7,6 +7,7 @@ import { formatMeetingMarkdown, formatMeetingHTML, sanitizeDownloadName } from '
 import {
   approveProjectMemoryChanges,
   archiveProject,
+  buildContinuationContext,
   buildMeetingPayload,
   buildProjectMemoryContext,
   createDefaultProject,
@@ -25,6 +26,7 @@ import {
   getShareRequest,
   syncProjectFiles,
 } from './services/roundtableApi.js';
+import { MIN_ENV_SNIPPET, SETUP_STEPS } from './lib/setup.js';
 
 const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
 const README_URL = `${GITHUB_URL}#readme`;
@@ -281,6 +283,8 @@ export default function App() {
 
   // For inline permanent delete confirmation (right-click / long-press)
   const [permanentConfirmId, setPermanentConfirmId] = useState(null); // which history item is in "confirm permanent delete" state
+  const [followUpNote, setFollowUpNote] = useState('');
+  const [focusSpeakerId, setFocusSpeakerId] = useState(null);
 
   const projectList = useMemo(() => (Array.isArray(projects) && projects.length ? projects : [createDefaultProject()]), [projects]);
   const archivedProjectList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []), [archivedProjects]);
@@ -435,6 +439,8 @@ export default function App() {
     setSimPhaseIdx(0);
     setExportFeedback(null);
     setLoadedHistoryId(null);
+    setFollowUpNote('');
+    setFocusSpeakerId(null);
   };
   const openLanding = () => {
     returnHome();
@@ -579,15 +585,17 @@ export default function App() {
     notify(`已恢复到「${restoredName}」`);
   };
 
-  const startMeeting = async (customTopic) => {
+  const startMeeting = async (customTopic, { extraContextNotes = [], successMessage } = {}) => {
     const finalTopic = customTopic || topic;
     if (!finalTopic.trim()) {
       setError('请输入要审议的问题');
       return;
     }
-    const contextNotes = [projectMemoryContext].filter(Boolean);
+    const contextNotes = [projectMemoryContext, ...extraContextNotes].filter(Boolean);
     setStatus('generating');
     setError('');
+    setShowVote(false);
+    setFocusSpeakerId(null);
     try {
       const payload = await createMeetingRequest({ payload: buildMeetingPayload({ topic: finalTopic, presetId, contextNotes, roster: allOnStage }) });
       const entry = { id: Date.now(), topic: finalTopic, meeting: payload, contextNotes, source: 'live', savedAt: new Date().toISOString() };
@@ -600,15 +608,29 @@ export default function App() {
       setPlaybackStarted(true);
       setHistory([]);
       setCurrentIdx(0);
-      setShowVote(false);
       setTopic(finalTopic);
       setLoadedHistoryId(null);
-      notify('✧ 审议完成 · 6阶段闭环 · 决策已封装，审批记忆后导出复盘');
+      notify(successMessage || '审议已生成，正在回放结构化发言');
     } catch (e) {
       setError(e.message || '启动审议失败，请检查模型配置');
     } finally {
       setStatus('idle');
     }
+  };
+
+  const continueFromMeeting = async () => {
+    if (!meeting || status === 'generating') return;
+    if (health?.aiConfigured === false) {
+      notify('请先配置 API Key 后再发起追问');
+      return;
+    }
+    const continuation = buildContinuationContext({ topic, meeting, personas, userNote: followUpNote });
+    const finalTopic = followUpNote.trim() || topic;
+    await startMeeting(finalTopic, {
+      extraContextNotes: [continuation],
+      successMessage: '已基于上一场发起追问审议',
+    });
+    setFollowUpNote('');
   };
   const showDemoMeeting = () => {
     setTopic(DEFAULT_TOPIC);
@@ -1056,7 +1078,23 @@ export default function App() {
             )}
           </div>
         </header>
-        <Stage allPersonas={allOnStage} speakerId={currentSpeaker?.id} onSeatClick={(persona) => setEditingId(persona.id)} />
+        <Stage
+          allPersonas={allOnStage}
+          speakerId={currentSpeaker?.id}
+          onSeatClick={(persona) => {
+            if (playbackStarted && !showVote) {
+              setFocusSpeakerId((prev) => (prev === persona.id ? null : persona.id));
+              return;
+            }
+            setEditingId(persona.id);
+          }}
+        />
+        {focusSpeakerId && playbackStarted && !showVote && (
+          <div className="speaker-focus-bar">
+            <span>聚焦：{personas[focusSpeakerId]?.name || focusSpeakerId} 的发言</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFocusSpeakerId(null)}>显示全部</button>
+          </div>
+        )}
         <div className="transcript-area" ref={transcriptRef}>
           {status === 'generating' ? (
             /* #1 生成过程阶段提示 + 感知进度：复用 ModeratorConsole 的 phase stepper + 模拟推进，彻底消除等待黑箱焦虑 */
@@ -1104,6 +1142,13 @@ export default function App() {
                   <span>简单事实查询、低风险润色、明确单步任务；这些更适合直接问单模型。</span>
                 </div>
               </div>
+              {health?.aiConfigured === false && (
+                <SetupGuidePanel
+                  snippet={MIN_ENV_SNIPPET}
+                  steps={SETUP_STEPS}
+                  onCopied={() => notify('最小 .env 配置已复制，粘贴到项目根目录后填写 API Key')}
+                />
+              )}
               <div className="starter-grid">
                 <button type="button" className="starter-card btn btn-ghost" aria-label="启动产品认知压测" onClick={() => health?.aiConfigured === false ? setTopic('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？') : startMeeting('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？')}><b>产品认知压测</b><span>输出关键分歧、证据缺口、重开条件和用户下一步。</span></button>
                 <button type="button" className="starter-card btn btn-ghost" aria-label="启动商业判断" onClick={() => health?.aiConfigured === false ? setTopic('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？') : startMeeting('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？')}><b>商业判断</b><span>碰撞价值假设、定价风险和验证路径。</span></button>
@@ -1120,10 +1165,35 @@ export default function App() {
                 />
               )}
               {history.map((turn, index) => (
-                <Bubble key={index} persona={personas[turn.speaker]} text={turn.text} stance={turn.stance} act={turn.act} phase={turn.phase} confidence={turn.confidence} evidenceLabel={turn.evidenceLabel} citations={turn.citations} providerName={turn.providerName} />
+                <Bubble
+                  key={index}
+                  persona={personas[turn.speaker]}
+                  text={turn.text}
+                  stance={turn.stance}
+                  act={turn.act}
+                  phase={turn.phase}
+                  confidence={turn.confidence}
+                  evidenceLabel={turn.evidenceLabel}
+                  citations={turn.citations}
+                  providerName={turn.providerName}
+                  dimmed={focusSpeakerId && turn.speaker !== focusSpeakerId}
+                />
               ))}
               {currentTurn && (
-                <Bubble persona={currentSpeaker} text={revealed} isLive isStreaming={!done} stance={currentTurn.stance} act={currentTurn.act} phase={currentTurn.phase} confidence={currentTurn.confidence} evidenceLabel={currentTurn.evidenceLabel} citations={currentTurn.citations} providerName={currentTurn.providerName} />
+                <Bubble
+                  persona={currentSpeaker}
+                  text={revealed}
+                  isLive
+                  isStreaming={!done}
+                  stance={currentTurn.stance}
+                  act={currentTurn.act}
+                  phase={currentTurn.phase}
+                  confidence={currentTurn.confidence}
+                  evidenceLabel={currentTurn.evidenceLabel}
+                  citations={currentTurn.citations}
+                  providerName={currentTurn.providerName}
+                  dimmed={focusSpeakerId && currentTurn.speaker !== focusSpeakerId}
+                />
               )}
               {showVote && (
                 <div className="final-block">
@@ -1170,6 +1240,15 @@ export default function App() {
                       完整
                     </button>
                   </div>
+
+                  {health?.aiConfigured !== false && (
+                    <ContinueDeliberationPanel
+                      value={followUpNote}
+                      onChange={setFollowUpNote}
+                      onSubmit={continueFromMeeting}
+                      disabled={status === 'generating'}
+                    />
+                  )}
 
                   <div className="finish-actions">
                     <button
@@ -1280,7 +1359,13 @@ export default function App() {
                     <div className="history-item-body">
                       <span className="history-item-title">{item.meeting.title}</span>
                       <span className="history-item-topic">{item.topic}</span>
-                      <span className="history-item-meta">点击复盘</span>
+                      <span className="history-item-meta">
+                        {item.savedAt ? new Date(item.savedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '未记录时间'}
+                        {' · '}
+                        {item.meeting?.turns?.length ?? 0} 轮发言
+                        {item.source === 'demo' ? ' · 演示' : ''}
+                        {' · 点击复盘'}
+                      </span>
                     </div>
                   </button>
 

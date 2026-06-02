@@ -47,5 +47,10 @@ describe('App initial experience', () => {
     expect(source).toContain('aria-label="启动产品认知压测"');
     expect(source).toContain('data-on='); // memory-toggle state
     expect(source).toContain('btn btn-subtle memory-toggle');
+    expect(source).toContain('SetupGuidePanel');
+    expect(source).toContain('ContinueDeliberationPanel');
+    expect(source).toContain('buildContinuationContext');
+    expect(source).toContain('focusSpeakerId');
+    expect(source).toContain('bubble--dimmed');
   });
 });

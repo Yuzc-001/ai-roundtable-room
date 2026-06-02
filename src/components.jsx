@@ -99,7 +99,7 @@ const ACT_LABELS = {
   META: '元治理',
 };
 
-const EVIDENCE_LABELS = {
+export const EVIDENCE_LABELS = {
   fact: '事实',
   inference: '推断',
   assumption: '假设',
@@ -108,7 +108,16 @@ const EVIDENCE_LABELS = {
   user_input: '用户输入',
 };
 
-export function Bubble({ persona, text, isLive, citations, stance, isUser, isStreaming, act, phase, confidence, evidenceLabel, providerName }) {
+export const EVIDENCE_TOOLTIPS = {
+  fact: '可核对的事实陈述',
+  inference: '由事实推导，尚未独立验证',
+  assumption: '审议中的前提，待验证',
+  opinion: '立场性判断，非客观事实',
+  project_memory: '来自已批准的项目记忆',
+  user_input: '来自你提供的议题或材料',
+};
+
+export function Bubble({ persona, text, isLive, citations, stance, isUser, isStreaming, act, phase, confidence, evidenceLabel, providerName, dimmed }) {
   if (isUser) {
     return (
       <div className="bubble user">
@@ -123,7 +132,7 @@ export function Bubble({ persona, text, isLive, citations, stance, isUser, isStr
   const stanceLabels = { for: '支持战略', against: '持审慎异议', neutral: '客观观察' };
   return (
     <div
-      className={`bubble${isLive ? ' live' : ' past'}`}
+      className={`bubble${isLive ? ' live' : ' past'}${dimmed ? ' bubble--dimmed' : ''}`}
       style={{
         '--ai-color': persona.color,
         '--ai-soft': persona.softColor,
@@ -142,7 +151,14 @@ export function Bubble({ persona, text, isLive, citations, stance, isUser, isStr
         <div className="bubble-protocol">
           {phase && <span className="tag tag-phase">{phase}</span>}
           {act && <span className={`tag tag-act-${(act || '').toLowerCase()}`}>{ACT_LABELS[act] || act}</span>}
-          {evidenceLabel && <span className="tag">{EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}</span>}
+          {evidenceLabel && (
+            <span
+              className={`tag tag-evidence tag-evidence--${evidenceLabel}`}
+              title={EVIDENCE_TOOLTIPS[evidenceLabel] || EVIDENCE_LABELS[evidenceLabel]}
+            >
+              {EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}
+            </span>
+          )}
           {typeof confidence === 'number' && <span className="tag">置信度 {Math.round(confidence * 100)}%</span>}
           {providerName && <span className="tag">{providerName}</span>}
         </div>
@@ -501,5 +517,65 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
         </div>
       </div>
     </>
+  );
+}
+
+export function SetupGuidePanel({ snippet, steps, onCopied }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(snippet);
+        setCopied(true);
+        onCopied?.();
+        setTimeout(() => setCopied(false), 2400);
+      }
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <section className="setup-guide" aria-label="首次配置引导">
+      <div className="setup-guide-head">
+        <b>配置 API Key 以启用真实审议</b>
+        <span>演示模式可浏览流程，填写 .env 后重启服务即可生成。</span>
+      </div>
+      <ol className="setup-guide-steps">
+        {steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <pre className="setup-guide-snippet">{snippet}</pre>
+      <div className="setup-guide-actions">
+        <button type="button" className={`btn btn-primary${copied ? ' export-success' : ''}`} onClick={handleCopy}>
+          {copied ? '已复制到剪贴板' : '复制最小 .env 配置'}
+        </button>
+        <code className="setup-guide-hint">npm run doctor</code>
+      </div>
+    </section>
+  );
+}
+
+export function ContinueDeliberationPanel({ value, onChange, onSubmit, disabled }) {
+  return (
+    <section className="continue-panel" aria-label="基于本场继续追问">
+      <div className="continue-panel-head">
+        <b>继续追问</b>
+        <span>系统会把上一场结论、风险与关键发言注入下一场审议。</span>
+      </div>
+      <textarea
+        className="textarea continue-panel-input"
+        rows={2}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="例如：如果预算砍半，最小验证路径是什么？"
+        disabled={disabled}
+      />
+      <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={disabled}>
+        基于此发起追问审议
+      </button>
+    </section>
   );
 }

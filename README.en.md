@@ -150,6 +150,16 @@ docker build -t ai-roundtable-room .
 docker run --rm -p 5173:5173 --env-file .env ai-roundtable-room
 ```
 
+Or with Docker Compose (requires `.env`):
+
+```bash
+docker compose up --build
+```
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md). Current release **1.1.0** (2026-06-02).
+
 ## Project Layout
 
 ```text
