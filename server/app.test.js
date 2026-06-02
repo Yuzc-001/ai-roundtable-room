@@ -149,6 +149,52 @@ describe('createApp', () => {
     expect(response.headers.get('set-cookie')).toContain('HttpOnly');
   });
 
+  test('regenerates a single turn via injected handler', async () => {
+    const regenerateTurn = vi.fn().mockResolvedValue({
+      meeting: {
+        title: '测试会议',
+        turns: [
+          { speaker: 'du', text: '开场' },
+          { speaker: 'zhuo', text: '重生成后' },
+        ],
+        vote: { question: '是否推进？', results: {}, summary: '推进' },
+        risks: [],
+        actions: [],
+        workspace: { candidateOptions: [], openQuestions: [], tensions: [], evidencePool: [] },
+        memoryDiff: { decisions: [], risks: [], assumptions: [], disagreements: [], actions: [] },
+      },
+      meta: { turnIndex: 1, previousTurn: { speaker: 'zhuo', text: '旧版' } },
+    });
+    const app = await createApp({
+      config: loadConfig({ OPENAI_API_KEY: 'secret-key' }),
+      attachClient: false,
+      regenerateTurn,
+    });
+
+    const response = await request(app, {
+      method: 'POST',
+      path: '/api/meetings/regenerate-turn',
+      body: {
+        topic: '测试',
+        turnIndex: 1,
+        meeting: {
+          title: '测试会议',
+          turns: [
+            { speaker: 'du', text: '开场' },
+            { speaker: 'zhuo', text: '旧版' },
+          ],
+          vote: { question: '是否推进？', results: {}, summary: '推进' },
+          risks: [],
+          actions: [],
+        },
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.meeting.turns[1].text).toBe('重生成后');
+    expect(regenerateTurn).toHaveBeenCalledWith(expect.objectContaining({ turnIndex: 1 }));
+  });
+
   test('uses injected meeting generator for route behavior', async () => {
     const generateMeeting = vi.fn().mockResolvedValue({
       title: '测试会议',

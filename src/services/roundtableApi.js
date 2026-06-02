@@ -45,6 +45,40 @@ const REASON_MESSAGES = {
   generation_failed: () => '会议生成失败，请稍后再试。',
 };
 
+export async function refreshClosureRequest({ payload, signal }) {
+  const response = await fetch('/api/meetings/refresh-closure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    signal,
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const resolver = REASON_MESSAGES[body.reason];
+    const message = resolver ? resolver(body) : (body.error || '收束重算失败');
+    throw new Error(message);
+  }
+  return body;
+}
+
+export async function regenerateTurnRequest({ payload, signal }) {
+  const response = await fetch('/api/meetings/regenerate-turn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    signal,
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const resolver = REASON_MESSAGES[body.reason];
+    const message = resolver ? resolver(body) : (body.error || '发言重生成失败');
+    throw new Error(message);
+  }
+  return body;
+}
+
 export async function createMeetingRequest({ payload, signal }) {
   const response = await fetch('/api/meetings', {
     method: 'POST',

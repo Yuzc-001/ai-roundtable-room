@@ -1075,16 +1075,48 @@ button:active,
   padding: 3px 8px; border-radius: 4px; background: var(--surface-2); color: var(--ink-3);
   border: 1px solid var(--line);
 }
+.bubble-regen-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 4px 10px;
+}
 .bubble--dimmed {
   opacity: 0.38;
   filter: grayscale(0.15);
   pointer-events: none;
+}
+.bubble--dimmed .bubble-regen-btn {
+  pointer-events: auto;
+  opacity: 1;
+  filter: none;
 }
 .speaker-focus-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin: 0 24px 12px; padding: 10px 14px; border-radius: var(--r-md);
   background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; color: var(--ink-2);
 }
+.onboarding-wizard {
+  margin: 0 24px 16px; padding: 18px 20px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1.5px solid color-mix(in srgb, var(--teal) 40%, var(--line));
+}
+.onboarding-wizard-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.onboarding-wizard-head b { font-size: 15px; color: var(--ink); }
+.onboarding-wizard-head span { font-size: 12px; color: var(--ink-3); flex: 1; }
+.onboarding-steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.onboarding-step {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line);
+}
+.onboarding-step.active { background: color-mix(in srgb, var(--teal) 12%, var(--surface)); color: var(--teal); border-color: var(--teal); }
+.onboarding-step.done { color: var(--ink-2); }
+.onboarding-body p { font-size: 13px; color: var(--ink-2); line-height: 1.65; margin: 0 0 12px; }
+.onboarding-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.onboarding-ok { font-size: 12px; color: var(--success); font-weight: 600; }
+.onboarding-warn { font-size: 12px; color: var(--warning); font-weight: 600; }
+
 .setup-guide {
   margin-top: 24px; padding: 20px; border-radius: var(--r-lg);
   background: var(--surface); border: 1.5px solid color-mix(in srgb, var(--accent) 35%, var(--line));

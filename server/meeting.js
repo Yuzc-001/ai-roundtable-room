@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { enforceMeetingEvidence } from './evidence.js';
 import { PERSONAS, PRESETS } from '../shared/personas.js';
 
 const StanceSchema = z.enum(['for', 'against', 'neutral']);
@@ -496,12 +497,17 @@ function applyTurnToWorkspace(ws, turn, speakerPersona) {
     }
   }
 
-  if (act === 'PROBE' && speakerId === 'du' && next.openQuestions.length < 8) {
-    next.openQuestions.push({
-      id: makeId('question'),
-      question: `需跟进：${desc.slice(0, 100)}`,
-      blocks: false,
-    });
+  if (act === 'PROBE' && desc.length > 8 && next.openQuestions.length < 8) {
+    const existsQ = next.openQuestions.some((q) =>
+      (q.question ?? '').includes(desc.slice(0, 20)),
+    );
+    if (!existsQ) {
+      next.openQuestions.push({
+        id: makeId('question'),
+        question: speakerId === 'du' ? `需跟进：${desc.slice(0, 100)}` : desc.slice(0, 120),
+        blocks: false,
+      });
+    }
   }
 
   if (act === 'META' && speakerId === 'du' && /解决|缓解|闭合|不再|推进|resolve|mitigate|close|no longer|advance|progress/.test(text)) {
@@ -703,9 +709,9 @@ function completeDeliberationArtifacts(meeting, input) {
   });
 }
 
-export function sanitizeMeeting(meeting, allowedSpeakerIds) {
+export function sanitizeMeeting(meeting, allowedSpeakerIds, evidenceInput) {
   const allowed = new Set(allowedSpeakerIds);
-  const turns = meeting.turns
+  let turns = meeting.turns
     .filter((turn) => allowed.has(turn.speaker))
     .map((turn) => ({
       ...turn,
@@ -718,7 +724,7 @@ export function sanitizeMeeting(meeting, allowedSpeakerIds) {
 
   if (turns.length === 0) throw new Error('模型没有返回有效发言');
 
-  return {
+  const sanitized = {
     ...meeting,
     turns,
     vote: {
@@ -730,6 +736,11 @@ export function sanitizeMeeting(meeting, allowedSpeakerIds) {
     risks: meeting.risks.slice(0, 8),
     actions: meeting.actions.slice(0, 8),
   };
+
+  if (evidenceInput) {
+    return enforceMeetingEvidence(sanitized, evidenceInput);
+  }
+  return sanitized;
 }
 
 const SYSTEM_PROMPT = `你是“AI Roundtable Room”的认知编排器。你的目标不是模拟多人会议，而是围绕用户议题生成一场可上线产品可直接展示的结构化认知增强流程。
@@ -1041,6 +1052,184 @@ async function createRoutedMeeting({ router, input }) {
   return { ...summary, turns, workspace, usage: totalUsage };
 }
 
+function mergeUsageTotals(base = {}, delta = {}) {
+  const prev = {
+    inputTokens: base.inputTokens ?? 0,
+    outputTokens: base.outputTokens ?? 0,
+    totalTokens: base.totalTokens ?? 0,
+  };
+  return {
+    inputTokens: prev.inputTokens + (delta.inputTokens ?? 0),
+    outputTokens: prev.outputTokens + (delta.outputTokens ?? 0),
+    totalTokens: prev.totalTokens + (delta.totalTokens ?? 0),
+  };
+}
+
+function draftToStoredTurn({ speaker, provider, parsed, phase }) {
+  return {
+    speaker: speaker.id,
+    providerId: provider?.id,
+    providerName: provider?.name,
+    text: parsed.text,
+    act: parsed.act,
+    phase: parsed.phase || phase,
+    confidence: parsed.confidence,
+    evidenceLabel: parsed.evidenceLabel,
+    thinking: parsed.thinking ?? [],
+    citations: (parsed.citations ?? [])
+      .map(safeCitation)
+      .filter(Boolean),
+    stance: parsed.stance === 'none' ? undefined : parsed.stance,
+    reactions: Object.fromEntries((parsed.reactions ?? []).map((r) => [r.speaker, r.reaction])),
+  };
+}
+
+export function rebuildWorkspaceFromTurns(turns = [], personas = []) {
+  const personaMap = new Map(personas.map((p) => [p.id, p]));
+  let workspace = initLiveWorkspace();
+  for (const turn of turns) {
+    const persona = personaMap.get(turn.speaker) ?? { id: turn.speaker };
+    workspace = applyTurnToWorkspace(workspace, turn, persona);
+  }
+  return workspace;
+}
+
+function replayPhaseBeforeTurn(turns, turnIndex) {
+  let workspace = initLiveWorkspace();
+  let currentPhase = 'Frame';
+  for (let i = 0; i < turnIndex; i += 1) {
+    workspace = applyTurnToWorkspace(workspace, turns[i], { id: turns[i].speaker });
+    currentPhase = advancePhase(currentPhase, workspace, turns.slice(0, i + 1));
+  }
+  return { workspace, currentPhase };
+}
+
+/**
+ * 重生成指定序号的一轮发言：保留前后文与其他角色发言，按当前 workspace 快照重新调用模型。
+ */
+export async function regenerateSpeakerTurn({
+  provider,
+  meeting,
+  turnIndex,
+  topic,
+  presetId,
+  context,
+  personas,
+}) {
+  const parsedMeeting = MeetingResultSchema.parse(meeting);
+  const input = buildMeetingInput({ topic, presetId, context, personas });
+  const turns = parsedMeeting.turns.map((turn) => ({ ...turn }));
+
+  const index = Number(turnIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= turns.length) {
+    throw new Error('无效的发言序号');
+  }
+
+  const target = turns[index];
+  const speaker = input.personas.find((persona) => persona.id === target.speaker);
+  if (!speaker) {
+    throw new Error('该发言角色不在当前席位配置中，无法重生成');
+  }
+
+  const { workspace, currentPhase } = replayPhaseBeforeTurn(turns, index);
+  const transcript = turns.slice(0, index);
+  const snap = compactWorkspaceSnapshot(workspace);
+
+  const regenerationNote = '这是一次对既有审议记录中单轮发言的替换重生成：必须与前文和 workspace 状态一致，可修正论证但勿无视已记录的分歧与证据。';
+
+  const { provider: usedProvider, parsed, usage } = await generateWithProviderFallback({
+    router: provider,
+    speakerId: speaker.id,
+    index,
+    request: {
+      systemPrompt: `你是“${speaker.name}”，身份是“${speaker.title}”。${speaker.background}\n\n判断函数职责合约：${JSON.stringify(speaker.contract ?? {})}\n\n当前阶段：${currentPhase}。${regenerationNote}\n请参考 userPrompt 中的 workspace 快照组织回应。\n${TURN_OUTPUT_CONTRACT}`,
+      userPrompt: buildTurnPrompt({
+        input,
+        speaker,
+        transcript,
+        workspaceSnapshot: snap,
+        currentPhase,
+      }),
+    },
+    parse: (text) => TurnDraftSchema.parse(parseModelJson(text)),
+  });
+
+  const previousTurn = { ...turns[index] };
+  turns[index] = draftToStoredTurn({
+    speaker,
+    provider: usedProvider,
+    parsed,
+    phase: currentPhase,
+  });
+
+  const finalWorkspace = rebuildWorkspaceFromTurns(turns, input.personas);
+  const mergedUsage = mergeUsageTotals(parsedMeeting.usage, usage);
+
+  const updated = MeetingResultSchema.parse({
+    ...parsedMeeting,
+    turns,
+    workspace: finalWorkspace,
+    usage: mergedUsage,
+  });
+
+  return {
+    meeting: sanitizeMeeting(updated, input.personas.map((persona) => persona.id), input),
+    meta: {
+      turnIndex: index,
+      previousTurn,
+      regeneratedAt: new Date().toISOString(),
+    },
+  };
+}
+
+/**
+ * 在发言迭代后，按当前 transcript + workspace 重算投票、Decision Packet 与记忆建议。
+ */
+export async function refreshMeetingClosure({
+  provider,
+  meeting,
+  topic,
+  presetId,
+  context,
+  personas,
+}) {
+  const input = buildMeetingInput({ topic, presetId, context, personas });
+  const parsed = MeetingResultSchema.parse(meeting);
+  const workspace = rebuildWorkspaceFromTurns(parsed.turns, input.personas);
+  const modPersona = input.personas[0];
+
+  const { parsed: summary, usage } = await generateWithProviderFallback({
+    router: provider,
+    speakerId: modPersona.id,
+    index: parsed.turns.length,
+    request: {
+      systemPrompt: `你是“AI Roundtable Room”的主持协议。用户已调整部分发言，请基于最新 transcript 与 workspace 重新收束，输出 vote/risks/actions；不要重写 turns。\n${SUMMARY_OUTPUT_CONTRACT}`,
+      userPrompt: buildSummaryPrompt({
+        input,
+        transcript: parsed.turns,
+        workspace: compactWorkspaceSnapshot(workspace),
+      }),
+    },
+    parse: (text) => MeetingSummarySchema.parse(parseModelJson(text)),
+  });
+
+  const merged = generationToMeeting({
+    ...parsed,
+    ...summary,
+    turns: parsed.turns,
+    workspace,
+    usage: mergeUsageTotals(parsed.usage, usage),
+  });
+  const meetingParsed = MeetingResultSchema.parse(merged);
+  const sanitized = sanitizeMeeting(meetingParsed, input.personas.map((p) => p.id), input);
+  const withArtifacts = completeDeliberationArtifacts(sanitized, input);
+  const hasRealWs = hasWorkspaceContent(withArtifacts.workspace);
+  const finalWorkspace = hasRealWs
+    ? withArtifacts.workspace
+    : evolveWorkspaceFromTurns(withArtifacts.turns || [], input.personas);
+  return { ...withArtifacts, workspace: finalWorkspace };
+}
+
 export async function createMeeting({
   provider,
   topic,
@@ -1055,7 +1244,7 @@ export async function createMeeting({
     : await createCompleteMeeting({ provider: provider?.defaultProvider ?? provider, input });
   const parsed = generationToMeeting(generated);
   const meeting = MeetingResultSchema.parse(parsed);
-  const sanitized = sanitizeMeeting(meeting, input.personas.map((persona) => persona.id));
+  const sanitized = sanitizeMeeting(meeting, input.personas.map((persona) => persona.id), input);
   const withArtifacts = completeDeliberationArtifacts(sanitized, input);
   // 最终保障：优先保留“已提供且有内容”的 workspace（模型输出或 routed live 演化结果）；
   // 仅当缺失或为空时，才用 evolve 从最终 turns 的 act 反推，确保测试兼容 + 真实生成时结构可信。

@@ -13,7 +13,7 @@ describe('App initial experience', () => {
     expect(html).toContain('圆桌智库');
     expect(html).toContain('/remotion/home-2026-05.png');
     expect(html).toContain('适用场景');
-    expect(html).toContain('FAQ');
+    expect(html).toContain('常见问题');
     expect(html).toContain('https://github.com/Yuzc-001/ai-roundtable-room');
     expect(html).toContain('进入工作台');
     expect(html).not.toContain('<textarea');
@@ -56,6 +56,12 @@ describe('App initial experience', () => {
     expect(source).toContain('ContinueDeliberationPanel');
     expect(source).toContain('buildContinuationContext');
     expect(source).toContain('focusSpeakerId');
-    expect(source).toContain('bubble--dimmed');
+    expect(source).toContain('dimmed={focusSpeakerId');
+    expect(source).toContain('regenerateTurnRequest');
+    expect(source).toContain('refreshClosureRequest');
+    expect(source).toContain('OnboardingWizard');
+    expect(source).toContain('canRegenerateTurn');
+    const componentsSource = await readFile(new URL('./components.jsx', import.meta.url), 'utf8');
+    expect(componentsSource).toContain('bubble-regen-btn');
   });
 });

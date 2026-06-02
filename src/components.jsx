@@ -117,7 +117,24 @@ export const EVIDENCE_TOOLTIPS = {
   user_input: '来自你提供的议题或材料',
 };
 
-export function Bubble({ persona, text, isLive, citations, stance, isUser, isStreaming, act, phase, confidence, evidenceLabel, providerName, dimmed }) {
+export function Bubble({
+  persona,
+  text,
+  isLive,
+  citations,
+  stance,
+  isUser,
+  isStreaming,
+  act,
+  phase,
+  confidence,
+  evidenceLabel,
+  providerName,
+  dimmed,
+  canRegenerate,
+  regenerating,
+  onRegenerate,
+}) {
   if (isUser) {
     return (
       <div className="bubble user">
@@ -145,6 +162,17 @@ export function Bubble({ persona, text, isLive, citations, stance, isUser, isStr
         <div className="bubble-name">{persona.name}</div>
         {stance && (
           <div className="bubble-stance" data-stance={stance}>{stanceLabels[stance]}</div>
+        )}
+        {canRegenerate && onRegenerate && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm bubble-regen-btn"
+            disabled={regenerating}
+            onClick={onRegenerate}
+            title="保留前后文，仅重生成该角色这一轮发言"
+          >
+            {regenerating ? '生成中…' : '重生成'}
+          </button>
         )}
       </div>
       {(act || phase || evidenceLabel || typeof confidence === 'number' || providerName) && (
@@ -560,6 +588,89 @@ export function SetupGuidePanel({ snippet, steps, onCopied }) {
         </button>
         <code className="setup-guide-hint">npm run doctor</code>
       </div>
+    </section>
+  );
+}
+
+export function OnboardingWizard({
+  step,
+  totalSteps,
+  health,
+  snippet,
+  steps,
+  onAdvance,
+  onComplete,
+  onSkip,
+  onCopied,
+  onCheckHealth,
+  onStartDemo,
+  onStartFirstMeeting,
+}) {
+  const labels = ['欢迎', '配置', '验证', '首场审议'];
+  const aiReady = health?.aiConfigured === true;
+
+  return (
+    <section className="onboarding-wizard" aria-label="首次成功向导">
+      <div className="onboarding-wizard-head">
+        <b>首次成功路径</b>
+        <span>步骤 {step + 1}/{totalSteps} · {labels[step]}</span>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onSkip}>跳过</button>
+      </div>
+      <div className="onboarding-steps" role="tablist" aria-label="向导进度">
+        {labels.map((label, idx) => (
+          <span
+            key={label}
+            className={`onboarding-step${idx === step ? ' active' : ''}${idx < step ? ' done' : ''}`}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="onboarding-body">
+          <p>圆桌智库把「议题 → 多角色审议 → Decision Packet」做成可回看的判断资产，而不是一次性聊天。</p>
+          <p>接下来：配置模型 → 验证连接 → 发起你的第一场审议（或先看演示）。</p>
+          <button type="button" className="btn btn-primary" onClick={onAdvance}>开始</button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="onboarding-body">
+          <SetupGuidePanel snippet={snippet} steps={steps} onCopied={onCopied} />
+          <button type="button" className="btn btn-primary" onClick={onAdvance}>已配置，下一步</button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="onboarding-body">
+          <p>点击检查服务端是否已识别 API Key（需已重启 <code>npm run dev</code>）。</p>
+          <div className="onboarding-actions">
+            <button type="button" className="btn btn-ghost" onClick={onCheckHealth}>检查连接</button>
+            {aiReady ? (
+              <span className="onboarding-ok">已连接：{health.providerName} · {health.model}</span>
+            ) : (
+              <span className="onboarding-warn">尚未就绪，请确认 .env 后重启服务</span>
+            )}
+          </div>
+          <button type="button" className="btn btn-primary" onClick={onAdvance} disabled={!aiReady}>
+            继续
+          </button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="onboarding-body">
+          <p>选择一种方式完成「第一场」：</p>
+          <div className="onboarding-actions">
+            <button type="button" className="btn btn-ghost" onClick={onStartDemo}>先看演示审议</button>
+            <button type="button" className="btn btn-primary" onClick={onStartFirstMeeting} disabled={!aiReady}>
+              发起真实审议
+            </button>
+            <button type="button" className="btn btn-subtle" onClick={onComplete}>已完成，收起向导</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

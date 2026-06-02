@@ -3,6 +3,9 @@ import {
   MeetingResultSchema,
   buildMeetingInput,
   createMeeting,
+  regenerateSpeakerTurn,
+  refreshMeetingClosure,
+  rebuildWorkspaceFromTurns,
   extractParsedMeeting,
   normalizeTopic,
   parseModelJson,
@@ -397,5 +400,146 @@ describe('createMeeting', () => {
     expect(result.decisionPacket.selectedOption.description).toBe('小范围试用');
     expect(result.decisionPacket.minorityReport.position).toBe('不宜直接公开');
     expect(result.memoryDiff.risks[0].issue).toBe('用户价值未验证');
+  });
+});
+
+describe('regenerateSpeakerTurn', () => {
+  const baseMeeting = MeetingResultSchema.parse({
+    title: '迭代测试',
+    turns: [
+      { speaker: 'du', text: '开场定框。', act: 'PROBE', phase: 'Frame' },
+      { speaker: 'zhuo', text: '旧版战略主张。', act: 'CLAIM', phase: 'Diverge' },
+      { speaker: 'li', text: '风险反对。', act: 'OBJECTION', phase: 'Surface' },
+    ],
+    vote: {
+      question: '是否推进？',
+      results: { zhuo: { vote: 'yes_with', reason: '附条件' } },
+      summary: '继续验证',
+    },
+    risks: [{ issue: '成本', mitigation: '限流' }],
+    actions: ['访谈 5 人'],
+    workspace: {
+      candidateOptions: [],
+      openQuestions: [],
+      tensions: [{ id: 't1', description: '价值未验证', status: 'open' }],
+      evidencePool: [],
+    },
+    memoryDiff: { decisions: [], risks: [], assumptions: [], disagreements: [], actions: [] },
+  });
+
+  test('replaces one turn while keeping neighbors', async () => {
+    const provider = {
+      generate: vi.fn(async ({ userPrompt }) => {
+        const input = JSON.parse(userPrompt);
+        expect(input.transcript).toHaveLength(1);
+        return {
+          content: JSON.stringify({
+            text: '新版战略主张（重生成）。',
+            act: 'CLAIM',
+            phase: 'Diverge',
+            thinking: [],
+            citations: [],
+            stance: 'for',
+            reactions: [],
+          }),
+          usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 },
+        };
+      }),
+    };
+
+    const { meeting, meta } = await regenerateSpeakerTurn({
+      provider,
+      meeting: baseMeeting,
+      turnIndex: 1,
+      topic: '如何验证需求？',
+      presetId: 'product',
+    });
+
+    expect(meeting.turns[1].text).toContain('新版战略主张');
+    expect(meeting.turns[0].text).toBe('开场定框。');
+    expect(meeting.turns[2].text).toBe('风险反对。');
+    expect(meta.turnIndex).toBe(1);
+    expect(meta.previousTurn.text).toBe('旧版战略主张。');
+    expect(provider.generate).toHaveBeenCalledTimes(1);
+  });
+
+  test('rejects invalid turn index', async () => {
+    await expect(regenerateSpeakerTurn({
+      provider: { generate: vi.fn() },
+      meeting: baseMeeting,
+      turnIndex: 9,
+      topic: '如何验证需求？',
+      presetId: 'product',
+    })).rejects.toThrow('无效的发言序号');
+  });
+});
+
+describe('rebuildWorkspaceFromTurns', () => {
+  test('PROBE from non-moderator adds openQuestions', () => {
+    const ws = rebuildWorkspaceFromTurns([
+      { speaker: 'du', text: '请先澄清目标用户与成功标准？', act: 'PROBE', phase: 'Frame' },
+      { speaker: 'zhuo', text: '用户付费意愿证据不足？', act: 'PROBE', phase: 'Surface' },
+    ], [{ id: 'du' }, { id: 'zhuo' }]);
+
+    expect(ws.openQuestions.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('refreshMeetingClosure', () => {
+  test('recomputes vote without changing turns', async () => {
+    const meeting = MeetingResultSchema.parse({
+      title: '收束测试',
+      turns: [
+        { speaker: 'du', text: '开场', act: 'PROBE', phase: 'Frame' },
+        { speaker: 'zhuo', text: '主张', act: 'CLAIM', phase: 'Diverge' },
+        { speaker: 'li', text: '反对', act: 'OBJECTION', phase: 'Surface' },
+      ],
+      vote: {
+        question: '旧问题',
+        results: { zhuo: { vote: 'no', reason: '旧理由' } },
+        summary: '旧收束',
+      },
+      risks: [{ issue: '旧风险', mitigation: '旧缓解' }],
+      actions: ['旧行动'],
+      workspace: {
+        candidateOptions: [],
+        openQuestions: [],
+        tensions: [{ id: 't1', description: '分歧', status: 'open' }],
+        evidencePool: [],
+      },
+      memoryDiff: { decisions: [], risks: [], assumptions: [], disagreements: [], actions: [] },
+    });
+
+    const provider = {
+      generate: vi.fn(async ({ userPrompt }) => {
+        const input = JSON.parse(userPrompt);
+        expect(input.transcript).toHaveLength(3);
+        return {
+          content: JSON.stringify({
+            title: '新标题',
+            vote: {
+              question: '新问题',
+              results: [{ speaker: 'zhuo', vote: 'yes_with', reason: '新理由' }],
+              summary: '新收束',
+            },
+            risks: [{ issue: '新风险', mitigation: '新缓解' }],
+            actions: ['新行动'],
+          }),
+          usage: { inputTokens: 5, outputTokens: 5, totalTokens: 10 },
+        };
+      }),
+    };
+
+    const updated = await refreshMeetingClosure({
+      provider,
+      meeting,
+      topic: '如何验证需求？',
+      presetId: 'product',
+    });
+
+    expect(updated.turns).toHaveLength(3);
+    expect(updated.turns[1].text).toBe('主张');
+    expect(updated.vote.question).toBe('新问题');
+    expect(updated.vote.summary).toBe('新收束');
   });
 });

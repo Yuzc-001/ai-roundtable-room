@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bubble, ContinueDeliberationPanel, DecisionPacketCard, DELIBERATION_PHASES, Logo, MemoryReviewPanel, ModeratorConsole, PersonaDrawer, SetupGuidePanel, Stage, VoteCard, WorkspacePanel } from './components.jsx';
+import {
+  Bubble,
+  ContinueDeliberationPanel,
+  DecisionPacketCard,
+  DELIBERATION_PHASES,
+  Logo,
+  MemoryReviewPanel,
+  ModeratorConsole,
+  OnboardingWizard,
+  PersonaDrawer,
+  SetupGuidePanel,
+  Stage,
+  VoteCard,
+  WorkspacePanel,
+} from './components.jsx';
 import { DEFAULT_TOPIC, DEMO_MEETING, PERSONAS, PRESETS } from './data/personas.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
+import { useOnboarding } from './hooks/useOnboarding.js';
 import { useTypewriter } from './hooks/useTypewriter.js';
 import { formatMeetingMarkdown, formatMeetingHTML, sanitizeDownloadName } from './lib/minutes.js';
 import {
@@ -19,6 +34,8 @@ import {
 } from './lib/roundtable.js';
 import {
   createMeetingRequest,
+  regenerateTurnRequest,
+  refreshClosureRequest,
   createSessionRequest,
   createShareRequest,
   extractTextRequest,
@@ -86,6 +103,10 @@ export default function App() {
   const [permanentConfirmId, setPermanentConfirmId] = useState(null); // which history item is in "confirm permanent delete" state
   const [followUpNote, setFollowUpNote] = useState('');
   const [focusSpeakerId, setFocusSpeakerId] = useState(null);
+  const [regeneratingTurnIndex, setRegeneratingTurnIndex] = useState(null);
+  const [turnRegenUndo, setTurnRegenUndo] = useState(null);
+  const [refreshingClosure, setRefreshingClosure] = useState(false);
+  const onboarding = useOnboarding({ health, viewMode });
 
   const projectList = useMemo(() => (Array.isArray(projects) && projects.length ? projects : [createDefaultProject()]), [projects]);
   const archivedProjectList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []), [archivedProjects]);
@@ -266,6 +287,8 @@ export default function App() {
     setLoadedHistoryId(null);
     setFollowUpNote('');
     setFocusSpeakerId(null);
+    setRegeneratingTurnIndex(null);
+    setTurnRegenUndo(null);
   };
   const openLanding = (page = 'home') => {
     returnHome();
@@ -454,6 +477,107 @@ export default function App() {
     });
     setFollowUpNote('');
   };
+
+  const canRegenerateTurn = Boolean(
+    meeting?.turns?.length
+    && meetingSource !== 'demo'
+    && health?.aiConfigured !== false
+    && !sharedMode
+    && showVote
+    && status !== 'generating',
+  );
+
+  const applyMeetingSnapshot = (snapshot) => {
+    setMeeting(snapshot);
+    setHistory(snapshot.turns || []);
+    setCurrentIdx(snapshot.turns?.length ?? 0);
+    setShowVote(true);
+    setPlaybackStarted(true);
+    setProjects((items) => {
+      const list = Array.isArray(items) && items.length ? items : [activeProject];
+      return list.map((project) => {
+        if (project.id !== activeProject.id) return project;
+        const meetings = project.meetings ?? [];
+        if (!meetings.length) return project;
+        const targetId = loadedHistoryId ?? meetings[meetings.length - 1]?.id;
+        if (!targetId) return project;
+        return {
+          ...project,
+          meetings: meetings.map((entry) => (
+            entry.id === targetId ? { ...entry, meeting: snapshot } : entry
+          )),
+        };
+      });
+    });
+  };
+
+  const regenerateTurn = async (turnIndex) => {
+    if (!canRegenerateTurn || regeneratingTurnIndex !== null) return;
+    setRegeneratingTurnIndex(turnIndex);
+    setError('');
+    try {
+      const contextNotes = [projectMemoryContext].filter(Boolean);
+      const { meeting: updated, meta } = await regenerateTurnRequest({
+        payload: {
+          meeting,
+          turnIndex,
+          ...buildMeetingPayload({ topic, presetId, contextNotes, roster: allOnStage }),
+        },
+      });
+      setTurnRegenUndo({
+        turnIndex: meta.turnIndex,
+        meetingBefore: meeting,
+      });
+      applyMeetingSnapshot(updated);
+      const name = personas[updated.turns[meta.turnIndex]?.speaker]?.name || '该角色';
+      notify(`已重生成 ${name} 的第 ${meta.turnIndex + 1} 轮发言`);
+    } catch (e) {
+      setError(e.message || '发言重生成失败');
+    } finally {
+      setRegeneratingTurnIndex(null);
+    }
+  };
+
+  const undoTurnRegeneration = () => {
+    if (!turnRegenUndo?.meetingBefore) return;
+    applyMeetingSnapshot(turnRegenUndo.meetingBefore);
+    setTurnRegenUndo(null);
+    notify('已撤销发言重生成');
+  };
+
+  const refreshClosure = async () => {
+    if (!meeting?.turns?.length || meetingSource === 'demo' || health?.aiConfigured === false) return;
+    setRefreshingClosure(true);
+    setError('');
+    try {
+      const contextNotes = [projectMemoryContext].filter(Boolean);
+      const updated = await refreshClosureRequest({
+        payload: {
+          meeting,
+          ...buildMeetingPayload({ topic, presetId, contextNotes, roster: allOnStage }),
+        },
+      });
+      applyMeetingSnapshot(updated);
+      setTurnRegenUndo(null);
+      notify('已根据最新发言重算投票与 Decision Packet');
+    } catch (e) {
+      setError(e.message || '收束重算失败');
+    } finally {
+      setRefreshingClosure(false);
+    }
+  };
+
+  const recheckHealth = async () => {
+    try {
+      const next = await getHealth();
+      setHealth(next);
+      if (next.aiConfigured) notify('模型服务已就绪');
+      else notify('仍未检测到 API Key，请确认 .env 并重启');
+    } catch {
+      notify('健康检查失败，请确认服务已启动');
+    }
+  };
+
   const showDemoMeeting = () => {
     setTopic(DEFAULT_TOPIC);
     setMeeting(DEMO_MEETING);
@@ -465,6 +589,7 @@ export default function App() {
     setPlaybackStarted(true);
     setLoadedHistoryId(null);
     notify('已载入演示审议');
+    onboarding.complete();
   };
   const enterWorkbench = () => {
     if (typeof window !== 'undefined' && window.location.pathname !== '/app') {
@@ -920,7 +1045,32 @@ export default function App() {
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFocusSpeakerId(null)}>显示全部</button>
           </div>
         )}
+        {turnRegenUndo && showVote && (
+          <div className="speaker-focus-bar">
+            <span>刚完成一轮发言重生成</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={undoTurnRegeneration}>撤销</button>
+          </div>
+        )}
         <div className="transcript-area" ref={transcriptRef}>
+          {onboarding.shouldShow && !playbackStarted && status !== 'generating' && (
+            <OnboardingWizard
+              step={onboarding.step}
+              totalSteps={onboarding.totalSteps}
+              health={health}
+              snippet={MIN_ENV_SNIPPET}
+              steps={SETUP_STEPS}
+              onAdvance={onboarding.advance}
+              onComplete={onboarding.complete}
+              onSkip={onboarding.skip}
+              onCopied={() => notify('最小 .env 已复制')}
+              onCheckHealth={recheckHealth}
+              onStartDemo={showDemoMeeting}
+              onStartFirstMeeting={() => {
+                onboarding.complete();
+                startMeeting(topic.trim() || '我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？');
+              }}
+            />
+          )}
           {status === 'generating' ? (
             /* #1 生成过程阶段提示 + 感知进度：复用 ModeratorConsole 的 phase stepper + 模拟推进，彻底消除等待黑箱焦虑 */
             <div className="generating-area">
@@ -991,7 +1141,7 @@ export default function App() {
               )}
               {history.map((turn, index) => (
                 <Bubble
-                  key={index}
+                  key={`${index}-${turn.speaker}-${turn.text?.slice(0, 24)}`}
                   persona={personas[turn.speaker]}
                   text={turn.text}
                   stance={turn.stance}
@@ -1002,6 +1152,9 @@ export default function App() {
                   citations={turn.citations}
                   providerName={turn.providerName}
                   dimmed={focusSpeakerId && turn.speaker !== focusSpeakerId}
+                  canRegenerate={canRegenerateTurn}
+                  regenerating={regeneratingTurnIndex === index}
+                  onRegenerate={() => regenerateTurn(index)}
                 />
               ))}
               {currentTurn && (
@@ -1076,6 +1229,16 @@ export default function App() {
                   )}
 
                   <div className="finish-actions">
+                    {health?.aiConfigured !== false && meetingSource !== 'demo' && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={refreshClosure}
+                        disabled={refreshingClosure || regeneratingTurnIndex !== null}
+                      >
+                        {refreshingClosure ? '重算收束中…' : '重算投票与 Decision Packet'}
+                      </button>
+                    )}
                     <button
                       className={`btn btn-ghost ${exportFeedback === 'copied' ? 'export-success' : ''}`}
                       onClick={() => copyCoreConclusions()}

@@ -7,7 +7,12 @@ import multer from 'multer';
 import { PDFParse } from 'pdf-parse';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
-import { createMeeting, normalizeTopic } from './meeting.js';
+import {
+  createMeeting,
+  normalizeTopic,
+  refreshMeetingClosure,
+  regenerateSpeakerTurn,
+} from './meeting.js';
 import { createModelProvider } from './model-providers.js';
 import { saveProjectSnapshot } from './project-files.js';
 import { createFixedWindowRateLimit } from './rate-limit.js';
@@ -133,6 +138,8 @@ function registerApiRoutes(app, {
   config,
   providerFactory,
   generateMeeting,
+  regenerateTurn = regenerateSpeakerTurn,
+  refreshClosure = refreshMeetingClosure,
   logger,
   rootDir,
 }) {
@@ -260,6 +267,105 @@ function registerApiRoutes(app, {
       return res.status(502).json(classifyGenerationError(error));
     }
   });
+
+  app.post('/api/meetings/regenerate-turn', async (req, res) => {
+    try {
+      normalizeTopic(req.body?.topic);
+    } catch (error) {
+      return res.status(400).json({ error: error.message, reason: 'validation_error' });
+    }
+
+    if (!req.body?.meeting?.turns?.length) {
+      return res.status(400).json({ error: '缺少可重生成的会议记录', reason: 'validation_error' });
+    }
+
+    const turnIndex = Number(req.body?.turnIndex);
+    if (!Number.isInteger(turnIndex)) {
+      return res.status(400).json({ error: '请指定要重生成的发言序号', reason: 'validation_error' });
+    }
+
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+
+    if (config.roundtable.configuredProviders.length === 0) {
+      const keyName = `${config.ai.id.toUpperCase()}_API_KEY`;
+      return res.status(503).json({
+        error: `服务端未配置 API Key（${keyName}），暂时不能重生成发言。请在 .env 中填写后重启服务。`,
+        reason: 'no_api_key',
+        keyName,
+      });
+    }
+
+    try {
+      const request = {
+        provider: providerFactory(config),
+        meeting: req.body.meeting,
+        turnIndex,
+        topic: req.body.topic,
+        presetId: req.body.presetId,
+        context: req.body.context,
+        personas: req.body.personas,
+      };
+      const result = await regenerateTurn(request).catch((error) => {
+        if (!isSchemaMismatch(error)) throw error;
+        logger.warn?.('重生成返回结构异常，自动重试一次。');
+        return regenerateTurn(request);
+      });
+      return res.json(result);
+    } catch (error) {
+      logger.error(error);
+      if (error?.message === '无效的发言序号' || error?.message?.includes('不在当前席位')) {
+        return res.status(400).json({ error: error.message, reason: 'validation_error' });
+      }
+      return res.status(502).json(classifyGenerationError(error));
+    }
+  });
+
+  app.post('/api/meetings/refresh-closure', async (req, res) => {
+    try {
+      normalizeTopic(req.body?.topic);
+    } catch (error) {
+      return res.status(400).json({ error: error.message, reason: 'validation_error' });
+    }
+
+    if (!req.body?.meeting?.turns?.length) {
+      return res.status(400).json({ error: '缺少会议记录', reason: 'validation_error' });
+    }
+
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+
+    if (config.roundtable.configuredProviders.length === 0) {
+      const keyName = `${config.ai.id.toUpperCase()}_API_KEY`;
+      return res.status(503).json({
+        error: `服务端未配置 API Key（${keyName}），暂时不能重算收束。`,
+        reason: 'no_api_key',
+        keyName,
+      });
+    }
+
+    try {
+      const request = {
+        provider: providerFactory(config),
+        meeting: req.body.meeting,
+        topic: req.body.topic,
+        presetId: req.body.presetId,
+        context: req.body.context,
+        personas: req.body.personas,
+      };
+      const updated = await refreshClosure(request).catch((error) => {
+        if (!isSchemaMismatch(error)) throw error;
+        logger.warn?.('收束重算结构异常，自动重试一次。');
+        return refreshClosure(request);
+      });
+      return res.json(updated);
+    } catch (error) {
+      logger.error(error);
+      return res.status(502).json(classifyGenerationError(error));
+    }
+  });
 }
 
 export async function createApp({
@@ -268,6 +374,8 @@ export async function createApp({
   attachClient = true,
   providerFactory = createModelProvider,
   generateMeeting = createMeeting,
+  regenerateTurn = regenerateSpeakerTurn,
+  refreshClosure = refreshMeetingClosure,
   logger = console,
 } = {}) {
   const app = express();
@@ -281,7 +389,15 @@ export async function createApp({
     windowMs: 24 * 60 * 60 * 1000,
     message: '今日生成额度已用完，请明天再试',
   }));
-  registerApiRoutes(app, { config, providerFactory, generateMeeting, logger, rootDir });
+  registerApiRoutes(app, {
+    config,
+    providerFactory,
+    generateMeeting,
+    regenerateTurn,
+    refreshClosure,
+    logger,
+    rootDir,
+  });
 
   if (attachClient) {
     await attachClientAssets(app, { config, rootDir });

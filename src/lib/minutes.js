@@ -40,6 +40,14 @@ export function formatMeetingMarkdown({
     lines.push('');
   }
 
+  lines.push('## 证据溯源说明');
+  lines.push('');
+  lines.push('- **fact / user_input**：仅当发言引用你提供的议题、上下文或附件中的可核对材料；无外链材料时，系统会自动将无源 citation 降级为推断。');
+  lines.push('- **inference / assumption / opinion**：模型判断或立场，不构成已验证事实。');
+  lines.push('- **project_memory**：来自你已批准入库的项目记忆。');
+  lines.push('- 导出中的「引用」行若未带链接，表示该条未绑定用户材料 URL。');
+  lines.push('');
+
   lines.push('## 发言');
   lines.push('');
 

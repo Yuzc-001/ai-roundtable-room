@@ -1,6 +1,23 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '2.0.0',
+    date: '2026-06-02',
+    highlights: [
+      '证据链强制：无用户材料时不保留无源外链与“事实”标签',
+      '发言重生成后可重算投票与 Decision Packet',
+      '首次成功四步向导；黄金路径 API 测试',
+    ],
+  },
+  {
+    version: '1.2.0',
+    date: '2026-06-02',
+    highlights: [
+      '审议完成后可对单轮发言重生成，保留前后文与其它角色发言',
+      'Workspace 随替换轮次重新演化；支持撤销上一次重生成',
+    ],
+  },
+  {
     version: '1.1.4',
     date: '2026-06-02',
     highlights: [
