@@ -289,10 +289,20 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--ink);
-  height: 100vh;
-  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.5s var(--ease), color 0.5s var(--ease);
+}
+
+body[data-app-view="workspace"] {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body[data-app-view="landing"] {
+  min-height: 100vh;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ────────── Workspace Shell ────────── */
@@ -1865,6 +1875,31 @@ h2.finish-actions-label {
 }
 
 /* Landing — document-like intro (isolated from workbench theme) */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-animate-in {
+  animation: landing-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-animate-in--delay-1 { animation-delay: 0.08s; }
+.landing-animate-in--delay-2 { animation-delay: 0.16s; }
+.landing-animate-in--delay-3 { animation-delay: 0.24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-animate-in {
+    animation: none;
+  }
+}
+
 .landing-shell {
   --lp-bg: #FAF8F4;
   --lp-ink: #121110;
@@ -2789,3 +2824,42 @@ h2.finish-actions-label {
 .task-timeline-title { font-size: 13px; color: var(--ink); }
 .task-timeline-meta { font-size: 11px; color: var(--ink-4); }
 .task-empty { font-size: 12px; color: var(--ink-3); line-height: 1.55; }
+
+.scenario-tips {
+  margin: 0 24px 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--teal) 25%, var(--line));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.scenario-guide-link { margin-left: 8px; vertical-align: baseline; }
+.scenario-field-hint { display: block; margin-top: 6px; font-size: 11px; color: var(--ink-4); line-height: 1.45; }
+.scenario-checklist {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.scenario-hidden { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.scenario-hidden-label { font-size: 11px; color: var(--ink-4); margin-bottom: 8px; }
+
+.landing-guide-section { margin-bottom: 28px; }
+.landing-guide-section h2 { font-size: 18px; margin-bottom: 10px; }
+.landing-guide-examples blockquote {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--lp-accent);
+  background: color-mix(in srgb, var(--lp-accent) 6%, var(--lp-bg));
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--lp-muted);
+}
+.landing-guide-checklist ul { padding-left: 20px; line-height: 1.7; }
+.landing-guide-cta { margin-top: 32px; }

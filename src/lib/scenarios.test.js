@@ -4,9 +4,11 @@ import {
   buildBuiltinScenarios,
   exportUserScenariosJson,
   getScenarioRoster,
+  hideBuiltinScenario,
   importUserScenariosJson,
   listScenarios,
   normalizeUserScenario,
+  setBuiltinOverride,
   upsertUserScenario,
 } from './scenarios.js';
 
@@ -44,6 +46,18 @@ describe('scenarios', () => {
     const all = listScenarios([{ name: '自定义', presetId: 'product' }]);
     expect(all.length).toBe(Object.keys(PRESETS).length + 1);
     expect(all.some((s) => s.name === '自定义' && !s.builtin)).toBe(true);
+  });
+
+  test('builtin override and hide', () => {
+    let prefs = setBuiltinOverride({}, 'builtin:product', {
+      name: '我的产品场景',
+      topicTemplate: '是否上线？',
+      presetId: 'product',
+    });
+    const listed = listScenarios([], prefs);
+    expect(listed.find((s) => s.id === 'builtin:product')?.name).toBe('我的产品场景');
+    prefs = hideBuiltinScenario(prefs, 'builtin:product');
+    expect(listScenarios([], prefs).some((s) => s.id === 'builtin:product')).toBe(false);
   });
 
   test('upsertUserScenario rejects roster without moderator', () => {

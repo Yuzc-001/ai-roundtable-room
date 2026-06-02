@@ -76,6 +76,10 @@ export default function App() {
   const [personas, setPersonas] = useLocalStorage('roundtable:personas', PERSONAS);
   const [presetId, setPresetId] = useLocalStorage('roundtable:presetId', 'product');
   const [userScenarios, setUserScenarios] = useLocalStorage('roundtable:userScenarios', []);
+  const [scenarioPrefs, setScenarioPrefs] = useLocalStorage('roundtable:scenarioPrefs', {
+    hiddenBuiltinIds: [],
+    builtinOverrides: {},
+  });
   const [selectedScenarioId, setSelectedScenarioId] = useLocalStorage('roundtable:selectedScenarioId', 'builtin:product');
   const [scenarioManagerOpen, setScenarioManagerOpen] = useState(false);
   const [projects, setProjects] = useLocalStorage('roundtable:projects', [createDefaultProject()]);
@@ -141,7 +145,7 @@ export default function App() {
     [archivedProjects],
   );
   const activeProject = useMemo(() => projectList.find((project) => project.id === activeProjectId) || projectList[0], [projectList, activeProjectId]);
-  const allScenarios = useMemo(() => listScenarios(userScenarios), [userScenarios]);
+  const allScenarios = useMemo(() => listScenarios(userScenarios, scenarioPrefs), [userScenarios, scenarioPrefs]);
   const selectedScenario = useMemo(
     () => findScenario(allScenarios, selectedScenarioId) || allScenarios[0],
     [allScenarios, selectedScenarioId],
@@ -199,6 +203,13 @@ export default function App() {
   const hasActiveMemory = !!(projectMemoryContext && projectMemoryContext.length > 20); // #4 让记忆价值被感知：生成中可见注入状态
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+  useEffect(() => {
+    document.body.dataset.appView = sharedMode || viewMode !== 'landing' ? 'workspace' : 'landing';
+    return () => {
+      delete document.body.dataset.appView;
+    };
+  }, [viewMode, sharedMode]);
 
   useEffect(() => {
     const syncFromLocation = () => {
@@ -1060,6 +1071,15 @@ export default function App() {
               <button type="button" className="btn btn-ghost btn-sm scenario-manage-btn" onClick={() => { setScenarioManagerOpen(true); setMobileMenuOpen(false); }}>
                 管理场景…
               </button>
+              <a
+                className="btn btn-ghost btn-sm scenario-manage-btn"
+                href="/scenario-guide"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                场景编写说明
+              </a>
             </nav>
           </div>
           <div className="sidebar-foot">
@@ -1659,10 +1679,13 @@ export default function App() {
       )}
       <ScenarioManager
         open={scenarioManagerOpen}
+        lang={landingLang === 'en' ? 'en' : 'zh'}
         userScenarios={userScenarios}
+        scenarioPrefs={scenarioPrefs}
         selectedScenarioId={selectedScenarioId}
         onClose={() => setScenarioManagerOpen(false)}
         onSaveUserScenarios={setUserScenarios}
+        onSaveScenarioPrefs={setScenarioPrefs}
         onSelectScenario={(id) => {
           handleSelectScenario(id);
           setScenarioManagerOpen(false);

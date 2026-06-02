@@ -8,12 +8,14 @@ describe('landingRoutes', () => {
     expect(getLandingPageFromPath('/workflow')).toBe('workflow');
     expect(getLandingPageFromPath('/faq')).toBe('faq');
     expect(getLandingPageFromPath('/updates')).toBe('updates');
+    expect(getLandingPageFromPath('/scenario-guide')).toBe('scenarioGuide');
     expect(getLandingPageFromPath('/unknown')).toBe('home');
   });
 
   test('resolves landing paths', () => {
     expect(getLandingPath('faq')).toBe('/faq');
     expect(getLandingPath('updates')).toBe('/updates');
+    expect(getLandingPath('scenarioGuide')).toBe('/scenario-guide');
   });
 
   test('detects workbench path', () => {

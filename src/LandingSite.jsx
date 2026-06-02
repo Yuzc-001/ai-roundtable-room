@@ -1,5 +1,6 @@
 import { Logo } from './components.jsx';
 import { getLocalizedReleaseNotes, LANDING_SITE } from './data/landingPages.js';
+import { SCENARIO_GUIDE } from './data/scenarioGuide.js';
 import { getLandingPath } from './lib/landingRoutes.js';
 
 const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
@@ -44,11 +45,45 @@ function LandingBack({ label, onNavigate }) {
   );
 }
 
+function LandingScenarioGuide({ copy, lang, onNavigate, onEnter }) {
+  const g = SCENARIO_GUIDE[lang] ?? SCENARIO_GUIDE.zh;
+  return (
+    <article className="landing-doc landing-guide">
+      <LandingBack label={copy.backHome} onNavigate={onNavigate} />
+      <h1>{g.title}</h1>
+      <p className="landing-doc-lead">{g.lead}</p>
+      {g.sections.map((sec) => (
+        <section key={sec.title} className="landing-guide-section">
+          <h2>{sec.title}</h2>
+          <p>{sec.body}</p>
+          {sec.examples?.length > 0 && (
+            <div className="landing-guide-examples">
+              {sec.examples.map((ex) => (
+                <blockquote key={ex}>{ex}</blockquote>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+      <section className="landing-guide-checklist">
+        <h2>提交前自检</h2>
+        <ul>
+          {g.checklist.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </section>
+      <div className="landing-cta-row landing-guide-cta">
+        <button type="button" className="btn btn-primary" onClick={onEnter}>{g.ctaWorkbench}</button>
+        <button type="button" className="btn btn-ghost" onClick={() => onNavigate('scenarios')}>查看适用场景</button>
+      </div>
+    </article>
+  );
+}
+
 function LandingHome({ copy, onNavigate, onEnter, onDemo }) {
   const h = copy.home;
   return (
     <>
-      <section className="landing-hero">
+      <section className="landing-hero landing-animate-in">
         <p className="landing-kicker">{h.heroKicker}</p>
         <h1>{h.title}</h1>
         <p className="landing-deck">{h.deck}</p>
@@ -57,21 +92,27 @@ function LandingHome({ copy, onNavigate, onEnter, onDemo }) {
           <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
         </div>
       </section>
-      <section className="landing-shot">
+      <section className="landing-shot landing-animate-in landing-animate-in--delay-1">
         <img src="/remotion/home-2026-05.png" alt={h.shotAlt} loading="lazy" />
       </section>
-      <section className="landing-explore">
+      <section className="landing-explore landing-animate-in landing-animate-in--delay-2">
         <h2>{h.exploreTitle}</h2>
         <div className="landing-explore-grid">
-          {h.explore.map(([title, desc, id]) => (
-            <button key={id} type="button" className="landing-explore-card" onClick={() => onNavigate(id)}>
+          {h.explore.map(([title, desc, id], idx) => (
+            <button
+              key={id}
+              type="button"
+              className="landing-explore-card landing-animate-in"
+              style={{ animationDelay: `${0.15 * idx + 0.25}s` }}
+              onClick={() => onNavigate(id)}
+            >
               <b>{title}</b>
               <span>{desc}</span>
             </button>
           ))}
         </div>
       </section>
-      <section className="landing-install landing-install--compact">
+      <section className="landing-install landing-install--compact landing-animate-in landing-animate-in--delay-3">
         <h2>{h.quickstartTitle}</h2>
         <p>{h.quickstartLead}</p>
         <pre className="landing-code"><code>{h.quickstartLines.join('\n')}</code></pre>
@@ -237,6 +278,14 @@ export default function LandingSite({
           <LandingHome copy={copy} onNavigate={onNavigate} onEnter={onEnter} onDemo={onDemo} />
         )}
         {page === 'scenarios' && <LandingScenarios copy={copy} onNavigate={onNavigate} />}
+        {page === 'scenarioGuide' && (
+          <LandingScenarioGuide
+            copy={copy}
+            lang={lang}
+            onNavigate={onNavigate}
+            onEnter={onEnter}
+          />
+        )}
         {page === 'workflow' && <LandingWorkflow copy={copy} onNavigate={onNavigate} />}
         {page === 'faq' && <LandingFaq copy={copy} onNavigate={onNavigate} />}
         {page === 'updates' && (

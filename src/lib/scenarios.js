@@ -39,12 +39,98 @@ export function normalizeUserScenario(raw) {
   };
 }
 
-export function listScenarios(userScenarios = []) {
-  const builtins = buildBuiltinScenarios();
+export function normalizeScenarioPrefs(raw) {
+  const hiddenBuiltinIds = Array.isArray(raw?.hiddenBuiltinIds)
+    ? raw.hiddenBuiltinIds.filter((id) => typeof id === 'string')
+    : [];
+  const builtinOverrides = raw?.builtinOverrides && typeof raw.builtinOverrides === 'object'
+    ? raw.builtinOverrides
+    : {};
+  return { hiddenBuiltinIds, builtinOverrides };
+}
+
+function applyBuiltinOverride(builtin, override) {
+  if (!override || typeof override !== 'object') return builtin;
+  return {
+    ...builtin,
+    name: override.name != null ? String(override.name).trim().slice(0, 40) || builtin.name : builtin.name,
+    description: override.description != null ? String(override.description).trim().slice(0, 200) : builtin.description,
+    icon: override.icon != null ? String(override.icon).trim().slice(0, 2) || builtin.icon : builtin.icon,
+    topicTemplate: override.topicTemplate != null ? String(override.topicTemplate).trim().slice(0, 500) : builtin.topicTemplate,
+    presetId: PRESETS[override.presetId] ? override.presetId : builtin.presetId,
+    customParticipants: Array.isArray(override.customParticipants) && override.customParticipants.length
+      ? override.customParticipants.filter((id) => typeof id === 'string')
+      : builtin.customParticipants,
+    builtin: true,
+    overridden: true,
+  };
+}
+
+export function listScenarios(userScenarios = [], prefs = {}) {
+  const { hiddenBuiltinIds, builtinOverrides } = normalizeScenarioPrefs(prefs);
+  const hidden = new Set(hiddenBuiltinIds);
+  const builtins = buildBuiltinScenarios()
+    .filter((b) => !hidden.has(b.id) && !hidden.has(b.presetId))
+    .map((b) => applyBuiltinOverride(b, builtinOverrides[b.id]));
   const user = (Array.isArray(userScenarios) ? userScenarios : [])
     .map(normalizeUserScenario)
     .filter((s) => !s.builtin);
   return [...builtins, ...user];
+}
+
+export function setBuiltinOverride(prefs, builtinId, patch) {
+  const base = normalizeScenarioPrefs(prefs);
+  const builtin = buildBuiltinScenarios().find((b) => b.id === builtinId);
+  if (!builtin) throw new Error('无效的内置场景');
+  const merged = applyBuiltinOverride(builtin, patch);
+  const errors = validateScenarioForSave(merged);
+  if (errors.length) throw new Error(errors.join('；'));
+  return {
+    ...base,
+    builtinOverrides: {
+      ...base.builtinOverrides,
+      [builtinId]: {
+        name: merged.name,
+        description: merged.description,
+        icon: merged.icon,
+        topicTemplate: merged.topicTemplate,
+        presetId: merged.presetId,
+        customParticipants: merged.customParticipants,
+      },
+    },
+  };
+}
+
+export function clearBuiltinOverride(prefs, builtinId) {
+  const base = normalizeScenarioPrefs(prefs);
+  const { [builtinId]: _, ...rest } = base.builtinOverrides;
+  return { ...base, builtinOverrides: rest };
+}
+
+export function hideBuiltinScenario(prefs, builtinId) {
+  const base = normalizeScenarioPrefs(prefs);
+  const ids = new Set(base.hiddenBuiltinIds);
+  ids.add(builtinId);
+  const cleared = clearBuiltinOverride(base, builtinId);
+  return { ...cleared, hiddenBuiltinIds: [...ids] };
+}
+
+export function restoreBuiltinScenario(prefs, builtinId) {
+  const base = normalizeScenarioPrefs(prefs);
+  const hiddenBuiltinIds = base.hiddenBuiltinIds.filter((id) => id !== builtinId);
+  const cleared = clearBuiltinOverride({ ...base, hiddenBuiltinIds }, builtinId);
+  return cleared;
+}
+
+export function forkScenarioAsUser(scenario) {
+  return normalizeUserScenario({
+    name: `${scenario.name}（我的副本）`,
+    description: scenario.description,
+    icon: scenario.icon,
+    topicTemplate: scenario.topicTemplate,
+    presetId: scenario.presetId,
+    customParticipants: scenario.customParticipants,
+  });
 }
 
 export function findScenario(scenarios, scenarioId) {

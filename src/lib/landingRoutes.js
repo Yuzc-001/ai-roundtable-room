@@ -2,6 +2,7 @@
 export const LANDING_PATHS = {
   home: '/',
   scenarios: '/scenarios',
+  scenarioGuide: '/scenario-guide',
   workflow: '/workflow',
   faq: '/faq',
   updates: '/updates',

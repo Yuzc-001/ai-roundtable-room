@@ -1,6 +1,20 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '1.3.1',
+    date: '2026-06-02',
+    highlights: [
+      '场景编写说明页 /scenario-guide；内置场景可编辑、隐藏、复制为我的场景',
+      '场景管理内编写提示与议题示例；侧栏链至说明页',
+      '官网可纵向滚动；首页探索卡片与区块入场动效',
+    ],
+    highlightsEn: [
+      'Scenario writing guide at /scenario-guide; built-ins editable, hideable, forkable',
+      'In-app tips and default-topic examples; sidebar link to the guide',
+      'Landing page scrolls; home sections animate in',
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-06-02',
     highlights: [
@@ -126,11 +140,12 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.3.0',
+    version: '1.3.1',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
       { id: 'scenarios', label: '适用场景' },
+      { id: 'scenarioGuide', label: '场景编写' },
       { id: 'workflow', label: '审议流程' },
       { id: 'faq', label: '常见问题' },
       { id: 'updates', label: '更新' },
@@ -147,6 +162,7 @@ export const LANDING_SITE = {
       exploreTitle: '进一步了解',
       explore: [
         ['适用场景', '哪些问题值得开一场审议', 'scenarios'],
+        ['场景编写', '如何写默认议题与自定义场景', 'scenarioGuide'],
         ['审议流程', '从议题到纪要的阶段', 'workflow'],
         ['常见问题', '部署、模型与数据', 'faq'],
         ['版本更新', '重要发布说明', 'updates'],
@@ -240,11 +256,12 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.3.0',
+    version: '1.3.1',
     language: '中文',
     brand: 'Roundtable',
     nav: [
       { id: 'scenarios', label: 'Use cases' },
+      { id: 'scenarioGuide', label: 'Scenarios' },
       { id: 'workflow', label: 'Flow' },
       { id: 'faq', label: 'FAQ' },
       { id: 'updates', label: 'Updates' },
@@ -261,6 +278,7 @@ export const LANDING_SITE = {
       exploreTitle: 'Learn more',
       explore: [
         ['Use cases', 'What questions fit a session', 'scenarios'],
+        ['Writing scenarios', 'Default topic and custom presets', 'scenarioGuide'],
         ['Deliberation flow', 'Stages from topic to minutes', 'workflow'],
         ['FAQ', 'Deploy, models, data', 'faq'],
         ['Release notes', 'Notable versions', 'updates'],
