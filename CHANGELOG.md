@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 — 2026-06-02
+
+- Landing v2: single-column hero (no floating product card), one screenshot strip, ink/brown palette without grid texture or green SaaS accents.
+- Remove preview checklist under image; merge install + principles; shorten headline copy.
+
 ## 1.1.2 — 2026-06-02
 
 - Redesign landing page: editorial copy in Chinese, remove AI-product clichés (English badges, Decision Packet hero, ChatGPT framing).

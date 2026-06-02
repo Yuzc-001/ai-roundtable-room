@@ -7,10 +7,11 @@ describe('App initial experience', () => {
   test('renders the open-source landing page before the workbench', () => {
     const html = renderToString(<App />);
 
-    expect(html).toContain('开源审议工作台');
-    expect(html).toContain('复杂议题，写成可以复盘的判断');
+    expect(html).toContain('本地运行 · 开源');
+    expect(html).toContain('议题写出来，判断留得住');
     expect(html).toContain('本地安装');
     expect(html).toContain('圆桌智库');
+    expect(html).toContain('/remotion/home-2026-05.png');
     expect(html).toContain('FAQ');
     expect(html).toContain('https://github.com/Yuzc-001/ai-roundtable-room');
     expect(html).toContain('进入工作台');

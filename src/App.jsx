@@ -38,21 +38,14 @@ const LANDING_COPY = {
     language: 'EN',
     brand: '圆桌智库',
     nav: ['适用场景', '审议流程', '常见问题', '更新'],
-    heroKicker: '开源审议工作台',
-    title: '复杂议题，写成可以复盘的判断',
-    lead: '不是聊天窗口，也不是角色扮演。围绕一个问题，按阶段整理分歧、证据与下一步，留下完整纪要。',
-    subtitle: '在本地运行。议题、会议记录与项目记忆留在你的环境里；模型密钥只由服务端读取，不进入浏览器。',
+    heroKicker: '本地运行 · 开源',
+    title: '议题写出来，判断留得住',
+    deck: '一场审议对应一份纪要：分歧、证据标注、行动项与重开条件，都可回看、导出、继续追问。',
+    points: ['产品取舍与上线节奏', '商业假设与验证路径', '长期项目的结论沉淀'],
     primary: '进入工作台',
-    demo: '先看演示',
+    demo: '查看演示',
     github: '源码',
-    scenarios: [
-      ['产品取舍', '上线节奏、范围与风险如何同时被看见'],
-      ['商业判断', '价值假设、定价与验证路径互相质询'],
-      ['长期项目', '结论、分歧与行动项可追问、可导出'],
-    ],
-    previewTitle: '一场审议会留下',
-    previewCaption: '工作台实录',
-    previewItems: ['核心分歧', '证据标注', '少数意见', '重开条件', '行动清单'],
+    shotAlt: '圆桌智库工作台界面',
     quickstartTitle: '本地安装',
     quickstartLead: '复制仓库、填写 .env、启动服务。无云账号，无强制联网存储。',
     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
@@ -87,21 +80,14 @@ const LANDING_COPY = {
     language: '中文',
     brand: 'Roundtable',
     nav: ['Use cases', 'Flow', 'FAQ', 'Updates'],
-    heroKicker: 'Open deliberation workbench',
-    title: 'Complex questions, written as reviewable judgment',
-    lead: 'Not a chat box or role-play. One question, staged tension and evidence, a full record you can revisit.',
-    subtitle: 'Runs locally. Topics, sessions, and project memory stay in your environment. API keys are read by your server only.',
+    heroKicker: 'Local · Open source',
+    title: 'Write the question. Keep the judgment.',
+    deck: 'Each session becomes minutes you can revisit: tensions, evidence notes, actions, and reopen triggers.',
+    points: ['Product scope and launch timing', 'Business assumptions and validation', 'Long-running project memory'],
     primary: 'Open workbench',
     demo: 'View demo',
     github: 'Source',
-    scenarios: [
-      ['Product tradeoffs', 'See launch timing, scope, and risk together'],
-      ['Business judgment', 'Stress-test value, pricing, and validation'],
-      ['Long-running work', 'Decisions, dissent, and actions you can continue'],
-    ],
-    previewTitle: 'What a session keeps',
-    previewCaption: 'Workbench capture',
-    previewItems: ['Core tensions', 'Evidence notes', 'Minority view', 'Reopen triggers', 'Action list'],
+    shotAlt: 'Roundtable workbench',
     quickstartTitle: 'Install locally',
     quickstartLead: 'Clone, configure .env, start the server. No cloud account required.',
     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
@@ -145,7 +131,7 @@ function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
           <span>{copy.brand}</span>
         </div>
         <nav>
-          <a href="#scenarios">{copy.nav[0]}</a>
+          <a href="#use-cases">{copy.nav[0]}</a>
           <a href="#workflow">{copy.nav[1]}</a>
           <a href="#faq">{copy.nav[2]}</a>
           <a href={ROADMAP_URL} target="_blank" rel="noreferrer">{copy.nav[3]}</a>
@@ -157,73 +143,49 @@ function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
         </div>
       </header>
 
-      <main>
+      <main className="landing-main">
         <section className="landing-hero">
-          <div className="landing-hero-copy">
-            <div className="landing-kicker">{copy.heroKicker}</div>
-            <h1>{copy.title}</h1>
-            <p className="landing-lead">{copy.lead}</p>
-            <p className="landing-sub">{copy.subtitle}</p>
-            <div className="landing-cta-row">
-              <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
-              <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
-            </div>
+          <p className="landing-kicker">{copy.heroKicker}</p>
+          <h1>{copy.title}</h1>
+          <p className="landing-deck">{copy.deck}</p>
+          <div className="landing-cta-row">
+            <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
+            <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
           </div>
-          <div className="landing-preview" aria-label={copy.previewTitle}>
-            <div className="landing-preview-head">
-              <span>{copy.previewTitle}</span>
-              <em>{copy.previewCaption}</em>
-            </div>
-            <figure className="landing-preview-frame">
-              <img src="/remotion/live-meeting.png" alt="" />
-            </figure>
-            <ul className="landing-preview-list">
-              {copy.previewItems.map((item) => (
-                <li key={item}>{item}</li>
+          <ul id="use-cases" className="landing-points">
+            {copy.points.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="landing-shot" aria-hidden="false">
+          <img src="/remotion/home-2026-05.png" alt={copy.shotAlt} loading="lazy" />
+        </section>
+
+        <section id="workflow" className="landing-flow">
+          <h2>{copy.workflowTitle}</h2>
+          <ol>
+            {copy.workflow.map(([title, body]) => (
+              <li key={title}>
+                <b>{title}</b>
+                <span>{body}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section id="self-host" className="landing-install">
+          <div className="landing-install-copy">
+            <h2>{copy.quickstartTitle}</h2>
+            <p>{copy.quickstartLead}</p>
+            <ul className="landing-install-notes">
+              {copy.sections.map(([title, body]) => (
+                <li key={title}><b>{title}</b>{body}</li>
               ))}
             </ul>
           </div>
-        </section>
-
-        <section id="scenarios" className="landing-scenarios">
-          {copy.scenarios.map(([title, body]) => (
-            <article key={title}>
-              <h3>{title}</h3>
-              <p>{body}</p>
-            </article>
-          ))}
-        </section>
-
-        <section id="self-host" className="landing-band landing-two-col">
-          <div>
-            <h2>{copy.quickstartTitle}</h2>
-            <p>{copy.quickstartLead}</p>
-          </div>
           <pre className="landing-code"><code>{copy.quickstartLines.join('\n')}</code></pre>
-        </section>
-
-        <section className="landing-card-grid">
-          {copy.sections.map(([title, body]) => (
-            <article key={title} className="landing-info-card">
-              <h3>{title}</h3>
-              <p>{body}</p>
-            </article>
-          ))}
-        </section>
-
-        <section id="workflow" className="landing-band">
-          <div className="landing-section-head">
-            <h2>{copy.workflowTitle}</h2>
-          </div>
-          <div className="landing-workflow">
-            {copy.workflow.map(([title, body], index) => (
-              <article key={title}>
-                <span>{index + 1}</span>
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </article>
-            ))}
-          </div>
         </section>
 
         <section id="faq" className="landing-faq">
