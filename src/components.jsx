@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getVerifyStepContinueLabel } from './lib/healthCheck.js';
 import { formatDecisionTypeLabel } from './lib/minutes.js';
 
 export function Logo() {
@@ -810,12 +811,11 @@ export function OnboardingWizard({
 
   const handleStartDemo = () => {
     onStartDemo?.();
-    onComplete?.();
   };
 
-  const handleStartFirstMeeting = () => {
-    onComplete?.();
-    onStartFirstMeeting?.();
+  const handleStartFirstMeeting = async () => {
+    const started = await onStartFirstMeeting?.();
+    if (started) onComplete?.();
   };
 
   const checkedLabel = formatHealthCheckedAt(lastCheckedAt);
@@ -879,8 +879,8 @@ export function OnboardingWizard({
           {checkedLabel && (
             <p className="onboarding-check-meta">上次检查：{checkedLabel}{aiReady && !checking ? ' · 可继续' : ''}</p>
           )}
-          <button type="button" className="btn btn-primary" onClick={onAdvance} disabled={!aiReady}>
-            继续
+          <button type="button" className="btn btn-primary" onClick={onAdvance}>
+            {getVerifyStepContinueLabel(aiReady)}
           </button>
         </div>
       )}

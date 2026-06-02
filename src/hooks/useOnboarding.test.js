@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { isVerifyStepContinueDisabled } from '../lib/healthCheck.js';
 import { getOnboardingShouldShow, ONBOARDING_TOTAL_STEPS } from './useOnboarding.js';
 
 const healthReady = { ok: true, aiConfigured: true, providerName: 'OpenAI', model: 'gpt-5.5' };
@@ -33,6 +34,16 @@ describe('getOnboardingShouldShow', () => {
   });
 
   test('always shows when API is not configured', () => {
+    expect(getOnboardingShouldShow({
+      done: false,
+      viewMode: 'workspace',
+      health: healthDemo,
+      step: 2,
+    })).toBe(true);
+  });
+
+  test('step 2 demo path can advance without API configured', () => {
+    expect(isVerifyStepContinueDisabled()).toBe(false);
     expect(getOnboardingShouldShow({
       done: false,
       viewMode: 'workspace',

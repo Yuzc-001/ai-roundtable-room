@@ -1,6 +1,15 @@
 export async function getHealth() {
   const response = await fetch('/api/health');
-  return response.json();
+  let body = {};
+  try {
+    body = await response.json();
+  } catch {
+    body = {};
+  }
+  if (!response.ok) {
+    throw new Error(body.error || `健康检查失败 (${response.status})`);
+  }
+  return body;
 }
 
 export async function getProjectFilesInfo() {

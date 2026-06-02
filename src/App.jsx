@@ -46,6 +46,7 @@ import {
 } from './services/roundtableApi.js';
 import LandingSite from './LandingSite.jsx';
 import { getLandingPageFromPath, getLandingPath, isWorkbenchPath } from './lib/landingRoutes.js';
+import { formatHealthCheckError, mergeHealthOnCheckFailure } from './lib/healthCheck.js';
 import { MIN_ENV_SNIPPET, SETUP_STEPS } from './lib/setup.js';
 import pkg from '../package.json';
 
@@ -184,7 +185,7 @@ export default function App() {
       return;
     }
 
-    getHealth().then(setHealth).catch(() => setHealth({ ok: false }));
+    getHealth().then(setHealth).catch(() => setHealth((prev) => mergeHealthOnCheckFailure(prev)));
   }, []);
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -456,7 +457,7 @@ export default function App() {
     const finalTopic = customTopic || topic;
     if (!finalTopic.trim()) {
       setError('请输入要审议的问题');
-      return;
+      return false;
     }
     const contextNotes = [projectMemoryContext, ...extraContextNotes].filter(Boolean);
     setStatus('generating');
@@ -478,8 +479,10 @@ export default function App() {
       setTopic(finalTopic);
       setLoadedHistoryId(null);
       notify(successMessage || '审议已生成，正在回放结构化发言');
+      return true;
     } catch (e) {
       setError(e.message || '启动审议失败，请检查模型配置');
+      return false;
     } finally {
       setStatus('idle');
     }
@@ -593,20 +596,20 @@ export default function App() {
     }
   };
 
-  const recheckHealth = async () => {
+  const recheckHealth = async ({ silent = false } = {}) => {
     try {
       const next = await getHealth();
       setHealth(next);
-      if (next.aiConfigured) notify('模型服务已就绪');
-      else notify('仍未检测到 API Key，请确认 .env 并重启');
+      if (!silent) {
+        if (next.aiConfigured) notify('模型服务已就绪');
+        else notify('仍未检测到 API Key，请确认 .env 并重启');
+      }
       return { ok: true, health: next };
     } catch (error) {
-      setHealth({ ok: false });
-      notify('健康检查失败，请确认服务已启动');
-      return {
-        ok: false,
-        error: error?.message || '无法连接 /api/health，请确认 npm run dev 已启动',
-      };
+      setHealth((prev) => mergeHealthOnCheckFailure(prev));
+      const message = formatHealthCheckError(error);
+      if (!silent) notify('健康检查失败，请确认服务已启动');
+      return { ok: false, error: message };
     }
   };
 
@@ -1095,11 +1098,11 @@ export default function App() {
               onComplete={onboarding.complete}
               onSkip={onboarding.skip}
               onCopied={() => notify('最小 .env 已复制')}
-              onCheckHealth={recheckHealth}
+              onCheckHealth={() => recheckHealth({ silent: true })}
               onStartDemo={showDemoMeeting}
-              onStartFirstMeeting={() => {
-                startMeeting(topic.trim() || '我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？');
-              }}
+              onStartFirstMeeting={() => startMeeting(
+                topic.trim() || '我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？',
+              )}
             />
           )}
           {status === 'generating' ? (
@@ -1148,7 +1151,7 @@ export default function App() {
                   <span>简单事实查询、低风险润色、明确单步任务；这些更适合直接问单模型。</span>
                 </div>
               </div>
-              {health?.aiConfigured === false && (
+              {health?.aiConfigured === false && !onboarding.shouldShow && (
                 <SetupGuidePanel
                   snippet={MIN_ENV_SNIPPET}
                   steps={SETUP_STEPS}
