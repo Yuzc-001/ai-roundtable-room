@@ -2705,7 +2705,7 @@ h2.finish-actions-label {
 }
 .file-upload-lite input { display: none; }
 
-/* —— 审议场景 / 任务（v1.4） —— */
+/* —— 审议场景 / 任务（v1.3） —— */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(26, 33, 29, 0.45);

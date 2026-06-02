@@ -1,7 +1,7 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '1.4.0',
+    version: '1.3.0',
     date: '2026-06-02',
     highlights: [
       '用户场景库：内置预设场景 + 自定义场景（议题骨架、席位、导入导出）',
@@ -15,7 +15,7 @@ export const RELEASE_NOTES = [
     ],
   },
   {
-    version: '1.4.0',
+    version: '1.2.6',
     date: '2026-06-02',
     highlights: [
       '证据矩阵导出：发言轮次与证据池对照表（HTML / 复盘包内嵌）',
@@ -126,7 +126,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.4.0',
+    version: '1.3.0',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -240,7 +240,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.4.0',
+    version: '1.3.0',
     language: '中文',
     brand: 'Roundtable',
     nav: [
