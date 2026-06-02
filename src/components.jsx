@@ -546,6 +546,7 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, pane
             <li><strong>推荐</strong> <a className="outcome-export-link" href="#finish-actions">导出 HTML 复盘包</a> — 含证据说明与完整过程</li>
             <li><a className="outcome-export-link" href="#finish-actions">复制核心结论</a> — 发消息或贴进文档</li>
             <li><a className="outcome-export-link" href="#finish-actions">生成分享链接</a> — 在线只读复盘</li>
+            <li><a className="outcome-export-link" href="#continue-deliberation">或于下方「后续动作」继续审议</a> — 注入本场结论与风险</li>
           </ul>
           <p className="outcome-privacy-hint">
             分享链接与 HTML 文件包含完整审议内容，请勿发给未授权对象。
@@ -817,12 +818,19 @@ export function OnboardingWizard({
   );
 }
 
-export function ContinueDeliberationPanel({ value, onChange, onSubmit, disabled }) {
+export function ContinueDeliberationPanel({
+  value, onChange, onSubmit, disabled, disabledHint, panelRef,
+}) {
   return (
-    <section className="continue-panel" aria-label="基于本场继续审议">
+    <section
+      ref={panelRef}
+      id="continue-deliberation"
+      className="continue-panel"
+      aria-label="基于本场继续审议"
+    >
       <div className="continue-panel-head">
         <b>继续审议</b>
-        <span>带着本场结论与风险登记，发起下一场追问。</span>
+        <span>{disabledHint || '带着本场结论与风险登记，发起下一场继续审议。'}</span>
       </div>
       <textarea
         className="textarea continue-panel-input"
@@ -832,8 +840,14 @@ export function ContinueDeliberationPanel({ value, onChange, onSubmit, disabled 
         placeholder="例如：如果预算砍半，最小验证路径是什么？"
         disabled={disabled}
       />
-      <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={disabled}>
-        基于此发起追问审议
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={onSubmit}
+        disabled={disabled}
+        title={disabledHint}
+      >
+        基于此发起继续审议
       </button>
     </section>
   );

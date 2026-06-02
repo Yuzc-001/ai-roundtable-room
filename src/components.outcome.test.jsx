@@ -168,27 +168,39 @@ describe('DeliberationOutcomePanel', () => {
 });
 
 describe('completion layout contract', () => {
-  test('App.jsx orders outcome → export → continue → full record', async () => {
+  test('export cell links to continue deliberation section', () => {
+    const html = renderToString(
+      <DeliberationOutcomePanel meeting={{ decisionPacket: BASE_PACKET }} pendingMemoryCount={0} />,
+    );
+    expect(html).toContain('href="#continue-deliberation"');
+    expect(html).toContain('后续动作');
+    expect(html).toContain('继续审议');
+  });
+
+  test('App.jsx orders outcome → export → copy mode → continue → full record → usage', async () => {
     const source = await readFile(new URL('./App.jsx', import.meta.url), 'utf8');
-    const outcomeIdx = source.indexOf('<DeliberationOutcomePanel');
-    const finishLabelIdx = source.indexOf('带走审议成果');
-    const finishActionsIdx = source.indexOf('id="finish-actions"');
-    const continueLabelIdx = source.indexOf('后续动作');
-    const continuePanelIdx = source.indexOf('<ContinueDeliberationPanel');
-    const dividerIdx = source.indexOf('完整审议记录');
+    const completionBlock = source.slice(source.indexOf('{showVote &&'), source.indexOf('{error &&'));
+    const outcomeIdx = completionBlock.indexOf('<DeliberationOutcomePanel');
+    const finishLabelIdx = completionBlock.indexOf('带走审议成果');
+    const finishActionsIdx = completionBlock.indexOf('id="finish-actions"');
+    const copyModeIdx = completionBlock.indexOf('copy-mode-switch');
+    const continueLabelIdx = completionBlock.indexOf('后续动作');
+    const continuePanelIdx = completionBlock.indexOf('<ContinueDeliberationPanel');
+    const dividerIdx = completionBlock.indexOf('完整审议记录');
+    const usageIdx = completionBlock.indexOf('usage-indicator');
     expect(outcomeIdx).toBeGreaterThan(-1);
     expect(outcomeIdx).toBeLessThan(finishLabelIdx);
     expect(finishLabelIdx).toBeLessThan(finishActionsIdx);
-    expect(finishActionsIdx).toBeLessThan(continueLabelIdx);
+    expect(finishActionsIdx).toBeLessThan(copyModeIdx);
+    expect(copyModeIdx).toBeLessThan(continueLabelIdx);
     expect(continueLabelIdx).toBeLessThan(continuePanelIdx);
     expect(continuePanelIdx).toBeLessThan(dividerIdx);
-    expect(source).toContain('outcomePanelRef');
-    const completionBlock = source.slice(source.indexOf('{showVote &&'), source.indexOf('{error &&'));
+    if (usageIdx > -1) {
+      expect(dividerIdx).toBeLessThan(usageIdx);
+    }
+    expect(completionBlock).toContain('continuePanelRef');
+    expect(completionBlock).toContain('h2 className="finish-actions-label"');
     expect(completionBlock).not.toContain('gen-memory-cue');
-    const dividerPos = completionBlock.indexOf('完整审议记录');
-    const continuePos = completionBlock.indexOf('<ContinueDeliberationPanel');
-    expect(continuePos).toBeGreaterThan(-1);
-    expect(continuePos).toBeLessThan(dividerPos);
   });
 
   test('styles include outcome panel and finish-actions pairing', async () => {
@@ -196,5 +208,6 @@ describe('completion layout contract', () => {
     expect(css).toContain('.outcome-panel');
     expect(css).toContain('.finish-actions-label + .finish-actions');
     expect(css).toContain('.finish-actions-label + .continue-panel');
+    expect(css).toContain('.finish-actions + .copy-mode-switch');
   });
 });

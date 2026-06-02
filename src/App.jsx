@@ -124,6 +124,7 @@ export default function App() {
   const { revealed, done } = useTypewriter(currentTurn ? currentTurn.text : '', 1.25, status === 'generating');
   const transcriptRef = useRef(null);
   const outcomePanelRef = useRef(null);
+  const continuePanelRef = useRef(null);
   const shouldScrollToOutcomeRef = useRef(false);
 
   // #1 Enhanced generation progress perception (reuses simPhaseIdx + DELIBERATION_PHASES, minimal addition)
@@ -223,10 +224,16 @@ export default function App() {
     if (!showVote || !shouldScrollToOutcomeRef.current) return;
     shouldScrollToOutcomeRef.current = false;
     const timer = setTimeout(() => {
-      outcomePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const preferContinue = health?.aiConfigured !== false
+        && meetingSource !== 'demo'
+        && !followUpNote.trim();
+      const target = preferContinue
+        ? continuePanelRef.current
+        : (document.getElementById('finish-actions') ?? outcomePanelRef.current);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
     return () => clearTimeout(timer);
-  }, [showVote]);
+  }, [showVote, health?.aiConfigured, meetingSource, followUpNote]);
 
   // ESC closes PersonaDrawer or mobile sidebar (keyboard parity)
   useEffect(() => {
@@ -481,14 +488,18 @@ export default function App() {
   const continueFromMeeting = async () => {
     if (!meeting || status === 'generating') return;
     if (health?.aiConfigured === false) {
-      notify('请先配置 API Key 后再发起追问');
+      notify('请先配置 API Key 后再继续审议');
+      return;
+    }
+    if (meetingSource === 'demo') {
+      notify('演示场次不支持继续审议，请在工作台发起真实审议');
       return;
     }
     const continuation = buildContinuationContext({ topic, meeting, personas, userNote: followUpNote });
     const finalTopic = followUpNote.trim() || topic;
     await startMeeting(finalTopic, {
       extraContextNotes: [continuation],
-      successMessage: '已基于上一场发起追问审议',
+      successMessage: '已基于上一场发起继续审议',
     });
     setFollowUpNote('');
   };
@@ -1202,7 +1213,7 @@ export default function App() {
                     pendingMemoryCount={pendingMemoryChanges.length}
                   />
 
-                  <p className="finish-actions-label">带走审议成果</p>
+                  <h2 className="finish-actions-label">带走审议成果</h2>
                   <div id="finish-actions" className="finish-actions">
                     <button
                       className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
@@ -1250,31 +1261,6 @@ export default function App() {
                     <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
                   </div>
 
-                  {health?.aiConfigured !== false && (
-                    <>
-                      <p className="finish-actions-label">后续动作</p>
-                      <ContinueDeliberationPanel
-                        value={followUpNote}
-                        onChange={setFollowUpNote}
-                        onSubmit={continueFromMeeting}
-                        disabled={status === 'generating'}
-                      />
-                    </>
-                  )}
-
-                  {meeting?.usage && (
-                    <div className="usage-indicator">
-                      本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
-                      <span className="usage-detail">(入: {meeting.usage.inputTokens} / 出: {meeting.usage.outputTokens})</span>
-                    </div>
-                  )}
-
-                  <div className="section-divider">— 完整审议记录 —</div>
-
-                  <WorkspacePanel workspace={meeting.workspace} />
-                  <DecisionPacketCard packet={meeting.decisionPacket} />
-                  <VoteCard vote={meeting.vote} personas={personas} />
-
                   <div className="copy-mode-switch">
                     <span className="copy-mode-label">复制模式</span>
                     <button
@@ -1296,6 +1282,35 @@ export default function App() {
                       完整
                     </button>
                   </div>
+
+                  {health?.aiConfigured !== false && (
+                    <>
+                      <h2 className="finish-actions-label">后续动作</h2>
+                      <ContinueDeliberationPanel
+                        panelRef={continuePanelRef}
+                        value={followUpNote}
+                        onChange={setFollowUpNote}
+                        onSubmit={continueFromMeeting}
+                        disabled={status === 'generating' || meetingSource === 'demo'}
+                        disabledHint={meetingSource === 'demo'
+                          ? '演示场次不支持继续审议，请在工作台发起真实审议'
+                          : undefined}
+                      />
+                    </>
+                  )}
+
+                  <div className="section-divider">— 完整审议记录 —</div>
+
+                  <WorkspacePanel workspace={meeting.workspace} />
+                  <DecisionPacketCard packet={meeting.decisionPacket} />
+                  <VoteCard vote={meeting.vote} personas={personas} />
+
+                  {meeting?.usage && (
+                    <div className="usage-indicator">
+                      本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
+                      <span className="usage-detail">(入: {meeting.usage.inputTokens} / 出: {meeting.usage.outputTokens})</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
