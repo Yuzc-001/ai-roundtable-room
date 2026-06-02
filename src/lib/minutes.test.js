@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { formatMeetingMarkdown, sanitizeDownloadName } from './minutes.js';
+import {
+  formatMeetingHTML,
+  formatMeetingMarkdown,
+  isSafeCitationUrl,
+  sanitizeCssColor,
+  sanitizeDownloadName,
+} from './minutes.js';
 
 describe('minutes helpers', () => {
   test('formats a meeting as markdown', () => {
@@ -32,5 +38,81 @@ describe('minutes helpers', () => {
 
   test('sanitizes filenames for distribution downloads', () => {
     expect(sanitizeDownloadName('AI/圆桌:会议*纪要?')).toBe('AI-圆桌-会议-纪要-');
+  });
+
+  test('omits unsafe citation URLs from markdown', () => {
+    const markdown = formatMeetingMarkdown({
+      topic: 't',
+      personas: { du: { name: '渡', title: '' } },
+      meeting: {
+        title: 'm',
+        turns: [{
+          speaker: 'du',
+          text: 'x',
+          citations: [
+            { label: 'bad', url: 'javascript:alert(1)' },
+            { label: 'ok', url: 'https://example.com/a' },
+          ],
+        }],
+        vote: { question: 'q', results: {}, summary: 's' },
+        risks: [],
+        actions: [],
+      },
+    });
+    expect(markdown).not.toContain('javascript:');
+    expect(markdown).toContain('[ok](https://example.com/a)');
+    expect(markdown).toContain('- bad');
+  });
+
+  test('sanitizeCssColor rejects breakout payloads', () => {
+    expect(sanitizeCssColor('#fff;}</style><script>')).toBe('#666666');
+    expect(sanitizeCssColor('#2E4D44')).toBe('#2E4D44');
+  });
+
+  test('formatMeetingHTML blocks attribute injection and script in poisoned share data', () => {
+    const html = formatMeetingHTML({
+      topic: '议题',
+      personas: {
+        evil: { name: 'E', title: '', color: '#000;}</style><script>alert(1)</script><style>' },
+        du: { name: '渡', title: '', color: '#2E4D44' },
+      },
+      meeting: {
+        title: '毒化纪要',
+        turns: [{
+          speaker: 'evil',
+          text: '正文',
+          act: '"><img src=x onerror=alert(1)>',
+          phase: 'Frame',
+        }],
+        vote: {
+          question: '是否推进？',
+          results: {
+            evil: {
+              vote: 'yes"><img src=x onerror=alert(1)><span class="',
+              reason: '理由',
+            },
+          },
+          summary: '摘要',
+        },
+        workspace: {
+          tensions: [{
+            id: 't1',
+            description: '分歧',
+            status: 'open"><img src=x onerror=alert(1)><span class="',
+          }],
+          openQuestions: [],
+          evidencePool: [],
+          candidateOptions: [],
+        },
+        risks: [],
+        actions: [],
+      },
+    });
+    expect(html).not.toMatch(/<img src=x onerror=/i);
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).not.toContain('class="open"><img');
+    expect(html).toContain('class="unknown"');
+    expect(html).toContain('v-vote unknown');
+    expect(isSafeCitationUrl('javascript:x')).toBe(false);
   });
 });

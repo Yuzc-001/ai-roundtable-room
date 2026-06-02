@@ -63,6 +63,8 @@ describe('App initial experience', () => {
     expect(source).toContain('canRegenerateTurn');
     expect(source).toContain('DeliberationOutcomePanel');
     expect(source).toContain('带走审议成果');
+    expect(source).toContain('id="finish-actions"');
+    expect(source).toContain('outcomePanelRef');
     const componentsSource = await readFile(new URL('./components.jsx', import.meta.url), 'utf8');
     expect(componentsSource).toContain('bubble-regen-btn');
     expect(componentsSource).toContain('DeliberationOutcomePanel');

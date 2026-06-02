@@ -63,7 +63,12 @@ export function formatMeetingMarkdown({
       lines.push('');
       lines.push('引用：');
       for (const citation of turn.citations) {
-        lines.push(citation.url ? `- [${citation.label}](${citation.url})` : `- ${citation.label}`);
+        const label = citation.label || '';
+        if (citation.url && isSafeCitationUrl(citation.url)) {
+          lines.push(`- [${label}](${citation.url})`);
+        } else if (label) {
+          lines.push(`- ${label}`);
+        }
       }
     }
     lines.push('');
@@ -144,10 +149,30 @@ function escapeHtml(str) {
 }
 
 // Minimal protocol allow-list for citations in self-contained exported HTML (prevents javascript:/data: XSS when file is shared)
-function isSafeCitationUrl(u) {
+export function isSafeCitationUrl(u) {
   if (!u) return false;
   const s = String(u).trim().toLowerCase();
   return /^https?:\/\//.test(s);
+}
+
+const TENSION_STATUS_CLASS = { open: 'open', resolved: 'resolved', deferred: 'deferred' };
+const VOTE_RESULT_CLASS = { yes: 'yes', yes_with: 'yes_with', no: 'no', abstain: 'abstain' };
+
+/** Strict allow-list for persona / act colors in exported inline styles */
+export function sanitizeCssColor(value, fallback = '#666666') {
+  const s = String(value || '').trim();
+  if (/^#[0-9A-Fa-f]{3}$/.test(s) || /^#[0-9A-Fa-f]{6}$/.test(s)) return s;
+  if (/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/.test(s)) return s;
+  if (/^hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)$/.test(s)) return s;
+  return fallback;
+}
+
+function safeTensionStatusClass(status) {
+  return TENSION_STATUS_CLASS[status] || 'unknown';
+}
+
+function safeVoteClass(vote) {
+  return VOTE_RESULT_CLASS[vote] || 'unknown';
 }
 
 export function formatMeetingHTML({
@@ -190,15 +215,15 @@ export function formatMeetingHTML({
   let lastPhase = '';
   (meeting.turns || []).forEach((turn) => {
     const p = getPersona(turn.speaker);
-    const color = p.color || '#666666';
+    const color = sanitizeCssColor(p.color);
     const phase = turn.phase || '';
     if (phase && phase !== lastPhase) {
       turnsHtml += `<div class="phase-sep"><span class="phase-sep-label">${escapeHtml(PHASE_LABELS[phase] || phase)}</span></div>`;
       lastPhase = phase;
     }
     const act = turn.act || '';
-    const actLabel = ACT_LABELS[act] || act;
-    const actCol = ACT_COLORS[act] || '#666666';
+    const actLabel = escapeHtml(ACT_LABELS[act] || act);
+    const actCol = sanitizeCssColor(ACT_COLORS[act]);
     const evLabel = turn.evidenceLabel ? (EVIDENCE_LABELS[turn.evidenceLabel] || turn.evidenceLabel) : '';
     const confPct = typeof turn.confidence === 'number' ? `${Math.round(turn.confidence * 100)}%` : '';
     const prov = turn.providerName ? escapeHtml(turn.providerName) : '';
@@ -250,8 +275,10 @@ export function formatMeetingHTML({
           <div class="vote-list">
             ${Object.entries(v.results || {}).map(([id, res]) => {
               const p = getPersona(id);
-              const label = VOTE_LABELS[res.vote] || res.vote;
-              return `<div class="vote-item" style="--r:${p.color}"><span class="v-name">${escapeHtml(p.name)}</span><span class="v-vote ${res.vote}">${label}</span><span class="v-reason">${escapeHtml(res.reason || '')}</span></div>`;
+              const label = escapeHtml(VOTE_LABELS[res.vote] || '未知');
+              const voteClass = safeVoteClass(res.vote);
+              const roleColor = sanitizeCssColor(p.color);
+              return `<div class="vote-item" style="--r:${roleColor}"><span class="v-name">${escapeHtml(p.name)}</span><span class="v-vote ${voteClass}">${label}</span><span class="v-reason">${escapeHtml(res.reason || '')}</span></div>`;
             }).join('')}
           </div>
           <div class="vote-sum">${escapeHtml(v.summary || '')}</div>
@@ -318,7 +345,7 @@ export function formatMeetingHTML({
         <div class="ws-grid">
           <div class="ws-card"><h4>候选方案</h4>${opts.length ? opts.map(o => `<p>${escapeHtml(o.description)}</p>`).join('') : '<p class="empty">—</p>'}</div>
           <div class="ws-card"><h4>未解决分歧 <span class="count">${tens.filter(t => t.status !== 'resolved').length}</span></h4>
-            ${tens.length ? tens.map(t => `<p class="${t.status}">${escapeHtml(t.description)} <small>(${escapeHtml(t.status)})</small></p>`).join('') : '<p class="empty">无开放分歧</p>'}
+            ${tens.length ? tens.map(t => `<p class="${safeTensionStatusClass(t.status)}">${escapeHtml(t.description)} <small>(${escapeHtml(TENSION_STATUS_CLASS[t.status] ? t.status : 'unknown')})</small></p>`).join('') : '<p class="empty">无开放分歧</p>'}
           </div>
           <div class="ws-card"><h4>开放问题</h4>${qs.length ? qs.map(q => `<p>${escapeHtml(q.question)}</p>`).join('') : '<p class="empty">无</p>'}</div>
           <div class="ws-card"><h4>证据池</h4>${evs.length ? evs.map(e => `<p>${escapeHtml(e.claim)} <small>｜${escapeHtml(e.source || '')}｜${escapeHtml(e.verificationStatus || '')}</small></p>`).join('') : '<p class="empty">暂无外部证据</p>'}</div>

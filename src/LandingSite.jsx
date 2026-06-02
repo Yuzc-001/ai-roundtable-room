@@ -181,13 +181,14 @@ function LandingFaq({ copy, onNavigate }) {
 
 function LandingUpdates({ copy, onNavigate, currentVersion }) {
   const p = copy.updates;
+  const versionLabel = copy.version ?? currentVersion;
   return (
     <article className="landing-doc">
       <LandingBack label={copy.backHome} onNavigate={onNavigate} />
       <h1>{p.title}</h1>
       <p className="landing-doc-lead">{p.lead}</p>
       <p className="landing-current-version">
-        {p.currentLabel}：<b>{currentVersion}</b>
+        {p.currentLabel}：<b>{versionLabel}</b>
         {' · '}
         <a href={CHANGELOG_URL} target="_blank" rel="noreferrer">CHANGELOG.md</a>
       </p>

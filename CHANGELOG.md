@@ -7,7 +7,12 @@
 **结果一览面板**（`DeliberationOutcomePanel`）
 - 审议结束后顶部四格摘要：已定路径、仍待澄清、下一步行动、带走成果
 - 完整 Workspace / Decision Packet / 投票置于「完整审议记录」分区之下
-- 导出区增加「带走审议成果」标题，降低复盘时的认知跳跃
+- 导出操作紧接一览面板；完成时自动滚入结果区
+
+**导出安全**（`formatMeetingHTML` / `formatMeetingMarkdown`）
+- 分歧 `status`、投票 `vote` 写入 HTML 前白名单校验，阻断分享载荷中的属性注入
+- 角色色与认知动作色经 `sanitizeCssColor`；`act` 标签转义
+- Markdown 引用仅保留 http(s) 链接
 
 ## 1.2.1 — 2026-06-02
 

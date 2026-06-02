@@ -123,6 +123,7 @@ export default function App() {
   const currentSpeaker = currentTurn ? personas[currentTurn.speaker] : null;
   const { revealed, done } = useTypewriter(currentTurn ? currentTurn.text : '', 1.25, status === 'generating');
   const transcriptRef = useRef(null);
+  const outcomePanelRef = useRef(null);
 
   // #1 Enhanced generation progress perception (reuses simPhaseIdx + DELIBERATION_PHASES, minimal addition)
   const genPhaseCount = DELIBERATION_PHASES.length;
@@ -213,6 +214,14 @@ export default function App() {
       transcriptRef.current.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [history.length, revealed.length]);
+
+  useEffect(() => {
+    if (!showVote) return;
+    const timer = setTimeout(() => {
+      outcomePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [showVote]);
 
   // ESC closes PersonaDrawer or mobile sidebar (keyboard parity)
   useEffect(() => {
@@ -1176,16 +1185,65 @@ export default function App() {
               )}
               {showVote && (
                 <div className="final-block">
-                  <div className="success-ceremony">审议闭环完成 · Decision Packet 已封装</div>
+                  <div className="success-ceremony">审议闭环完成 · 决策纪要包已封装</div>
 
                   <DeliberationOutcomePanel
                     meeting={meeting}
+                    panelRef={outcomePanelRef}
                     pendingMemoryCount={pendingMemoryChanges.length}
                   />
 
+                  <p className="finish-actions-label">带走审议成果</p>
+                  <div id="finish-actions" className="finish-actions">
+                    <button
+                      className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
+                      onClick={() => exportMinutes('html')}
+                      disabled={!!exportFeedback}
+                    >
+                      {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
+                    </button>
+                    <button
+                      className={`btn btn-ghost ${exportFeedback === 'copied' ? 'export-success' : ''}`}
+                      onClick={() => copyCoreConclusions()}
+                      disabled={exportFeedback === 'copied'}
+                      title={copyMode === 'concise'
+                        ? '简洁版：适合直接发消息'
+                        : '完整版：适合进文档/正式复盘'}
+                    >
+                      {exportFeedback === 'copied'
+                        ? '✓ 已复制'
+                        : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
+                    </button>
+                    <button
+                      className={`btn btn-ghost ${exportFeedback === 'share' ? 'export-success' : ''}`}
+                      onClick={() => generateShareLink()}
+                      disabled={!!exportFeedback}
+                    >
+                      {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
+                    </button>
+                    <button
+                      className={`btn btn-ghost ${exportFeedback === 'md' ? 'export-success' : ''}`}
+                      onClick={() => exportMinutes('md')}
+                      disabled={!!exportFeedback}
+                    >
+                      {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
+                    </button>
+                    {health?.aiConfigured !== false && meetingSource !== 'demo' && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={refreshClosure}
+                        disabled={refreshingClosure || regeneratingTurnIndex !== null}
+                      >
+                        {refreshingClosure ? '重算收束中…' : '重算投票与决策纪要包'}
+                      </button>
+                    )}
+                    <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
+                  </div>
+
                   {meeting?.usage && (
                     <div className="usage-indicator">
-                      本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens 
+                      本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
                       <span className="usage-detail">(入: {meeting.usage.inputTokens} / 出: {meeting.usage.outputTokens})</span>
                     </div>
                   )}
@@ -1196,13 +1254,6 @@ export default function App() {
                   <DecisionPacketCard packet={meeting.decisionPacket} />
                   <VoteCard vote={meeting.vote} personas={personas} />
 
-                  {pendingMemoryChanges.length > 0 && (
-                    <div className="gen-memory-cue" style={{marginTop: '12px', background: 'var(--surface-2)', borderColor: 'var(--accent)'}}>
-                      有 {pendingMemoryChanges.length} 条关键判断待审批入库 · 请在右侧「项目记忆审批」确认后沉淀
-                    </div>
-                  )}
-
-                  {/* 复制模式切换 */}
                   <div className="copy-mode-switch">
                     <span className="copy-mode-label">复制模式</span>
                     <button
@@ -1233,54 +1284,6 @@ export default function App() {
                       disabled={status === 'generating'}
                     />
                   )}
-
-                  <p className="finish-actions-label">带走审议成果</p>
-                  <div className="finish-actions">
-                    {health?.aiConfigured !== false && meetingSource !== 'demo' && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={refreshClosure}
-                        disabled={refreshingClosure || regeneratingTurnIndex !== null}
-                      >
-                        {refreshingClosure ? '重算收束中…' : '重算投票与 Decision Packet'}
-                      </button>
-                    )}
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'copied' ? 'export-success' : ''}`}
-                      onClick={() => copyCoreConclusions()}
-                      disabled={exportFeedback === 'copied'}
-                      title={copyMode === 'concise' 
-                        ? "简洁版：适合直接发消息" 
-                        : "完整版：适合进文档/正式复盘"}
-                    >
-                      {exportFeedback === 'copied' 
-                        ? '✓ 已复制' 
-                        : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'md' ? 'export-success' : ''}`}
-                      onClick={() => exportMinutes('md')}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
-                    </button>
-                    <button
-                      className={`btn btn-primary ${exportFeedback === 'share' ? 'export-success' : ''}`}
-                      onClick={() => generateShareLink()}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
-                    </button>
-                    <button
-                      className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
-                      onClick={() => exportMinutes('html')}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
-                    </button>
-                    <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
-                  </div>
                 </div>
               )}
             </div>

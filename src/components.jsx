@@ -246,6 +246,10 @@ function clipWorkspaceText(text, max = 200) {
   return `${clean.slice(0, max)}…`;
 }
 
+function formatActionLabel(item) {
+  return item?.action || item?.text || item?.description || '';
+}
+
 export function WorkspacePanel({ workspace, isCompact }) {
   if (!workspace) return null;
   const tensions = workspace.tensions ?? [];
@@ -419,15 +423,25 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
   );
 }
 
-function formatActionLabel(item) {
-  return item?.action || item?.text || item?.description || '';
-}
-
 /** 审议完成态：四格一览（路径 / 待澄清 / 行动 / 导出），降低复盘认知负担 */
-export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0 }) {
+export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, panelRef }) {
   const packet = meeting?.decisionPacket;
   const workspace = meeting?.workspace;
-  if (!packet && !workspace) return null;
+
+  if (!packet && !workspace) {
+    return (
+      <div
+        ref={panelRef}
+        className="outcome-panel outcome-panel-empty"
+        role="region"
+        aria-label="审议结果一览"
+      >
+        <p className="outcome-empty-state">
+          完整记录生成不完整，请重算收束或查看下方「完整审议记录」。
+        </p>
+      </div>
+    );
+  }
 
   const selected = packet?.selectedOption ?? {};
   const decided = selected.description || '（暂无封装建议，可重算收束或查看下方完整记录）';
@@ -437,18 +451,40 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0 }) {
     ? clipWorkspaceText(meeting.vote.summary, 120)
     : null;
 
-  const openQuestions = (workspace?.openQuestions ?? []).slice(0, 3);
-  const openTensions = (workspace?.tensions ?? []).filter((t) => t.status === 'open').slice(0, 2);
-  const unresolvedLines = openQuestions.length
-    ? openQuestions.map((q) => q.question).filter(Boolean)
-    : openTensions.map((t) => t.description).filter(Boolean);
+  const allOpenTensions = (workspace?.tensions ?? []).filter((t) => t.status === 'open');
+  const questionLines = (workspace?.openQuestions ?? [])
+    .slice(0, 3)
+    .map((q) => q.question)
+    .filter(Boolean);
+  const tensionLines = allOpenTensions.slice(0, 2).map((t) => t.description).filter(Boolean);
+  const objectionLines = (packet?.residualObjections ?? [])
+    .slice(0, 3)
+    .map((o) => o.objection)
+    .filter(Boolean);
 
-  const actionItems = (workspace?.actionItems ?? packet?.actionItems ?? [])
+  let unresolvedLines = questionLines.length ? questionLines : tensionLines;
+  if (unresolvedLines.length < 2 && objectionLines.length) {
+    const merged = [...unresolvedLines];
+    for (const line of objectionLines) {
+      if (merged.length >= 3) break;
+      if (!merged.includes(line)) merged.push(line);
+    }
+    unresolvedLines = merged.slice(0, 3);
+  } else if (!unresolvedLines.length) {
+    unresolvedLines = objectionLines.slice(0, 3);
+  }
+
+  const showWorkspaceFootnote =
+    (workspace?.openQuestions?.length ?? 0) > 3 ||
+    allOpenTensions.length > 2 ||
+    (questionLines.length > 0 && allOpenTensions.length > 0);
+
+  const actionItems = (packet?.actionItems ?? workspace?.actionItems ?? [])
     .slice(0, 3)
     .filter((item) => formatActionLabel(item));
 
   return (
-    <div className="outcome-panel" role="region" aria-label="审议结果一览">
+    <div ref={panelRef} className="outcome-panel" role="region" aria-label="审议结果一览">
       <div className="outcome-panel-head">
         <h2>审议结果一览</h2>
         <p>30 秒内看清：定了什么、还缺什么、下一步做什么、如何带走成果</p>
@@ -468,14 +504,14 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0 }) {
           <h3>仍待澄清</h3>
           {unresolvedLines.length ? (
             <ul className="outcome-list">
-              {unresolvedLines.map((line, index) => (
-                <li key={index} title={line}>{clipWorkspaceText(line, 100)}</li>
+              {unresolvedLines.map((line) => (
+                <li key={`uq-${line.slice(0, 48)}`} title={line}>{clipWorkspaceText(line, 100)}</li>
               ))}
             </ul>
           ) : (
-            <p className="outcome-empty">无登记中的开放问题或核心分歧。</p>
+            <p className="outcome-empty">无登记中的开放问题、核心分歧或保留异议。</p>
           )}
-          {(workspace?.openQuestions?.length > 3 || openTensions.length > 2) && (
+          {showWorkspaceFootnote && (
             <p className="outcome-foot">完整列表见下方「认知碰撞台」</p>
           )}
         </section>
@@ -485,27 +521,30 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0 }) {
           {actionItems.length ? (
             <ol className="outcome-list outcome-list-numbered">
               {actionItems.map((item, index) => (
-                <li key={index} title={formatActionLabel(item)}>
+                <li key={item.id ?? `action-${index}`} title={formatActionLabel(item)}>
                   {clipWorkspaceText(formatActionLabel(item), 100)}
                   {item.owner ? <small> · {item.owner}</small> : null}
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="outcome-empty">暂无行动项，见 Decision Packet 或重算收束。</p>
+            <p className="outcome-empty">暂无行动项，见下方「决策纪要包」或重算收束。</p>
           )}
         </section>
 
         <section className="outcome-cell outcome-cell-export">
           <h3>带走成果</h3>
           <ul className="outcome-export-steps">
-            <li><strong>推荐</strong> 导出 HTML 复盘包 — 含证据说明与完整过程</li>
-            <li>复制核心结论 — 发消息或贴进文档</li>
-            <li>生成分享链接 — 在线只读复盘</li>
+            <li><strong>推荐</strong> <a className="outcome-export-link" href="#finish-actions">导出 HTML 复盘包</a> — 含证据说明与完整过程</li>
+            <li><a className="outcome-export-link" href="#finish-actions">复制核心结论</a> — 发消息或贴进文档</li>
+            <li><a className="outcome-export-link" href="#finish-actions">生成分享链接</a> — 在线只读复盘</li>
           </ul>
+          <p className="outcome-privacy-hint">
+            分享链接与 HTML 文件包含完整审议内容，请勿发给未授权对象。
+          </p>
           {pendingMemoryCount > 0 && (
             <p className="outcome-memory-hint">
-              右侧有 <b>{pendingMemoryCount}</b> 条判断待审批入库，批准后用于未来审议
+              右侧「项目记忆审批」有 <b>{pendingMemoryCount}</b> 条待确认，批准后用于未来审议
             </p>
           )}
         </section>
