@@ -65,6 +65,8 @@ describe('App initial experience', () => {
     expect(source).toContain('带走审议成果');
     expect(source).toContain('id="finish-actions"');
     expect(source).toContain('outcomePanelRef');
+    expect(source).toContain('shouldScrollToOutcomeRef');
+    expect(source).toContain('记录不完整，请查看下方或重算收束');
     const componentsSource = await readFile(new URL('./components.jsx', import.meta.url), 'utf8');
     expect(componentsSource).toContain('bubble-regen-btn');
     expect(componentsSource).toContain('DeliberationOutcomePanel');

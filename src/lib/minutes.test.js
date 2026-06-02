@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  formatDecisionTypeLabel,
   formatMeetingHTML,
   formatMeetingMarkdown,
   isSafeCitationUrl,
@@ -62,6 +63,35 @@ describe('minutes helpers', () => {
     expect(markdown).not.toContain('javascript:');
     expect(markdown).toContain('[ok](https://example.com/a)');
     expect(markdown).toContain('- bad');
+  });
+
+  test('markdown vote uses label map only, never raw poisoned vote enum', () => {
+    const markdown = formatMeetingMarkdown({
+      topic: 't',
+      personas: { du: { name: '渡', title: '' } },
+      meeting: {
+        title: 'm',
+        turns: [{ speaker: 'du', text: 'x' }],
+        vote: {
+          question: 'q',
+          results: { du: { vote: 'yes"><script>', reason: 'r' } },
+          summary: 's',
+        },
+        risks: [],
+        actions: [],
+        decisionPacket: {
+          decisionType: 'conditional',
+          selectedOption: { description: 'd', rationale: 'r', confidence: 0.5 },
+          residualObjections: [],
+          minorityReport: { position: '' },
+          reopenConditions: [],
+        },
+      },
+    });
+    expect(markdown).toContain('未知');
+    expect(markdown).not.toContain('yes"><script>');
+    expect(markdown).toContain('附条件共识');
+    expect(formatDecisionTypeLabel('conditional')).toBe('附条件共识');
   });
 
   test('sanitizeCssColor rejects breakout payloads', () => {

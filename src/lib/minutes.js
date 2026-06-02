@@ -14,6 +14,17 @@ const VOTE_LABELS = {
   abstain: '弃权',
 };
 
+export const DECISION_TYPE_LABELS = {
+  consensus: '全员共识',
+  majority: '多数决',
+  conditional: '附条件共识',
+  no_decision: '暂未形成决议',
+};
+
+export function formatDecisionTypeLabel(type) {
+  return DECISION_TYPE_LABELS[type] || '未知类型';
+}
+
 export function formatMeetingMarkdown({
   topic,
   meeting,
@@ -80,7 +91,7 @@ export function formatMeetingMarkdown({
   lines.push('');
   for (const [id, result] of Object.entries(meeting.vote.results)) {
     const persona = personas[id];
-    lines.push(`- ${persona?.name || id}：${VOTE_LABELS[result.vote] || result.vote}，${result.reason}`);
+    lines.push(`- ${persona?.name || id}：${VOTE_LABELS[result.vote] || '未知'}，${result.reason}`);
   }
   lines.push('');
   lines.push(meeting.vote.summary);
@@ -90,7 +101,7 @@ export function formatMeetingMarkdown({
     const packet = meeting.decisionPacket;
     lines.push('## Decision Packet');
     lines.push('');
-    lines.push(`决策类型：${packet.decisionType}`);
+    lines.push(`决策类型：${formatDecisionTypeLabel(packet.decisionType)}`);
     lines.push(`选择：${packet.selectedOption.description}`);
     lines.push(`理由：${packet.selectedOption.rationale}`);
     lines.push(`置信度：${Math.round(packet.selectedOption.confidence * 100)}%`);
@@ -297,7 +308,7 @@ export function formatMeetingHTML({
         <h2>Decision Packet · 决策封装</h2>
         <div class="packet-card">
           <div class="packet-head">
-            <span class="packet-type">${escapeHtml(pkt.decisionType || 'conditional')}</span>
+            <span class="packet-type">${escapeHtml(formatDecisionTypeLabel(pkt.decisionType || 'conditional'))}</span>
             <div class="packet-conf"><span>置信度</span><b>${conf}%</b></div>
           </div>
           <h3 class="packet-title">${escapeHtml(sel.description || '')}</h3>

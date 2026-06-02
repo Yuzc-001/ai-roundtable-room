@@ -124,6 +124,7 @@ export default function App() {
   const { revealed, done } = useTypewriter(currentTurn ? currentTurn.text : '', 1.25, status === 'generating');
   const transcriptRef = useRef(null);
   const outcomePanelRef = useRef(null);
+  const shouldScrollToOutcomeRef = useRef(false);
 
   // #1 Enhanced generation progress perception (reuses simPhaseIdx + DELIBERATION_PHASES, minimal addition)
   const genPhaseCount = DELIBERATION_PHASES.length;
@@ -203,7 +204,10 @@ export default function App() {
     const timer = setTimeout(() => {
       setHistory((prev) => [...prev, currentTurn]);
       if (currentIdx < baseScript.length - 1) setCurrentIdx(currentIdx + 1);
-      else setShowVote(true);
+      else {
+        shouldScrollToOutcomeRef.current = true;
+        setShowVote(true);
+      }
     }, 600);
     return () => clearTimeout(timer);
   }, [currentTurn, done, status, currentIdx, baseScript.length]);
@@ -216,7 +220,8 @@ export default function App() {
   }, [history.length, revealed.length]);
 
   useEffect(() => {
-    if (!showVote) return;
+    if (!showVote || !shouldScrollToOutcomeRef.current) return;
+    shouldScrollToOutcomeRef.current = false;
     const timer = setTimeout(() => {
       outcomePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
@@ -1185,7 +1190,11 @@ export default function App() {
               )}
               {showVote && (
                 <div className="final-block">
-                  <div className="success-ceremony">审议闭环完成 · 决策纪要包已封装</div>
+                  <div className="success-ceremony">
+                    {meeting?.decisionPacket || meeting?.workspace
+                      ? '审议闭环完成 · 决策纪要包已封装'
+                      : '审议已结束 · 记录不完整，请查看下方或重算收束'}
+                  </div>
 
                   <DeliberationOutcomePanel
                     meeting={meeting}

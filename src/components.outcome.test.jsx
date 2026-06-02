@@ -35,6 +35,8 @@ describe('DeliberationOutcomePanel', () => {
     expect(html).toContain('role="region"');
     expect(html).toContain('aria-label="审议结果一览"');
     expect(html).toContain('小范围公开试用');
+    expect(html).toContain('附条件共识');
+    expect(html).not.toContain('>conditional<');
     expect(html).toContain('置信');
     expect(html).toContain('72%');
     expect(html).toContain('投票摘要');

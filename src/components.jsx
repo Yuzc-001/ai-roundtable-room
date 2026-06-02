@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatDecisionTypeLabel } from './lib/minutes.js';
 
 export function Logo() {
   return (
@@ -452,32 +453,37 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, pane
     : null;
 
   const allOpenTensions = (workspace?.tensions ?? []).filter((t) => t.status === 'open');
-  const questionLines = (workspace?.openQuestions ?? [])
+  const questionItems = (workspace?.openQuestions ?? [])
     .slice(0, 3)
-    .map((q) => q.question)
-    .filter(Boolean);
-  const tensionLines = allOpenTensions.slice(0, 2).map((t) => t.description).filter(Boolean);
-  const objectionLines = (packet?.residualObjections ?? [])
-    .slice(0, 3)
-    .map((o) => o.objection)
-    .filter(Boolean);
+    .filter((q) => q.question)
+    .map((q, index) => ({ key: q.id ?? `question-${index}`, text: q.question }));
 
-  let unresolvedLines = questionLines.length ? questionLines : tensionLines;
-  if (unresolvedLines.length < 2 && objectionLines.length) {
-    const merged = [...unresolvedLines];
-    for (const line of objectionLines) {
+  const tensionItems = allOpenTensions
+    .slice(0, 2)
+    .filter((t) => t.description)
+    .map((t, index) => ({ key: t.id ?? `tension-${index}`, text: t.description }));
+
+  const objectionItems = (packet?.residualObjections ?? [])
+    .slice(0, 3)
+    .filter((o) => o.objection)
+    .map((o, index) => ({ key: `objection-${o.raisedBy ?? index}`, text: o.objection }));
+
+  let unresolvedItems = questionItems.length ? questionItems : tensionItems;
+  if (unresolvedItems.length < 2 && objectionItems.length) {
+    const merged = [...unresolvedItems];
+    for (const item of objectionItems) {
       if (merged.length >= 3) break;
-      if (!merged.includes(line)) merged.push(line);
+      if (!merged.some((m) => m.text === item.text)) merged.push(item);
     }
-    unresolvedLines = merged.slice(0, 3);
-  } else if (!unresolvedLines.length) {
-    unresolvedLines = objectionLines.slice(0, 3);
+    unresolvedItems = merged.slice(0, 3);
+  } else if (!unresolvedItems.length) {
+    unresolvedItems = objectionItems.slice(0, 3);
   }
 
   const showWorkspaceFootnote =
     (workspace?.openQuestions?.length ?? 0) > 3 ||
     allOpenTensions.length > 2 ||
-    (questionLines.length > 0 && allOpenTensions.length > 0);
+    (questionItems.length > 0 && allOpenTensions.length > 0);
 
   const actionItems = (packet?.actionItems ?? workspace?.actionItems ?? [])
     .slice(0, 3)
@@ -494,7 +500,9 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, pane
           <h3>已定路径</h3>
           <p className="outcome-lead" title={decided}>{clipWorkspaceText(decided, 160)}</p>
           <div className="outcome-meta">
-            {packet?.decisionType && <span className="outcome-tag">{packet.decisionType}</span>}
+            {packet?.decisionType && (
+              <span className="outcome-tag">{formatDecisionTypeLabel(packet.decisionType)}</span>
+            )}
             {confidence && <span className="outcome-tag">置信 {confidence}</span>}
           </div>
           {voteLine && <p className="outcome-foot">投票摘要：{voteLine}</p>}
@@ -502,10 +510,10 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, pane
 
         <section className="outcome-cell">
           <h3>仍待澄清</h3>
-          {unresolvedLines.length ? (
+          {unresolvedItems.length ? (
             <ul className="outcome-list">
-              {unresolvedLines.map((line) => (
-                <li key={`uq-${line.slice(0, 48)}`} title={line}>{clipWorkspaceText(line, 100)}</li>
+              {unresolvedItems.map((item) => (
+                <li key={item.key} title={item.text}>{clipWorkspaceText(item.text, 100)}</li>
               ))}
             </ul>
           ) : (
