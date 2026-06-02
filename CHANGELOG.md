@@ -1,27 +1,26 @@
 # Changelog
 
-## 2.0.0 — 2026-06-02
+## 1.2.1 — 2026-06-02
 
-### 全力升级重构（用户心智闭环）
+### 会议迭代延伸 + 可信度 + 首次成功路径
 
-**证据可信度模块** (`server/evidence.js`)
+**证据可信度** (`server/evidence.js`)
 - 无用户材料时：剥离无源 URL，`fact` / `user_input` 自动降级为 `inference`
-- 有用户材料时：仅保留出现在议题/上下文中的 URL
+- 有用户材料时：仅保留议题/上下文中出现的 URL
 - 导出纪要增加「证据溯源说明」
 
 **会议迭代闭环**
-- `POST /api/meetings/refresh-closure`：迭代发言后重算投票、Decision Packet、记忆建议（不重写 turns）
-- 完成态按钮「重算投票与 Decision Packet」
+- `POST /api/meetings/refresh-closure`：重生成发言后可重算投票、Decision Packet（不重写 turns）
+- 完成态「重算投票与 Decision Packet」
 
 **审议治理**
-- 任意角色的 `PROBE` 发言可写入 `openQuestions`（修复 Surface 阶段侧边栏空白）
+- 任意角色 `PROBE` 可写入 `openQuestions`（修复 Surface 侧栏空白）
 
 **首次成功向导**
-- 工作台四步向导：欢迎 → 配置 → 验证连接 → 首场审议/演示
+- 工作台四步：欢迎 → 配置 → 验证连接 → 演示/首场审议
 
 **可维护性**
-- `tests/golden-path.test.js`：健康检查 → 生成 → 证据策略 → 收束重算 API 链路
-- 导出 `rebuildWorkspaceFromTurns` 供测试与复用
+- `tests/golden-path.test.js`：健康检查 → 生成 → 证据策略 → 收束重算
 
 ## 1.2.0 — 2026-06-02
 

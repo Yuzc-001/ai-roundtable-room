@@ -1,7 +1,7 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '2.0.0',
+    version: '1.2.1',
     date: '2026-06-02',
     highlights: [
       '证据链强制：无用户材料时不保留无源外链与“事实”标签',

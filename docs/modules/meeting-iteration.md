@@ -11,7 +11,7 @@
 | 指定 `turnIndex` 重生成一条发言 | 整场会议重跑 |
 | 保留其它轮次原文 | 修改预设/席位后批量重生成 |
 | 从 0..index-1 重放 Workspace 后调用模型 | 多模型并行选稿 |
-| 撤销上一次重生成（客户端） | 自动重算 vote / Decision Packet（v2.0 起见「重算投票与 Decision Packet」） |
+| 撤销上一次重生成（客户端） | 自动重算 vote / Decision Packet（v1.2.1「重算投票与 Decision Packet」） |
 
 ## API
 
