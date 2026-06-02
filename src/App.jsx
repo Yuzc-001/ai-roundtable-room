@@ -599,8 +599,14 @@ export default function App() {
       setHealth(next);
       if (next.aiConfigured) notify('模型服务已就绪');
       else notify('仍未检测到 API Key，请确认 .env 并重启');
-    } catch {
+      return { ok: true, health: next };
+    } catch (error) {
+      setHealth({ ok: false });
       notify('健康检查失败，请确认服务已启动');
+      return {
+        ok: false,
+        error: error?.message || '无法连接 /api/health，请确认 npm run dev 已启动',
+      };
     }
   };
 
@@ -1092,7 +1098,6 @@ export default function App() {
               onCheckHealth={recheckHealth}
               onStartDemo={showDemoMeeting}
               onStartFirstMeeting={() => {
-                onboarding.complete();
                 startMeeting(topic.trim() || '我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？');
               }}
             />

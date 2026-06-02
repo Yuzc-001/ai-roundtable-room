@@ -730,6 +730,7 @@ export function SetupGuidePanel({ snippet, steps, onCopied }) {
       <div className="setup-guide-head">
         <b>配置 API Key 以启用真实审议</b>
         <span>演示模式可浏览流程，填写 .env 后重启服务即可生成。</span>
+        <span className="setup-guide-privacy">API Key 仅在服务端读取，不会写入浏览器或导出文件。</span>
       </div>
       <ol className="setup-guide-steps">
         {steps.map((step) => (
@@ -745,6 +746,15 @@ export function SetupGuidePanel({ snippet, steps, onCopied }) {
       </div>
     </section>
   );
+}
+
+function formatHealthCheckedAt(timestamp) {
+  if (!timestamp) return null;
+  return new Date(timestamp).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 export function OnboardingWizard({
@@ -763,6 +773,52 @@ export function OnboardingWizard({
 }) {
   const labels = ['欢迎', '配置', '验证', '首场审议'];
   const aiReady = health?.aiConfigured === true;
+  const serviceDown = health?.ok === false;
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState(() => (aiReady ? Date.now() : null));
+
+  useEffect(() => {
+    if (aiReady) {
+      setCheckError(null);
+      setLastCheckedAt((prev) => prev ?? Date.now());
+    }
+  }, [aiReady, health?.providerName, health?.model]);
+
+  const handleCheckHealth = async () => {
+    if (!onCheckHealth) return;
+    setChecking(true);
+    setCheckError(null);
+    try {
+      const result = await onCheckHealth();
+      setLastCheckedAt(Date.now());
+      if (result && !result.ok) {
+        setCheckError(result.error || '无法连接本地服务，请确认 npm run dev 已启动');
+        return;
+      }
+      const nextHealth = result?.health ?? health;
+      if (nextHealth && !nextHealth.aiConfigured) {
+        setCheckError('服务端未识别 API Key。请确认 .env 已保存并重启 npm run dev。');
+      }
+    } catch (error) {
+      setLastCheckedAt(Date.now());
+      setCheckError(error?.message || '健康检查失败，请确认服务已启动');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleStartDemo = () => {
+    onStartDemo?.();
+    onComplete?.();
+  };
+
+  const handleStartFirstMeeting = () => {
+    onComplete?.();
+    onStartFirstMeeting?.();
+  };
+
+  const checkedLabel = formatHealthCheckedAt(lastCheckedAt);
 
   return (
     <section className="onboarding-wizard" aria-label="首次成功向导">
@@ -784,8 +840,8 @@ export function OnboardingWizard({
 
       {step === 0 && (
         <div className="onboarding-body">
-          <p>圆桌智库把「议题 → 多角色审议 → Decision Packet」做成可回看的判断资产，而不是一次性聊天。</p>
-          <p>接下来：配置模型 → 验证连接 → 发起你的第一场审议（或先看演示）。</p>
+          <p>圆桌智库把议题审议成可回看的判断资产：审议结束后可用结果一览、证据标注、单轮重生成与继续审议，而不是一次性对话。</p>
+          <p>首次路径：配置模型 → 验证连接 → 演示或发起真实审议。演示无需 API Key。</p>
           <button type="button" className="btn btn-primary" onClick={onAdvance}>开始</button>
         </div>
       )}
@@ -799,15 +855,30 @@ export function OnboardingWizard({
 
       {step === 2 && (
         <div className="onboarding-body">
-          <p>点击检查服务端是否已识别 API Key（需已重启 <code>npm run dev</code>）。</p>
+          <p>确认本地服务已识别 API Key（修改 .env 后需重启 <code>npm run dev</code>）。启动时已检测到配置将直接显示就绪。</p>
           <div className="onboarding-actions">
-            <button type="button" className="btn btn-ghost" onClick={onCheckHealth}>检查连接</button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleCheckHealth}
+              disabled={checking}
+              aria-busy={checking}
+            >
+              {checking ? '检查中…' : '检查连接'}
+            </button>
             {aiReady ? (
               <span className="onboarding-ok">已连接：{health.providerName} · {health.model}</span>
+            ) : checkError ? (
+              <span className="onboarding-warn" role="alert">{checkError}</span>
+            ) : serviceDown ? (
+              <span className="onboarding-warn" role="alert">无法访问 /api/health，请先启动 npm run dev</span>
             ) : (
-              <span className="onboarding-warn">尚未就绪，请确认 .env 后重启服务</span>
+              <span className="onboarding-warn">尚未就绪：保存 .env 并重启服务后再检查</span>
             )}
           </div>
+          {checkedLabel && (
+            <p className="onboarding-check-meta">上次检查：{checkedLabel}{aiReady && !checking ? ' · 可继续' : ''}</p>
+          )}
           <button type="button" className="btn btn-primary" onClick={onAdvance} disabled={!aiReady}>
             继续
           </button>
@@ -816,10 +887,10 @@ export function OnboardingWizard({
 
       {step === 3 && (
         <div className="onboarding-body">
-          <p>选择一种方式完成「第一场」：</p>
+          <p>完成首场审议后，工作台将展示结果一览与导出；你可继续审议、查看证据标注，或对单轮发言重生成。演示可先看完整流程，真实审议需连接已就绪。</p>
           <div className="onboarding-actions">
-            <button type="button" className="btn btn-ghost" onClick={onStartDemo}>先看演示审议</button>
-            <button type="button" className="btn btn-primary" onClick={onStartFirstMeeting} disabled={!aiReady}>
+            <button type="button" className="btn btn-ghost" onClick={handleStartDemo}>先看演示审议</button>
+            <button type="button" className="btn btn-primary" onClick={handleStartFirstMeeting} disabled={!aiReady}>
               发起真实审议
             </button>
             <button type="button" className="btn btn-subtle" onClick={onComplete}>已完成，收起向导</button>

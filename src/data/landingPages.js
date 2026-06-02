@@ -1,6 +1,15 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '1.2.4',
+    date: '2026-06-02',
+    highlights: [
+      '首次成功向导文案与 1.2.x 能力对齐（结果一览、继续审议、证据标注、单轮重生成）',
+      '连接验证步骤：自动识别已配置、检查状态与错误提示更清晰',
+      '配置步骤注明 API Key 仅服务端读取',
+    ],
+  },
+  {
     version: '1.2.3',
     date: '2026-06-02',
     highlights: [
@@ -75,7 +84,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.2.3',
+    version: '1.2.4',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -181,7 +190,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.2.3',
+    version: '1.2.4',
     language: '中文',
     brand: 'Roundtable',
     nav: [
