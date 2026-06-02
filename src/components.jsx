@@ -419,6 +419,101 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
   );
 }
 
+function formatActionLabel(item) {
+  return item?.action || item?.text || item?.description || '';
+}
+
+/** 审议完成态：四格一览（路径 / 待澄清 / 行动 / 导出），降低复盘认知负担 */
+export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0 }) {
+  const packet = meeting?.decisionPacket;
+  const workspace = meeting?.workspace;
+  if (!packet && !workspace) return null;
+
+  const selected = packet?.selectedOption ?? {};
+  const decided = selected.description || '（暂无封装建议，可重算收束或查看下方完整记录）';
+  const confidence =
+    typeof selected.confidence === 'number' ? `${Math.round(selected.confidence * 100)}%` : null;
+  const voteLine = meeting?.vote?.summary
+    ? clipWorkspaceText(meeting.vote.summary, 120)
+    : null;
+
+  const openQuestions = (workspace?.openQuestions ?? []).slice(0, 3);
+  const openTensions = (workspace?.tensions ?? []).filter((t) => t.status === 'open').slice(0, 2);
+  const unresolvedLines = openQuestions.length
+    ? openQuestions.map((q) => q.question).filter(Boolean)
+    : openTensions.map((t) => t.description).filter(Boolean);
+
+  const actionItems = (workspace?.actionItems ?? packet?.actionItems ?? [])
+    .slice(0, 3)
+    .filter((item) => formatActionLabel(item));
+
+  return (
+    <div className="outcome-panel" role="region" aria-label="审议结果一览">
+      <div className="outcome-panel-head">
+        <h2>审议结果一览</h2>
+        <p>30 秒内看清：定了什么、还缺什么、下一步做什么、如何带走成果</p>
+      </div>
+      <div className="outcome-grid">
+        <section className="outcome-cell outcome-cell-primary">
+          <h3>已定路径</h3>
+          <p className="outcome-lead" title={decided}>{clipWorkspaceText(decided, 160)}</p>
+          <div className="outcome-meta">
+            {packet?.decisionType && <span className="outcome-tag">{packet.decisionType}</span>}
+            {confidence && <span className="outcome-tag">置信 {confidence}</span>}
+          </div>
+          {voteLine && <p className="outcome-foot">投票摘要：{voteLine}</p>}
+        </section>
+
+        <section className="outcome-cell">
+          <h3>仍待澄清</h3>
+          {unresolvedLines.length ? (
+            <ul className="outcome-list">
+              {unresolvedLines.map((line, index) => (
+                <li key={index} title={line}>{clipWorkspaceText(line, 100)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="outcome-empty">无登记中的开放问题或核心分歧。</p>
+          )}
+          {(workspace?.openQuestions?.length > 3 || openTensions.length > 2) && (
+            <p className="outcome-foot">完整列表见下方「认知碰撞台」</p>
+          )}
+        </section>
+
+        <section className="outcome-cell">
+          <h3>下一步行动</h3>
+          {actionItems.length ? (
+            <ol className="outcome-list outcome-list-numbered">
+              {actionItems.map((item, index) => (
+                <li key={index} title={formatActionLabel(item)}>
+                  {clipWorkspaceText(formatActionLabel(item), 100)}
+                  {item.owner ? <small> · {item.owner}</small> : null}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="outcome-empty">暂无行动项，见 Decision Packet 或重算收束。</p>
+          )}
+        </section>
+
+        <section className="outcome-cell outcome-cell-export">
+          <h3>带走成果</h3>
+          <ul className="outcome-export-steps">
+            <li><strong>推荐</strong> 导出 HTML 复盘包 — 含证据说明与完整过程</li>
+            <li>复制核心结论 — 发消息或贴进文档</li>
+            <li>生成分享链接 — 在线只读复盘</li>
+          </ul>
+          {pendingMemoryCount > 0 && (
+            <p className="outcome-memory-hint">
+              右侧有 <b>{pendingMemoryCount}</b> 条判断待审批入库，批准后用于未来审议
+            </p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export function DecisionPacketCard({ packet }) {
   if (!packet) return null;
   return (

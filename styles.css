@@ -1179,6 +1179,101 @@ button:active,
 .structured-grid p { font-size: 14px; color: var(--ink-2); line-height: 1.6; margin-bottom: 8px; padding-left: 12px; border-left: 2px solid var(--line-strong); }
 .structured-grid small { display: block; font-size: 10px; font-weight: 800; color: var(--ink-4); text-transform: uppercase; margin-top: 4px; }
 
+/* 审议完成态：结果一览（路径 / 待澄清 / 行动 / 导出） */
+.outcome-panel {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+.outcome-panel-head { margin-bottom: var(--space-5); text-align: center; }
+.outcome-panel-head h2 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.outcome-panel-head p { font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+.outcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.outcome-cell {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--space-4);
+  min-height: 120px;
+}
+.outcome-cell-primary {
+  background: rgba(46, 90, 77, 0.06);
+  border-color: rgba(46, 90, 77, 0.2);
+}
+.outcome-cell-export { background: rgba(179, 139, 77, 0.08); border-color: rgba(179, 139, 77, 0.25); }
+.outcome-cell h3 {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: var(--space-3);
+}
+.outcome-lead {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.outcome-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.outcome-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--teal);
+  border: 1px solid var(--line);
+}
+.outcome-list { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+.outcome-list-numbered { list-style: decimal; }
+.outcome-list li { margin-bottom: var(--space-2); }
+.outcome-list small { color: var(--ink-4); font-weight: 600; }
+.outcome-export-steps { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.outcome-export-steps li { margin-bottom: var(--space-2); }
+.outcome-empty, .outcome-foot {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  margin: 0;
+}
+.outcome-foot { margin-top: var(--space-2); font-size: 12px; }
+.outcome-memory-hint {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--line-strong);
+  font-size: 12px;
+  color: var(--teal);
+  line-height: 1.5;
+}
+.finish-actions-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: var(--space-8) 0 var(--space-3);
+}
+@media (max-width: 720px) {
+  .outcome-grid { grid-template-columns: 1fr; }
+}
+
 .decision-packet { 
   background: var(--academy); color: white; border-radius: var(--r-lg); padding: 40px; 
   margin-bottom: 32px; box-shadow: 0 20px 40px rgba(46, 77, 68, 0.2);

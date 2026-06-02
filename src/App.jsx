@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bubble,
   ContinueDeliberationPanel,
+  DeliberationOutcomePanel,
   DecisionPacketCard,
   DELIBERATION_PHASES,
   Logo,
@@ -1175,9 +1176,13 @@ export default function App() {
               )}
               {showVote && (
                 <div className="final-block">
-                  {/* 完成态行动面板：Decision Packet 作为核心 artifact，明确下一步 + 记忆审批闭环（per product-reinvention-goal: ending state = decision packet + clear actions + memory as first-class） */}
-                  <div className="success-ceremony">Decision Packet 已封装 · 审议闭环完成 · 请在右侧处理记忆审批以沉淀判断资产</div>
-                  
+                  <div className="success-ceremony">审议闭环完成 · Decision Packet 已封装</div>
+
+                  <DeliberationOutcomePanel
+                    meeting={meeting}
+                    pendingMemoryCount={pendingMemoryChanges.length}
+                  />
+
                   {meeting?.usage && (
                     <div className="usage-indicator">
                       本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens 
@@ -1185,14 +1190,15 @@ export default function App() {
                     </div>
                   )}
 
+                  <div className="section-divider">— 完整审议记录 —</div>
+
                   <WorkspacePanel workspace={meeting.workspace} />
                   <DecisionPacketCard packet={meeting.decisionPacket} />
                   <VoteCard vote={meeting.vote} personas={personas} />
 
-                  {/* 记忆审批显性提示（仅完成态 + 有待批时）：复用现有 cue 风格，强调 human gate 价值，不改 sidebar 位置或 logic */}
                   {pendingMemoryChanges.length > 0 && (
                     <div className="gen-memory-cue" style={{marginTop: '12px', background: 'var(--surface-2)', borderColor: 'var(--accent)'}}>
-                      有 {pendingMemoryChanges.length} 条关键判断待审批入库 · 批准后自动用于未来审议，积累项目认知资产（核心价值闭环）
+                      有 {pendingMemoryChanges.length} 条关键判断待审批入库 · 请在右侧「项目记忆审批」确认后沉淀
                     </div>
                   )}
 
@@ -1228,6 +1234,7 @@ export default function App() {
                     />
                   )}
 
+                  <p className="finish-actions-label">带走审议成果</p>
                   <div className="finish-actions">
                     {health?.aiConfigured !== false && meetingSource !== 'demo' && (
                       <button

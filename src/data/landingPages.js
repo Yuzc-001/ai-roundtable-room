@@ -1,6 +1,14 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '1.2.2',
+    date: '2026-06-02',
+    highlights: [
+      '审议完成态新增「结果一览」：路径、待澄清、行动、导出四格摘要',
+      '完整记录与导出操作分区，减少复盘时的认知跳跃',
+    ],
+  },
+  {
     version: '1.2.1',
     date: '2026-06-02',
     highlights: [
@@ -59,6 +67,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
+    version: '1.2.2',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -164,6 +173,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
+    version: '1.2.2',
     language: '中文',
     brand: 'Roundtable',
     nav: [

@@ -61,7 +61,12 @@ describe('App initial experience', () => {
     expect(source).toContain('refreshClosureRequest');
     expect(source).toContain('OnboardingWizard');
     expect(source).toContain('canRegenerateTurn');
+    expect(source).toContain('DeliberationOutcomePanel');
+    expect(source).toContain('带走审议成果');
     const componentsSource = await readFile(new URL('./components.jsx', import.meta.url), 'utf8');
     expect(componentsSource).toContain('bubble-regen-btn');
+    expect(componentsSource).toContain('DeliberationOutcomePanel');
+    expect(componentsSource).toContain('审议结果一览');
+    expect(componentsSource).toContain('outcome-panel');
   });
 });
