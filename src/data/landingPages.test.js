@@ -42,13 +42,13 @@ describe('landingPages', () => {
     expect(RELEASE_NOTES[0].version).toBe(packageVersion);
   });
 
-  test('RELEASE_NOTES includes 1.2.5 with EN highlights', () => {
+  test('RELEASE_NOTES includes current version with EN highlights', () => {
     const release = RELEASE_NOTES.find((r) => r.version === packageVersion);
     expect(release).toBeDefined();
-    expect(release.highlights.join(' ')).toMatch(/官网文案|结果一览/);
+    expect(release.highlights.join(' ')).toMatch(/证据矩阵|议题模板|会议历史/);
     expect(release.highlightsEn?.length).toBeGreaterThanOrEqual(3);
     const enFirst = getLocalizedReleaseNotes('en')[0].highlights.join(' ');
-    expect(enFirst).toMatch(/landing|outcome overview/i);
+    expect(enFirst).toMatch(/evidence matrix|topic template/i);
     expect(enFirst).not.toMatch(/官网文案/);
   });
 
@@ -74,6 +74,7 @@ describe('landingPages', () => {
       expect(blob).toContain(marker);
     }
     expect(LANDING_SITE.zh.home.deck).not.toMatch(/重生成并重算/);
+    expect(LANDING_SITE.zh.home.deck).toContain('证据矩阵');
   });
 
   test('en home and workflow mention 1.2.x capabilities', () => {
@@ -89,5 +90,6 @@ describe('landingPages', () => {
       expect(blob).toContain(marker);
     }
     expect(LANDING_SITE.en.home.deck).not.toMatch(/any turn/i);
+    expect(LANDING_SITE.en.home.deck).toMatch(/evidence matrix/i);
   });
 });

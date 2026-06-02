@@ -77,5 +77,12 @@ describe('App initial experience', () => {
     expect(componentsSource).toContain('DeliberationOutcomePanel');
     expect(componentsSource).toContain('审议结果一览');
     expect(componentsSource).toContain('outcome-panel');
+    expect(source).toContain('filterMeetings');
+    expect(source).toContain('history-search');
+    expect(source).toContain('TOPIC_TEMPLATES');
+    expect(source).toContain('template-picker');
+    expect(source).toContain('exportEvidenceMatrix');
+    expect(source).toContain('formatEvidenceMatrixExportPage');
+    expect(componentsSource).toContain('导出证据矩阵');
   });
 });

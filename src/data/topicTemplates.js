@@ -1,0 +1,51 @@
+/** 议题模板库 — 空会话快速填入专业审议议题 */
+export const TOPIC_TEMPLATES = [
+  {
+    id: 'product-launch',
+    label: '产品上线',
+    category: '产品',
+    topic: '我们是否应该把当前版本开放给第一批真实用户试用？需要满足哪些证据门槛？',
+    hint: '价值假设、证据缺口、重开条件与验证路径',
+    presetId: 'product',
+  },
+  {
+    id: 'commercial-value',
+    label: '商业变现',
+    category: '商业',
+    topic: '如果要把本产品做成可收费版本，最小可付费价值单元应该是什么？定价与风险如何收束？',
+    hint: '定价假设、竞争替代、首批付费验证',
+    presetId: 'product',
+  },
+  {
+    id: 'tech-roadmap',
+    label: '技术路线',
+    category: '技术路线',
+    topic: '在资源有限的前提下，未来两个季度应优先投入哪条技术路线？放弃什么、保留什么？',
+    hint: '架构债、交付风险、可逆性与里程碑',
+    presetId: 'product',
+  },
+  {
+    id: 'partnership-terms',
+    label: '合作条款',
+    category: '合作条款',
+    topic: '与潜在合作方签署框架协议前，哪些条款必须守住、哪些可以灵活交换？',
+    hint: '权责边界、退出机制、知识产权与数据',
+    presetId: 'legal',
+  },
+  {
+    id: 'growth-experiment',
+    label: '增长实验',
+    category: '增长实验',
+    topic: '下一轮增长实验应验证哪一个核心假设？成功与失败的判据分别是什么？',
+    hint: '渠道、样本量、指标与停止规则',
+    presetId: 'brainstorm',
+  },
+  {
+    id: 'retrospective',
+    label: '项目复盘',
+    category: '复盘',
+    topic: '本场迭代/发布周期中，哪些决策值得保留、哪些假设已被证伪、下一步如何重开？',
+    hint: '决策追溯、残留分歧、行动项优先级',
+    presetId: 'product',
+  },
+];

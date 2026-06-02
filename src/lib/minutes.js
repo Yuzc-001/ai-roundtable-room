@@ -1,3 +1,5 @@
+import { formatEvidenceMatrixHTML } from './evidenceMatrix.js';
+
 export function sanitizeDownloadName(name) {
   return String(name || 'AI圆桌会议纪要').replace(/[\\/:*?"<>|]/g, '-');
 }
@@ -527,6 +529,7 @@ export function formatMeetingHTML({
     <a href="#turns">发言</a>
     ${voteHtml ? '<a href="#vote">投票</a>' : ''}
     ${packetHtml ? '<a href="#packet">Decision Packet</a>' : ''}
+    <a href="#evidence-matrix">证据矩阵</a>
     ${wsHtml ? '<a href="#workspace">工作台</a>' : ''}
     ${risksHtml ? '<a href="#risks">风险</a>' : ''}
     ${actionsHtml ? '<a href="#actions">行动</a>' : ''}
@@ -540,6 +543,7 @@ export function formatMeetingHTML({
 
   ${voteHtml}
   ${packetHtml}
+  ${formatEvidenceMatrixHTML({ topic, meeting, personas, generatedAt })}
   ${wsHtml}
   ${risksHtml}
   ${actionsHtml}

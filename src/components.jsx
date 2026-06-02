@@ -547,6 +547,7 @@ export function DeliberationOutcomePanel({
           <h3>带走成果</h3>
           <ul className="outcome-export-steps">
             <li><strong>推荐</strong> <a className="outcome-export-link" href="#finish-actions">导出 HTML 复盘包</a> — 含证据说明与完整过程</li>
+            <li><a className="outcome-export-link" href="#finish-actions">导出证据矩阵 (HTML)</a> — 发言与证据池对照表</li>
             <li><a className="outcome-export-link" href="#finish-actions">复制核心结论</a> — 发消息或贴进文档</li>
             <li><a className="outcome-export-link" href="#finish-actions">生成分享链接</a> — 在线只读复盘</li>
             {showContinueLink ? (

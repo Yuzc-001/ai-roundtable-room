@@ -182,6 +182,13 @@ describe('completion layout contract', () => {
     expect(html).not.toContain('配置 API 后可继续审议');
   });
 
+  test('export cell mentions evidence matrix export', () => {
+    const html = renderToString(
+      <DeliberationOutcomePanel meeting={{ decisionPacket: BASE_PACKET }} pendingMemoryCount={0} />,
+    );
+    expect(html).toContain('导出证据矩阵');
+  });
+
   test('export cell points to finish-actions when showContinueLink is false', () => {
     const html = renderToString(
       <DeliberationOutcomePanel

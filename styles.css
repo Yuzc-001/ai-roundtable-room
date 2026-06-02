@@ -1043,6 +1043,26 @@ button:active,
 .starter-card b { display: block; font-family: var(--serif); font-size: 16px; margin-bottom: 8px; color: var(--academy); }
 .starter-card span { display: block; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
 
+.template-picker { margin-top: var(--space-6); text-align: left; }
+.template-picker-label { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: 0.04em; margin-bottom: var(--space-3); }
+.template-picker-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.template-chip {
+  font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.template-chip:hover { border-color: var(--academy); background: var(--surface); }
+.template-chip-category { font-size: 10px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.history-search {
+  width: 100%; box-sizing: border-box; margin-bottom: var(--space-3);
+  padding: 8px 12px; font-size: 13px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.history-search::placeholder { color: var(--ink-4); }
+.history-search:focus { outline: 2px solid var(--focus-ring); outline-offset: 1px; border-color: var(--focus-ring); }
+
 @media (max-width: 768px) {
   .empty-session { width: 100%; max-width: 100%; padding: 64px 20px; box-sizing: border-box; }
   .question-coach,

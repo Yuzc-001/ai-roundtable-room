@@ -144,5 +144,6 @@ describe('minutes helpers', () => {
     expect(html).toContain('class="unknown"');
     expect(html).toContain('v-vote unknown');
     expect(isSafeCitationUrl('javascript:x')).toBe(false);
+    expect(html).toContain('id="evidence-matrix"');
   });
 });

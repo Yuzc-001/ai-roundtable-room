@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 — 2026-06-02
+
+### 证据矩阵导出
+
+- 新增 `src/lib/evidenceMatrix.js`：按发言轮次与 Workspace 证据池生成对照行，支持 HTML / Markdown
+- 完整 HTML 复盘包内嵌 `#evidence-matrix` 区块；完成态可单独「导出证据矩阵 (HTML)」
+
+### 会议历史搜索
+
+- 项目侧栏「会议历史」在 3 场以上时显示搜索框，按议题或标题过滤
+- 过滤逻辑抽取为 `src/lib/historyFilter.js`（`filterMeetings`）
+
+### 议题模板库
+
+- 新增 `src/data/topicTemplates.js`（产品、商业、技术路线、合作条款、增长实验、复盘等 6 类）
+- 空会话在 starter 卡片旁提供「议题模板」快捷填入，可联动预设
+
 ## 1.2.5 — 2026-06-02
 
 ### 官网文案与 1.2.x 能力对齐

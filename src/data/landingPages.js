@@ -1,6 +1,20 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '1.3.0',
+    date: '2026-06-02',
+    highlights: [
+      '证据矩阵导出：发言轮次与证据池对照表（HTML / 复盘包内嵌）',
+      '会议历史搜索：侧栏按议题或标题过滤（3 场以上显示）',
+      '议题模板库：6 类专业议题快捷填入，可联动审议预设',
+    ],
+    highlightsEn: [
+      'Evidence matrix export: turn-by-turn table plus evidence pool (HTML and embedded in minutes)',
+      'Meeting history search in the sidebar when a project has more than three sessions',
+      'Topic template library: six professional starters that can switch presets',
+    ],
+  },
+  {
     version: '1.2.5',
     date: '2026-06-02',
     highlights: [
@@ -98,7 +112,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.2.5',
+    version: '1.3.0',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -115,7 +129,7 @@ export const LANDING_SITE = {
     home: {
       heroKicker: '本地运行 · 开源',
       title: '议题写出来，判断留得住',
-      deck: '审议结束以「结果一览」收束：已定路径、待澄清与行动一屏可见；证据按材料校验标注，审议完成后可对单轮发言重生成，再手动重算收束；支持导出与继续审议。',
+      deck: '审议结束以「结果一览」收束：已定路径、待澄清与行动一屏可见；证据按材料校验标注，可导出证据矩阵对照表；审议完成后可对单轮发言重生成，再手动重算收束；支持导出与继续审议。',
       exploreTitle: '进一步了解',
       explore: [
         ['适用场景', '哪些问题值得开一场审议', 'scenarios'],
@@ -212,7 +226,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.2.5',
+    version: '1.3.0',
     language: '中文',
     brand: 'Roundtable',
     nav: [
@@ -229,7 +243,7 @@ export const LANDING_SITE = {
     home: {
       heroKicker: 'Local · Open source',
       title: 'Write the question. Keep the judgment.',
-      deck: 'Sessions close with an outcome overview: path, open questions, and actions at a glance. Evidence follows your materials; after deliberation, a single turn can be regenerated, then you manually recalculate closure—export or continue when ready.',
+      deck: 'Sessions close with an outcome overview: path, open questions, and actions at a glance. Evidence follows your materials; export an evidence matrix table; after deliberation, a single turn can be regenerated, then you manually recalculate closure—export or continue when ready.',
       exploreTitle: 'Learn more',
       explore: [
         ['Use cases', 'What questions fit a session', 'scenarios'],

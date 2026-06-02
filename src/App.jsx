@@ -20,6 +20,9 @@ import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useOnboarding } from './hooks/useOnboarding.js';
 import { useTypewriter } from './hooks/useTypewriter.js';
 import { formatMeetingMarkdown, formatMeetingHTML, sanitizeDownloadName } from './lib/minutes.js';
+import { formatEvidenceMatrixExportPage } from './lib/evidenceMatrix.js';
+import { filterMeetings } from './lib/historyFilter.js';
+import { TOPIC_TEMPLATES } from './data/topicTemplates.js';
 import {
   approveProjectMemoryChanges,
   archiveProject,
@@ -93,7 +96,8 @@ export default function App() {
   // For generation progress perception (simulated phase advance while waiting for backend)
   const [simPhaseIdx, setSimPhaseIdx] = useState(0);
   // Temp feedback for export buttons (state change + toast for closure)
-  const [exportFeedback, setExportFeedback] = useState(null); // 'html' | 'md' | null
+  const [exportFeedback, setExportFeedback] = useState(null); // 'html' | 'md' | 'evidence' | null
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
 
   // History deletion with thoughtful undo (optimistic + 5s reversible window)
   const [loadedHistoryId, setLoadedHistoryId] = useState(null);
@@ -113,6 +117,11 @@ export default function App() {
   const projectList = useMemo(() => (Array.isArray(projects) && projects.length ? projects : [createDefaultProject()]), [projects]);
   const archivedProjectList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []), [archivedProjects]);
   const activeProject = useMemo(() => projectList.find((project) => project.id === activeProjectId) || projectList[0], [projectList, activeProjectId]);
+  const filteredHistoryMeetings = useMemo(
+    () => filterMeetings(activeProject?.meetings, historySearchQuery),
+    [activeProject?.meetings, historySearchQuery],
+  );
+  const showHistorySearch = (activeProject?.meetings?.length ?? 0) > 3;
   const preset = PRESETS[presetId] ?? PRESETS.product;
   const memoryEnabled = activeProject?.memoryEnabled !== false;
   const canDeleteProject = activeProject?.id !== 'default-project';
@@ -707,7 +716,15 @@ export default function App() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     };
-    if (format === 'html' && typeof formatMeetingHTML === 'function') {
+    if (format === 'evidence-html') {
+      save(
+        formatEvidenceMatrixExportPage({ ...base, generatedAt: new Date().toISOString() }),
+        'text/html;charset=utf-8',
+        '-证据矩阵.html',
+      );
+      setExportFeedback('evidence');
+      notify('证据矩阵 HTML 已导出 · 含发言与证据池对照表');
+    } else if (format === 'html' && typeof formatMeetingHTML === 'function') {
       save(formatMeetingHTML(base), 'text/html;charset=utf-8', '.html');
       setExportFeedback('html');
       notify('HTML 已导出 · 可直接分享给同事复盘（含 Decision Packet + 行动项）');
@@ -718,6 +735,8 @@ export default function App() {
     }
     setTimeout(() => setExportFeedback(null), 2200);
   };
+
+  const exportEvidenceMatrix = () => exportMinutes('evidence-html');
 
   // 复制模式状态（默认从 localStorage 恢复）
   const [copyMode, setCopyMode] = useState(() => {
@@ -1163,6 +1182,27 @@ export default function App() {
                 <button type="button" className="starter-card btn btn-ghost" aria-label="启动商业判断" onClick={() => health?.aiConfigured === false ? setTopic('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？') : startMeeting('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？')}><b>商业判断</b><span>碰撞价值假设、定价风险和验证路径。</span></button>
                 <button type="button" className="starter-card btn btn-ghost" aria-label="启动示例演示" onClick={showDemoMeeting}><b>示例演示</b><span>无需 API Key，先观察完整审议流程与输出结构。</span></button>
               </div>
+              <div className="template-picker">
+                <div className="template-picker-label">议题模板</div>
+                <div className="template-picker-chips">
+                  {TOPIC_TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      className="template-chip btn btn-ghost"
+                      title={tpl.hint}
+                      aria-label={`使用议题模板：${tpl.label}`}
+                      onClick={() => {
+                        setTopic(tpl.topic);
+                        if (tpl.presetId && PRESETS[tpl.presetId]) setPresetId(tpl.presetId);
+                      }}
+                    >
+                      <span className="template-chip-category">{tpl.category}</span>
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="feed-container">
@@ -1257,6 +1297,14 @@ export default function App() {
                     >
                       {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
                     </button>
+                    <button
+                      className={`btn btn-ghost ${exportFeedback === 'evidence' ? 'export-success' : ''}`}
+                      onClick={exportEvidenceMatrix}
+                      disabled={!!exportFeedback}
+                      title="按发言轮次与证据池导出对照表"
+                    >
+                      {exportFeedback === 'evidence' ? '✓ 已导出' : '导出证据矩阵 (HTML)'}
+                    </button>
                     {health?.aiConfigured !== false && meetingSource !== 'demo' && (
                       <button
                         type="button"
@@ -1349,11 +1397,24 @@ export default function App() {
           </>
         )}
         <div className="info-header">会议历史</div>
+        {showHistorySearch && (
+          <input
+            id="history-search"
+            className="history-search"
+            type="search"
+            placeholder="搜索议题或标题…"
+            value={historySearchQuery}
+            onChange={(e) => setHistorySearchQuery(e.target.value)}
+            aria-label="搜索会议历史"
+          />
+        )}
         <div className="history-list">
           {(activeProject.meetings?.length ?? 0) === 0 ? (
             <div className="history-empty">审批后的决策、风险和行动会沉淀在项目里。</div>
+          ) : filteredHistoryMeetings.length === 0 ? (
+            <div className="history-empty">无匹配会议</div>
           ) : (
-            (activeProject.meetings ?? []).map((item) => {
+            filteredHistoryMeetings.map((item) => {
               const isConfirmingPermanent = permanentConfirmId === item.id;
 
               return (
