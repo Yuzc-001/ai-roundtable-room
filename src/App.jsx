@@ -36,85 +36,101 @@ const ROADMAP_URL = `${GITHUB_URL}/blob/main/docs/roadmap.md`;
 const LANDING_COPY = {
   zh: {
     language: 'EN',
-    nav: ['自部署', '工作流', 'FAQ', '更新'],
-    heroKicker: '开源 · 本地优先 · 可自部署',
-    title: '把复杂问题变成可复盘的决策包',
-    subtitle: 'AI 圆桌智库把一个高价值议题放进多种判断函数中碰撞，暴露分歧、标注证据缺口，并输出可执行的 Decision Packet。',
+    brand: '圆桌智库',
+    nav: ['适用场景', '审议流程', '常见问题', '更新'],
+    heroKicker: '开源审议工作台',
+    title: '复杂议题，写成可以复盘的判断',
+    lead: '不是聊天窗口，也不是角色扮演。围绕一个问题，按阶段整理分歧、证据与下一步，留下完整纪要。',
+    subtitle: '在本地运行。议题、会议记录与项目记忆留在你的环境里；模型密钥只由服务端读取，不进入浏览器。',
     primary: '进入工作台',
-    demo: '查看演示',
-    github: 'GitHub',
-    badges: ['Self-hosted', 'API Key 自己掌握', '项目记忆可审批', '长期滚动更新'],
-    previewTitle: '一次审议会留下什么',
-    previewItems: ['关键分歧', '证据状态', '少数意见', '重开条件', '行动项'],
-    quickstartTitle: '本地部署',
+    demo: '先看演示',
+    github: '源码',
+    scenarios: [
+      ['产品取舍', '上线节奏、范围与风险如何同时被看见'],
+      ['商业判断', '价值假设、定价与验证路径互相质询'],
+      ['长期项目', '结论、分歧与行动项可追问、可导出'],
+    ],
+    previewTitle: '一场审议会留下',
+    previewCaption: '工作台实录',
+    previewItems: ['核心分歧', '证据标注', '少数意见', '重开条件', '行动清单'],
+    quickstartTitle: '本地安装',
+    quickstartLead: '复制仓库、填写 .env、启动服务。无云账号，无强制联网存储。',
     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
     sections: [
-      ['为什么本地优先', '议题、项目记忆和 API Key 都由你自己掌控，适合私密项目、团队判断和长期知识沉淀。'],
-      ['不是多角色表演', '圆桌的价值不是头像轮流说话，而是让机会、风险、证据、用户心智和行动路径互相压测。'],
-      ['长期维护的开源项目', '面向 GitHub 公开评估持续打磨：测试、文档、路线图和自部署体验会一起演进。'],
+      ['数据留在本机', '适合私密议题与长期项目。历史会议、导出纪要与项目记忆默认保存在本地。'],
+      ['审议而非表演', '价值在于暴露未对齐之处、标出证据缺口、保留反对意见，而不是让头像轮流发言。'],
+      ['持续维护的开源项目', '文档、测试与自部署体验随版本迭代；欢迎通过 Issue 参与改进。'],
     ],
-    workflowTitle: '从问题到决策包',
+    workflowTitle: '怎么用',
     workflow: [
-      ['输入议题', '写下一个需要权衡风险、证据和下一步的问题。'],
-      ['结构化审议', '主持协议推动发散、质询、分歧暴露和共识收拢。'],
-      ['沉淀资产', '输出 Decision Packet，并由你批准是否写入项目记忆。'],
+      ['写下议题', '一个需要权衡风险、证据与下一步的具体问题。'],
+      ['分阶段推进', '发散、质询、暴露分歧、收拢结论，过程可追溯。'],
+      ['导出与沉淀', '生成纪要包；你决定是否把结论写入项目记忆。'],
     ],
-    faqTitle: 'FAQ',
-    supportTitle: '开源支持',
+    faqTitle: '常见问题',
+    supportTitle: '参与项目',
     supportCards: [
-      ['阅读文档', '从 README 和架构文档了解部署、配置和数据流。'],
-      ['提交 Issue', '反馈 bug、部署问题或产品建议。'],
-      ['参与路线图', '围绕自部署、模型适配、项目记忆和团队共享持续迭代。'],
+      ['阅读文档', '部署、配置与数据流说明见 README 与架构文档。'],
+      ['提交 Issue', '反馈缺陷、部署问题或产品建议。'],
+      ['查看路线图', '了解自部署、模型适配与记忆治理的后续计划。'],
     ],
     faq: [
-      ['它和直接问 ChatGPT 有什么不同？', '直接问单模型更适合事实查询和简单生成。AI 圆桌更适合高价值、含风险、证据不完整、需要保留反对意见的问题。'],
-      ['必须配置多个模型吗？', '不是。你可以先用一个已配置模型运行；多提供商适合做更强的判断差异和容错。'],
-      ['API Key 和数据会上传到哪里？', 'Key 只在本地服务端读取。议题、历史会议和项目记忆默认保存在你的本地环境中。'],
-      ['适合团队使用吗？', '适合团队先自部署评估。当前重点是个人/小团队本地工作台，团队共享和权限会按路线图推进。'],
-      ['会持续更新吗？', '会。项目目标是长期滚动更新，把本地部署、审议质量、记忆治理和导出分享做成可靠开源产品。'],
+      ['和直接问大模型有什么不同？', '单轮问答适合查事实、写草稿。这里适合证据不完整、存在反对意见、需要留下过程记录的判断类问题。'],
+      ['一定要接很多模型吗？', '不必。配置一个可用模型即可开始；多个供应商主要用于拉开视角差异。'],
+      ['密钥和数据会去哪？', 'API Key 由本地服务读取；浏览器不接触密钥。议题与会议数据默认留在你的环境。'],
+      ['适合团队吗？', '可先自部署试用。当前侧重个人与小团队本地工作台；共享与权限按路线图推进。'],
+      ['还会更新吗？', '会。版本迭代聚焦审议质量、记忆治理、导出分享与部署体验。'],
     ],
-    footer: '开源、本地优先、为严肃判断而做。',
+    footer: '圆桌智库 · 开源 · 本地运行',
   },
   en: {
     language: '中文',
-    nav: ['Self-host', 'Workflow', 'FAQ', 'Updates'],
-    heroKicker: 'Open source · Local-first · Self-hosted',
-    title: 'Turn complex questions into reviewable decision packets',
-    subtitle: 'AI Roundtable Room pressure-tests a high-value question through multiple judgment functions, surfaces disagreements, marks evidence gaps, and produces an actionable Decision Packet.',
-    primary: 'Enter workbench',
+    brand: 'Roundtable',
+    nav: ['Use cases', 'Flow', 'FAQ', 'Updates'],
+    heroKicker: 'Open deliberation workbench',
+    title: 'Complex questions, written as reviewable judgment',
+    lead: 'Not a chat box or role-play. One question, staged tension and evidence, a full record you can revisit.',
+    subtitle: 'Runs locally. Topics, sessions, and project memory stay in your environment. API keys are read by your server only.',
+    primary: 'Open workbench',
     demo: 'View demo',
-    github: 'GitHub',
-    badges: ['Self-hosted', 'Bring your own API keys', 'Human-approved memory', 'Long-term updates'],
-    previewTitle: 'What one session preserves',
-    previewItems: ['Key tensions', 'Evidence status', 'Minority report', 'Reopen conditions', 'Action items'],
-    quickstartTitle: 'Self-host quickstart',
+    github: 'Source',
+    scenarios: [
+      ['Product tradeoffs', 'See launch timing, scope, and risk together'],
+      ['Business judgment', 'Stress-test value, pricing, and validation'],
+      ['Long-running work', 'Decisions, dissent, and actions you can continue'],
+    ],
+    previewTitle: 'What a session keeps',
+    previewCaption: 'Workbench capture',
+    previewItems: ['Core tensions', 'Evidence notes', 'Minority view', 'Reopen triggers', 'Action list'],
+    quickstartTitle: 'Install locally',
+    quickstartLead: 'Clone, configure .env, start the server. No cloud account required.',
     quickstartLines: ['git clone https://github.com/Yuzc-001/ai-roundtable-room.git', 'cd ai-roundtable-room', 'npm install', 'cp .env.example .env', 'npm run dev'],
     sections: [
-      ['Why local-first', 'Your topics, project memory, and API keys stay under your control, suitable for private projects, team judgment, and long-lived knowledge.'],
-      ['Not role-play', 'The value is not avatars taking turns. It is opportunity, risk, evidence, user context, and next actions pressure-testing each other.'],
-      ['Maintained as open source', 'Built for public GitHub evaluation with tests, docs, roadmap, and self-hosting experience evolving together.'],
+      ['Data stays local', 'For private topics and long projects. History, exports, and memory default to your machine.'],
+      ['Deliberation, not theater', 'Surface misalignment, mark evidence gaps, keep dissent—rather than avatars taking turns.'],
+      ['Maintained in the open', 'Docs, tests, and self-hosting improve with each release. Issues welcome.'],
     ],
-    workflowTitle: 'From question to packet',
+    workflowTitle: 'How it works',
     workflow: [
-      ['Input a question', 'Start with a question that needs tradeoffs, evidence, risk, and a next move.'],
-      ['Structured deliberation', 'The moderator protocol drives divergence, examination, tension surfacing, and convergence.'],
-      ['Compound knowledge', 'Export a Decision Packet and decide what should enter project memory.'],
+      ['Write the question', 'Something that needs risk, evidence, and a next move.'],
+      ['Move in stages', 'Diverge, examine, surface tension, converge—with a traceable path.'],
+      ['Export and retain', 'Minutes package; you choose what enters project memory.'],
     ],
-    faqTitle: 'FAQ',
-    supportTitle: 'Open-source support',
+    faqTitle: 'Questions',
+    supportTitle: 'Get involved',
     supportCards: [
-      ['Read the docs', 'Use the README and architecture docs to understand deployment, configuration, and data flow.'],
-      ['Open an issue', 'Report bugs, deployment friction, or product suggestions.'],
-      ['Shape the roadmap', 'Help evolve self-hosting, model adapters, project memory, and team sharing.'],
+      ['Read the docs', 'Deployment, config, and data flow in README and architecture notes.'],
+      ['Open an issue', 'Bugs, deployment friction, or product feedback.'],
+      ['See the roadmap', 'Self-hosting, adapters, and memory governance plans.'],
     ],
     faq: [
-      ['How is this different from asking ChatGPT directly?', 'Single-model chat is better for simple facts and generation. AI Roundtable Room is for high-value questions with risk, incomplete evidence, and useful dissent.'],
-      ['Do I need multiple models?', 'No. You can start with one configured provider. Multiple providers are useful for stronger judgment diversity and resilience.'],
-      ['Where do API keys and data go?', 'Keys are read by your local server. Topics, meeting history, and project memory are stored in your local environment by default.'],
-      ['Can teams use it?', 'Teams can self-host and evaluate it today. The current focus is a local workbench for individuals and small teams; sharing and permissions can evolve through the roadmap.'],
-      ['Will it keep getting updates?', 'Yes. The goal is a long-running open-source product with reliable self-hosting, better deliberation quality, memory governance, and export/share workflows.'],
+      ['How is this different from one-shot chat?', 'Chat fits facts and drafts. This fits judgment calls with risk, incomplete evidence, and useful dissent.'],
+      ['Do I need many models?', 'No. One configured provider is enough to start; several help widen perspective.'],
+      ['Where do keys and data go?', 'Keys stay on your server; the browser never sees them. Sessions default to local storage.'],
+      ['Can teams use it?', 'Self-host and evaluate first. Sharing and permissions are on the roadmap.'],
+      ['Still updated?', 'Yes—deliberation quality, memory governance, exports, and deployment keep improving.'],
     ],
-    footer: 'Open source, local-first, built for serious judgment.',
+    footer: 'Roundtable · Open source · Local-first',
   },
 };
 
@@ -126,10 +142,10 @@ function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
       <header className="landing-nav">
         <div className="landing-brand">
           <Logo />
-          <span>AI Roundtable Room</span>
+          <span>{copy.brand}</span>
         </div>
         <nav>
-          <a href="#self-host">{copy.nav[0]}</a>
+          <a href="#scenarios">{copy.nav[0]}</a>
           <a href="#workflow">{copy.nav[1]}</a>
           <a href="#faq">{copy.nav[2]}</a>
           <a href={ROADMAP_URL} target="_blank" rel="noreferrer">{copy.nav[3]}</a>
@@ -146,37 +162,42 @@ function LandingPage({ lang, onToggleLang, onEnter, onDemo }) {
           <div className="landing-hero-copy">
             <div className="landing-kicker">{copy.heroKicker}</div>
             <h1>{copy.title}</h1>
-            <p>{copy.subtitle}</p>
+            <p className="landing-lead">{copy.lead}</p>
+            <p className="landing-sub">{copy.subtitle}</p>
             <div className="landing-cta-row">
               <button type="button" className="btn btn-primary landing-cta" onClick={onEnter}>{copy.primary}</button>
               <button type="button" className="btn btn-ghost landing-cta" onClick={onDemo}>{copy.demo}</button>
-              <a className="btn btn-ghost landing-cta" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
-            </div>
-            <div className="landing-badges">
-              {copy.badges.map((badge) => <span key={badge}>{badge}</span>)}
             </div>
           </div>
-          <div className="landing-product-panel" aria-label={copy.previewTitle}>
-            <div className="landing-panel-head">
+          <div className="landing-preview" aria-label={copy.previewTitle}>
+            <div className="landing-preview-head">
               <span>{copy.previewTitle}</span>
-              <b>Decision Packet</b>
+              <em>{copy.previewCaption}</em>
             </div>
-            <img src="/remotion/live-meeting.png" alt="AI Roundtable Room workbench preview" />
-            <div className="landing-packet-list">
-              {copy.previewItems.map((item, index) => (
-                <div key={item} className="landing-packet-row">
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                  <b>{item}</b>
-                </div>
+            <figure className="landing-preview-frame">
+              <img src="/remotion/live-meeting.png" alt="" />
+            </figure>
+            <ul className="landing-preview-list">
+              {copy.previewItems.map((item) => (
+                <li key={item}>{item}</li>
               ))}
-            </div>
+            </ul>
           </div>
+        </section>
+
+        <section id="scenarios" className="landing-scenarios">
+          {copy.scenarios.map(([title, body]) => (
+            <article key={title}>
+              <h3>{title}</h3>
+              <p>{body}</p>
+            </article>
+          ))}
         </section>
 
         <section id="self-host" className="landing-band landing-two-col">
           <div>
             <h2>{copy.quickstartTitle}</h2>
-            <p>{copy.sections[0][1]}</p>
+            <p>{copy.quickstartLead}</p>
           </div>
           <pre className="landing-code"><code>{copy.quickstartLines.join('\n')}</code></pre>
         </section>

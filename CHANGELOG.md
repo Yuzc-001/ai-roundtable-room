@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2 — 2026-06-02
+
+- Redesign landing page: editorial copy in Chinese, remove AI-product clichés (English badges, Decision Packet hero, ChatGPT framing).
+- New landing palette (stone paper + forest accent), Noto Serif SC / Source Sans 3, scenario strip and calmer preview panel.
+
 ## 1.1.1 — 2026-06-02
 
 - Fix history meeting cards: override `.btn` `nowrap` so titles wrap instead of clipping; show user topic as primary line.
