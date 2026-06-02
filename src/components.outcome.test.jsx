@@ -168,13 +168,32 @@ describe('DeliberationOutcomePanel', () => {
 });
 
 describe('completion layout contract', () => {
-  test('export cell links to continue deliberation section', () => {
+  test('export cell links to continue deliberation when showContinueLink', () => {
     const html = renderToString(
-      <DeliberationOutcomePanel meeting={{ decisionPacket: BASE_PACKET }} pendingMemoryCount={0} />,
+      <DeliberationOutcomePanel
+        meeting={{ decisionPacket: BASE_PACKET }}
+        pendingMemoryCount={0}
+        showContinueLink
+      />,
     );
     expect(html).toContain('href="#continue-deliberation"');
     expect(html).toContain('后续动作');
     expect(html).toContain('继续审议');
+    expect(html).not.toContain('配置 API 后可继续审议');
+  });
+
+  test('export cell points to finish-actions when showContinueLink is false', () => {
+    const html = renderToString(
+      <DeliberationOutcomePanel
+        meeting={{ decisionPacket: BASE_PACKET }}
+        pendingMemoryCount={0}
+        showContinueLink={false}
+      />,
+    );
+    expect(html).not.toContain('href="#continue-deliberation"');
+    expect(html).not.toContain('后续动作');
+    expect(html).toContain('href="#finish-actions">返回工作台</a>');
+    expect(html).toContain('配置 API 后可继续审议');
   });
 
   test('App.jsx orders outcome → export → copy mode → continue → full record → usage', async () => {
@@ -199,6 +218,7 @@ describe('completion layout contract', () => {
       expect(dividerIdx).toBeLessThan(usageIdx);
     }
     expect(completionBlock).toContain('continuePanelRef');
+    expect(completionBlock).toContain('showContinueLink={health?.aiConfigured !== false}');
     expect(completionBlock).toContain('h2 className="finish-actions-label"');
     expect(completionBlock).not.toContain('gen-memory-cue');
   });

@@ -1211,6 +1211,7 @@ export default function App() {
                     meeting={meeting}
                     panelRef={outcomePanelRef}
                     pendingMemoryCount={pendingMemoryChanges.length}
+                    showContinueLink={health?.aiConfigured !== false}
                   />
 
                   <h2 className="finish-actions-label">带走审议成果</h2>

@@ -425,7 +425,9 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
 }
 
 /** 审议完成态：四格一览（路径 / 待澄清 / 行动 / 导出），降低复盘认知负担 */
-export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, panelRef }) {
+export function DeliberationOutcomePanel({
+  meeting, pendingMemoryCount = 0, panelRef, showContinueLink = false,
+}) {
   const packet = meeting?.decisionPacket;
   const workspace = meeting?.workspace;
 
@@ -546,7 +548,17 @@ export function DeliberationOutcomePanel({ meeting, pendingMemoryCount = 0, pane
             <li><strong>推荐</strong> <a className="outcome-export-link" href="#finish-actions">导出 HTML 复盘包</a> — 含证据说明与完整过程</li>
             <li><a className="outcome-export-link" href="#finish-actions">复制核心结论</a> — 发消息或贴进文档</li>
             <li><a className="outcome-export-link" href="#finish-actions">生成分享链接</a> — 在线只读复盘</li>
-            <li><a className="outcome-export-link" href="#continue-deliberation">或于下方「后续动作」继续审议</a> — 注入本场结论与风险</li>
+            {showContinueLink ? (
+              <li>
+                <a className="outcome-export-link" href="#continue-deliberation">或于下方「后续动作」继续审议</a>
+                {' '}— 注入本场结论与风险
+              </li>
+            ) : (
+              <li>
+                <a className="outcome-export-link" href="#finish-actions">返回工作台</a>
+                {' '}— 配置 API 后可继续审议，或导出本场成果
+              </li>
+            )}
           </ul>
           <p className="outcome-privacy-hint">
             分享链接与 HTML 文件包含完整审议内容，请勿发给未授权对象。
