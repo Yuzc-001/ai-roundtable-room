@@ -63,6 +63,7 @@ describe('App initial experience', () => {
     expect(source).toContain('canRegenerateTurn');
     expect(source).toContain('DeliberationOutcomePanel');
     expect(source).toContain('带走审议成果');
+    expect(source).toContain('后续动作');
     expect(source).toContain('id="finish-actions"');
     expect(source).toContain('outcomePanelRef');
     expect(source).toContain('shouldScrollToOutcomeRef');

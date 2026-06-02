@@ -819,10 +819,10 @@ export function OnboardingWizard({
 
 export function ContinueDeliberationPanel({ value, onChange, onSubmit, disabled }) {
   return (
-    <section className="continue-panel" aria-label="基于本场继续追问">
+    <section className="continue-panel" aria-label="基于本场继续审议">
       <div className="continue-panel-head">
-        <b>继续追问</b>
-        <span>系统会把上一场结论、风险与关键发言注入下一场审议。</span>
+        <b>继续审议</b>
+        <span>带着本场结论与风险登记，发起下一场追问。</span>
       </div>
       <textarea
         className="textarea continue-panel-input"

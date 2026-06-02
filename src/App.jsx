@@ -1250,6 +1250,18 @@ export default function App() {
                     <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
                   </div>
 
+                  {health?.aiConfigured !== false && (
+                    <>
+                      <p className="finish-actions-label">后续动作</p>
+                      <ContinueDeliberationPanel
+                        value={followUpNote}
+                        onChange={setFollowUpNote}
+                        onSubmit={continueFromMeeting}
+                        disabled={status === 'generating'}
+                      />
+                    </>
+                  )}
+
                   {meeting?.usage && (
                     <div className="usage-indicator">
                       本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
@@ -1284,15 +1296,6 @@ export default function App() {
                       完整
                     </button>
                   </div>
-
-                  {health?.aiConfigured !== false && (
-                    <ContinueDeliberationPanel
-                      value={followUpNote}
-                      onChange={setFollowUpNote}
-                      onSubmit={continueFromMeeting}
-                      disabled={status === 'generating'}
-                    />
-                  )}
                 </div>
               )}
             </div>

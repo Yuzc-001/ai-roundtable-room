@@ -1284,6 +1284,7 @@ button:active,
   margin: var(--space-4) 0 var(--space-3);
 }
 .finish-actions-label + .finish-actions { margin-top: 0; }
+.finish-actions-label + .continue-panel { margin-top: 0; }
 @media (max-width: 720px) {
   .outcome-grid { grid-template-columns: 1fr; }
 }

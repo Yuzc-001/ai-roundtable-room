@@ -168,24 +168,33 @@ describe('DeliberationOutcomePanel', () => {
 });
 
 describe('completion layout contract', () => {
-  test('App.jsx orders outcome panel before finish-actions and full record divider', async () => {
+  test('App.jsx orders outcome → export → continue → full record', async () => {
     const source = await readFile(new URL('./App.jsx', import.meta.url), 'utf8');
     const outcomeIdx = source.indexOf('<DeliberationOutcomePanel');
-    const finishLabelIdx = source.indexOf('finish-actions-label');
+    const finishLabelIdx = source.indexOf('带走审议成果');
     const finishActionsIdx = source.indexOf('id="finish-actions"');
+    const continueLabelIdx = source.indexOf('后续动作');
+    const continuePanelIdx = source.indexOf('<ContinueDeliberationPanel');
     const dividerIdx = source.indexOf('完整审议记录');
     expect(outcomeIdx).toBeGreaterThan(-1);
     expect(outcomeIdx).toBeLessThan(finishLabelIdx);
     expect(finishLabelIdx).toBeLessThan(finishActionsIdx);
-    expect(finishActionsIdx).toBeLessThan(dividerIdx);
+    expect(finishActionsIdx).toBeLessThan(continueLabelIdx);
+    expect(continueLabelIdx).toBeLessThan(continuePanelIdx);
+    expect(continuePanelIdx).toBeLessThan(dividerIdx);
     expect(source).toContain('outcomePanelRef');
     const completionBlock = source.slice(source.indexOf('{showVote &&'), source.indexOf('{error &&'));
     expect(completionBlock).not.toContain('gen-memory-cue');
+    const dividerPos = completionBlock.indexOf('完整审议记录');
+    const continuePos = completionBlock.indexOf('<ContinueDeliberationPanel');
+    expect(continuePos).toBeGreaterThan(-1);
+    expect(continuePos).toBeLessThan(dividerPos);
   });
 
   test('styles include outcome panel and finish-actions pairing', async () => {
     const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
     expect(css).toContain('.outcome-panel');
     expect(css).toContain('.finish-actions-label + .finish-actions');
+    expect(css).toContain('.finish-actions-label + .continue-panel');
   });
 });

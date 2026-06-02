@@ -1,6 +1,14 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
+    version: '1.2.3',
+    date: '2026-06-02',
+    highlights: [
+      '审议完成后「继续审议」紧接结果一览与导出，不必先滚完整记录',
+      '完成态分区：结果一览 → 带走成果 → 后续动作 → 完整审议记录',
+    ],
+  },
+  {
     version: '1.2.2',
     date: '2026-06-02',
     highlights: [
@@ -67,7 +75,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.2.2',
+    version: '1.2.3',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -173,7 +181,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.2.2',
+    version: '1.2.3',
     language: '中文',
     brand: 'Roundtable',
     nav: [
