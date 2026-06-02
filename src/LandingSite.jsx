@@ -1,5 +1,5 @@
 import { Logo } from './components.jsx';
-import { LANDING_SITE, RELEASE_NOTES } from './data/landingPages.js';
+import { getLocalizedReleaseNotes, LANDING_SITE } from './data/landingPages.js';
 import { getLandingPath } from './lib/landingRoutes.js';
 
 const GITHUB_URL = 'https://github.com/Yuzc-001/ai-roundtable-room';
@@ -179,9 +179,10 @@ function LandingFaq({ copy, onNavigate }) {
   );
 }
 
-function LandingUpdates({ copy, onNavigate, currentVersion }) {
+function LandingUpdates({ copy, lang, onNavigate, currentVersion }) {
   const p = copy.updates;
   const versionLabel = copy.version ?? currentVersion;
+  const releaseNotes = getLocalizedReleaseNotes(lang);
   return (
     <article className="landing-doc">
       <LandingBack label={copy.backHome} onNavigate={onNavigate} />
@@ -193,7 +194,7 @@ function LandingUpdates({ copy, onNavigate, currentVersion }) {
         <a href={CHANGELOG_URL} target="_blank" rel="noreferrer">CHANGELOG.md</a>
       </p>
       <div className="landing-releases">
-        {RELEASE_NOTES.map((release) => (
+        {releaseNotes.map((release) => (
           <section key={release.version} className="landing-release">
             <header>
               <h2>v{release.version}</h2>
@@ -239,7 +240,7 @@ export default function LandingSite({
         {page === 'workflow' && <LandingWorkflow copy={copy} onNavigate={onNavigate} />}
         {page === 'faq' && <LandingFaq copy={copy} onNavigate={onNavigate} />}
         {page === 'updates' && (
-          <LandingUpdates copy={copy} onNavigate={onNavigate} currentVersion={currentVersion} />
+          <LandingUpdates copy={copy} lang={lang} onNavigate={onNavigate} currentVersion={currentVersion} />
         )}
       </main>
       <footer className="landing-footer">

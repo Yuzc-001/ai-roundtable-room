@@ -8,6 +8,11 @@ export const RELEASE_NOTES = [
       '审议流程页补充完成态阅读顺序与重算收束说明',
       '常见问题新增审议结果修订与证据标注说明',
     ],
+    highlightsEn: [
+      'Public landing copy aligned with 1.2.x: outcome overview, evidence policy, single-turn regenerate, continue deliberation',
+      'Deliberation flow documents completion order and manual closure recalculation',
+      'FAQ adds outcome revision and evidence-tag accuracy',
+    ],
   },
   {
     version: '1.2.4',
@@ -110,7 +115,7 @@ export const LANDING_SITE = {
     home: {
       heroKicker: '本地运行 · 开源',
       title: '议题写出来，判断留得住',
-      deck: '审议结束以「结果一览」收束：已定路径、待澄清与行动一屏可见；证据按材料校验标注，单轮发言可重生成并重算收束，支持导出与继续审议。',
+      deck: '审议结束以「结果一览」收束：已定路径、待澄清与行动一屏可见；证据按材料校验标注，审议完成后可对单轮发言重生成，再手动重算收束；支持导出与继续审议。',
       exploreTitle: '进一步了解',
       explore: [
         ['适用场景', '哪些问题值得开一场审议', 'scenarios'],
@@ -149,7 +154,7 @@ export const LANDING_SITE = {
           title: '长期项目',
           summary: '结论、分歧、风险与行动项跨场次沉淀。',
           examples: ['技术路线是否该调整？', '合作条款里哪些条款需要重开讨论？'],
-          fit: '需要结果一览、继续审议与跨场次记忆，而不是每次从零开始。',
+          fit: '需要结果一览、继续审议，以及经审批写入的项目记忆（可关闭），而不是每次从零开始。',
         },
       ],
       notForTitle: '不太适合',
@@ -170,7 +175,7 @@ export const LANDING_SITE = {
         ['写下议题', '输入一个需要权衡风险、证据与下一步的具体问题。可上传 PDF 作为背景。'],
         ['选择协议', '按产品、商业等预设决定参与角色与阶段节奏。'],
         ['阶段审议', '主持协议推进六阶段；发言可标注认知动作与证据类型。无上传材料时不保留无源外链，「事实」类标签自动降级。'],
-        ['结果收束', '审议结束后：结果一览四格 → 导出 → 继续审议 → 完整记录。可对单轮发言重生成，并重算投票与 Decision Packet。'],
+        ['结果收束', '审议结束后：结果一览四格 → 导出 → 继续审议 → 完整记录。可对单轮发言重生成，再手动重算投票与 Decision Packet；写入项目记忆需审批，后续场次方可引用。'],
       ],
       artifactTitle: '一场审议会留下',
       artifacts: [
@@ -191,7 +196,7 @@ export const LANDING_SITE = {
         ['如何检查配置？', '填写 .env 后运行 npm run doctor，按提示修正 API Key、模型名或 Base URL。'],
         ['适合团队吗？', '可先自部署试用。当前侧重个人与小团队本地工作台；团队共享与权限按路线图推进。'],
         ['审议结果可以改吗？', '审议完成后可对单轮发言重生成，保留前后文与其它角色发言；替换后可重算投票与 Decision Packet，不必整场重跑。'],
-        ['证据标注可信吗？', '有上传材料时，外链须能在议题或材料中出现；无材料时不保留无源链接，「事实」标签会降级为推断，避免无依据断言。'],
+        ['证据标注可信吗？', '无上传材料时去掉无源外链，「事实」/「用户输入」降级为推断。有材料时，议题与材料中未出现的外链会保留但标为推断引用；无 URL 的「事实」与未在正文体现的项目记忆标签也会降级。'],
       ],
       supportTitle: '参与项目',
       support: [
@@ -224,7 +229,7 @@ export const LANDING_SITE = {
     home: {
       heroKicker: 'Local · Open source',
       title: 'Write the question. Keep the judgment.',
-      deck: 'Sessions close with an outcome overview: path, open questions, and actions at a glance. Evidence follows your materials; any turn can be regenerated and closure recalculated—then export or continue.',
+      deck: 'Sessions close with an outcome overview: path, open questions, and actions at a glance. Evidence follows your materials; after deliberation, a single turn can be regenerated, then you manually recalculate closure—export or continue when ready.',
       exploreTitle: 'Learn more',
       explore: [
         ['Use cases', 'What questions fit a session', 'scenarios'],
@@ -263,7 +268,7 @@ export const LANDING_SITE = {
           title: 'Long-running projects',
           summary: 'Carry decisions, risks, and actions across sessions.',
           examples: ['Should we change the technical bet?', 'Which contract terms need reopening?'],
-          fit: 'You need the outcome overview, continuation, and memory across sessions—not a blank slate each time.',
+          fit: 'You need the outcome overview, continuation, and project memory after approval (opt-out)—not a blank slate each time.',
         },
       ],
       notForTitle: 'Less suited for',
@@ -284,7 +289,7 @@ export const LANDING_SITE = {
         ['Write the topic', 'A question needing risk, evidence, and a next move. PDF context optional.'],
         ['Pick a preset', 'Product, business, etc. set roles and pacing.'],
         ['Deliberate', 'Six protocol stages; turns tag cognitive moves and evidence. Without uploads, unsourced links are dropped and “fact” labels downgrade.'],
-        ['Close and follow up', 'After deliberation: outcome overview → export → continue → full record. Regenerate one turn, then recalculate votes and the Decision Packet.'],
+        ['Close and follow up', 'After deliberation: outcome overview → export → continue deliberation → full record. Regenerate one turn, then manually recalculate votes and the Decision Packet; project memory requires approval before later sessions use it.'],
       ],
       artifactTitle: 'What a session keeps',
       artifacts: [
@@ -305,7 +310,7 @@ export const LANDING_SITE = {
         ['Check configuration?', 'Run npm run doctor after editing .env.'],
         ['Teams?', 'Self-host and evaluate; sharing/permissions are on the roadmap.'],
         ['Can I revise the outcome?', 'After deliberation, regenerate a single turn while keeping context and other speakers; then recalculate votes and the Decision Packet—no full rerun.'],
-        ['How trustworthy are evidence tags?', 'With materials, links must appear in the topic or uploads; without materials, unsourced URLs are removed and “fact” downgrades to inference.'],
+        ['How trustworthy are evidence tags?', 'Without uploads, unsourced URLs are removed and “fact”/“user input” downgrade to inference. With materials, links not in your topic or files stay but are relabeled as inferred citations; “fact” without a URL and “project_memory” not reflected in the turn body downgrade too.'],
       ],
       supportTitle: 'Get involved',
       support: [
@@ -321,3 +326,14 @@ export const LANDING_SITE = {
     },
   },
 };
+
+/** Release bullets for the active landing locale (falls back to zh highlights). */
+export function getLocalizedReleaseNotes(lang) {
+  return RELEASE_NOTES.map((release) => ({
+    ...release,
+    highlights:
+      lang === 'en' && release.highlightsEn?.length
+        ? release.highlightsEn
+        : release.highlights,
+  }));
+}
