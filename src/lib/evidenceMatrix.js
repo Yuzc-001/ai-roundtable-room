@@ -201,9 +201,9 @@ export function formatEvidenceMatrixExportPage(opts) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${title} — 证据矩阵</title>
 <style>
-  body { font-family: "Inter","PingFang SC",system-ui,sans-serif; background:#F8F9F2; color:#111814; margin:0; padding:24px; line-height:1.6; }
+  body { font-family: "Source Sans 3","PingFang SC",system-ui,sans-serif; background:#F8F9F2; color:#111814; margin:0; padding:24px; line-height:1.6; }
   .wrap { max-width: 1200px; margin: 0 auto; }
-  h1 { font-size: 22px; margin: 0 0 20px; }
+  h1 { font-family: "LXGW WenKai","Source Serif 4","Noto Serif SC","PingFang SC",serif; font-size: 22px; margin: 0 0 20px; }
 </style>
 </head>
 <body>

@@ -29,8 +29,14 @@ describe('App initial experience', () => {
     expect(source).toContain('LandingSite');
     expect(source).toContain("setViewMode('workspace')");
     expect(source).toContain('onEnter={enterWorkbench}');
-    expect(source).toContain('<textarea');
-    expect(source).toContain('topic-input'); // Base UI .textarea.topic-input applied (migration complete)
+    expect(source).toContain('onTopicChange={setTopic}');
+    expect(source).toContain('top-nav--lobby');
+    expect(source).toContain('showEmptySessionPrimary');
+
+    const draftSource = await readFile(new URL('./components/session/WorkbenchDraft.jsx', import.meta.url), 'utf8');
+    expect(draftSource).toContain('<textarea');
+    expect(draftSource).toContain('topic-input');
+    expect(draftSource).toContain('delib-draft-topic');
   });
 
   test('renders project controls without browser prompts', async () => {
@@ -50,27 +56,38 @@ describe('App initial experience', () => {
     expect(source).toContain('<Chip');
     expect(source).toContain('<IconButton');
     expect(source).toContain('SIDEBAR_SCENARIO_LIMIT');
-    expect(source).toContain('议事厅 · 本地决策档案');
+    expect(source).toContain('<WorkbenchDraft');
     expect(source).toContain('primaryActionLabel');
     expect(source).toContain('showEmptySessionPrimary');
     expect(source).toContain('showSidebarStartCta');
     expect(source).toContain('workbench-tasks');
     expect(source).toContain('workbench-history');
     expect(source).toContain('data-mobile-info-panel');
+    expect(source).toContain('data-sidebar');
+    expect(source).toContain('data-right-panel');
+    expect(source).toContain('roundtable:leftPanelOpen');
+    expect(source).toContain('panel-rail');
+    expect(source).toContain('toggleFocusMode');
+    expect(source).toContain('SessionRoom');
+    expect(source).toContain('sessionReading');
+    expect(source).toContain('WorkbenchDraft');
+    expect(source).toContain('main-content--delib');
 
     const scenarioSource = await readFile(new URL('./components/ScenarioManager.jsx', import.meta.url), 'utf8');
     expect(scenarioSource).toContain('aria-expanded={open}');
     expect(scenarioSource).toContain('aria-modal="true"');
 
     // Additional a11y + state smoke for migrated elements (no new deps)
-    expect(source).toContain('aria-label="启动产品认知压测"');
+    expect(source).toContain('onStarter={(kind)');
+    expect(source).toContain("kind === 'product'");
     expect(source).toContain('data-on='); // memory-toggle state
-    expect(source).toContain('btn btn-subtle memory-toggle');
+    expect(source).toContain('className="memory-toggle"');
+    expect(source).toMatch(/<Button[^>]*variant="subtle"[^>]*className="memory-toggle"/);
     expect(source).toContain('SetupGuidePanel');
     expect(source).toContain('ContinueDeliberationPanel');
     expect(source).toContain('buildContinuationContext');
     expect(source).toContain('focusSpeakerId');
-    expect(source).toContain('dimmed={focusSpeakerId');
+    expect(source).toContain('focusSpeakerId');
     expect(source).toContain('regenerateTurnRequest');
     expect(source).toContain('refreshClosureRequest');
     expect(source).toContain('OnboardingWizard');
@@ -94,7 +111,7 @@ describe('App initial experience', () => {
     expect(source).toContain('filterMeetings');
     expect(source).toContain('history-search');
     expect(source).toContain('TOPIC_TEMPLATES');
-    expect(source).toContain('template-picker');
+    expect(source).toContain('topicTemplates={TOPIC_TEMPLATES}');
     expect(source).toContain('exportEvidenceMatrix');
     expect(source).toContain('formatEvidenceMatrixExportPage');
     expect(componentsSource).toContain('导出证据矩阵');

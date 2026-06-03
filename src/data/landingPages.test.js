@@ -48,11 +48,13 @@ describe('landingPages', () => {
   test('RELEASE_NOTES includes current version with EN highlights', () => {
     const release = RELEASE_NOTES.find((r) => r.version === packageVersion);
     expect(release).toBeDefined();
-    expect(release.highlights.join(' ')).toMatch(/议事厅|五级按钮|发起审议|侧栏分组/i);
-    expect(release.highlightsEn?.length).toBeGreaterThanOrEqual(3);
+    expect(release.highlights.join(' ')).toMatch(/专注模式|议题教练|发起预检|继续审议/i);
+    expect(release.highlightsEn?.length).toBeGreaterThanOrEqual(2);
     const enFirst = getLocalizedReleaseNotes('en')[0].highlights.join(' ');
-    expect(enFirst).toMatch(/Archival UI|five-level button|Start deliberation/i);
+    expect(enFirst).toMatch(/focus mode|topic coach|preflight|continue deliberation/i);
     expect(enFirst).not.toMatch(/官网文案/);
+    const archival = RELEASE_NOTES.find((r) => r.version === '1.3.2');
+    expect(archival?.highlights.join(' ')).toMatch(/五级按钮|侧栏分组/i);
   });
 
   test('zh/en structural parity', () => {
@@ -64,23 +66,23 @@ describe('landingPages', () => {
     expect(LANDING_SITE.zh.scenarios.items.length).toBe(LANDING_SITE.en.scenarios.items.length);
   });
 
-  test('zh home explore grid includes 1.3.2 IA entries', () => {
+  test('zh home explore grid includes IA entries', () => {
     const exploreText = LANDING_SITE.zh.home.explore.map((row) => row[0]).join(' ');
     for (const marker of ZH_13X_EXPLORE) {
       expect(exploreText).toContain(marker);
     }
     const notes = RELEASE_NOTES.filter((r) => r.version === packageVersion);
     expect(notes.length).toBeGreaterThanOrEqual(1);
-    expect(notes[0].highlights.join(' ')).toMatch(/五级按钮|侧栏分组/);
+    expect(notes[0].highlights.join(' ')).toMatch(/专注模式|议题教练|用户心智/);
   });
 
-  test('en home explore grid includes 1.3.2 IA entries', () => {
+  test('en home explore grid includes IA entries', () => {
     const exploreText = LANDING_SITE.en.home.explore.map((row) => row[0]).join(' ');
     for (const marker of EN_13X_EXPLORE) {
       expect(exploreText).toMatch(new RegExp(marker, 'i'));
     }
     const enNotes = getLocalizedReleaseNotes('en').filter((r) => r.version === packageVersion);
-    expect(enNotes[0].highlights.join(' ')).toMatch(/five-level button|sidebar sections/i);
+    expect(enNotes[0].highlights.join(' ')).toMatch(/focus mode|topic coach|Ten UX/i);
   });
 
   test('zh home and workflow mention 1.2.x capabilities', () => {

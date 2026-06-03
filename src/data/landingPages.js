@@ -1,31 +1,174 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '1.3.2',
-    date: '2026-06-02',
+    version: '1.3.29',
+    date: '2026-06-03',
     highlights: [
-      '议事厅档案感视觉重构：统一五级按钮（primary / secondary / ghost / subtle / danger）',
-      '侧栏分组（项目·场景·任务·历史）与单一主行动「发起审议」；空会话场景最多展示 5 个',
-      '样式分层导入与官网色板对齐；场景管理行操作改为溢出菜单',
+      '演示默认直达结论与导出，无需等待打字机播完',
+      '首启向导与空工作台互斥；专注模式、议题教练、继续审议能力保留',
+      '移动端底栏固定启动/演示；错误提示置顶可关闭',
     ],
     highlightsEn: [
-      'Archival UI refresh: five-level button system (primary / secondary / ghost / subtle / danger)',
-      'Sidebar sections (project · scenario · task · history) with one primary “Start deliberation”; up to 5 scenario chips on empty state',
-      'Split CSS imports and aligned landing palette; scenario row actions in overflow menu',
+      'Demo opens outcomes and export instantly; focus mode retained',
+      'Onboarding no longer stacks over workbench lobby; topic coach unchanged',
+      'Mobile bottom bar for start/demo; continue deliberation supported',
     ],
+  },
+  {
+    version: '1.3.28',
+    date: '2026-06-03',
+    highlights: [
+      '发言不再泄漏内部编号：tension-xxx、openQuestions 等改为可读中文',
+      '用户心智：生成与展示双层清洗；已知分歧 id 替换为工作台摘要',
+      '专注模式、议题教练、继续审议能力保留；阶段标签中文化',
+    ],
+    highlightsEn: [
+      'No more internal ids (tension-xxx) in user-visible speech',
+      'Humanized copy at generation and display time; focus mode retained',
+      'Topic coach and continue deliberation unchanged; localized phase labels',
+    ],
+  },
+  {
+    version: '1.3.27',
+    date: '2026-06-03',
+    highlights: [
+      '议事厅回放组件体系重塑：SessionRoom / MinuteEntry / SessionPresence 等独立模块',
+      '非补丁式 UI：delib-* 会议纪要阅读，含新用户「如何读」引导',
+      '发起前 WorkbenchDraft 重写；专注模式、议题教练、继续审议能力保留',
+    ],
+    highlightsEn: [
+      'Deliberation session rebuilt as SessionRoom module (not CSS patches)',
+      'Minutes-style delib-* layout with onboarding copy for new users',
+      'WorkbenchDraft lobby; focus mode and topic coach retained',
+    ],
+  },
+  {
+    version: '1.3.27',
+    date: '2026-06-03',
+    highlights: [
+      '审议回放改为会议纪要式阅读布局',
+      '底部席位细条化',
+    ],
+    highlightsEn: [
+      'Minutes-style session playback layout',
+    ],
+  },
+  {
+    version: '1.3.27',
+    date: '2026-06-03',
+    highlights: [
+      '可折叠左右侧栏：项目栏与情报栏可独立收起',
+      '收起后侧缘窄条一键展开；专注模式一键双侧收起',
+    ],
+    highlightsEn: [
+      'Collapsible left/right panels with edge rails to reopen',
+    ],
+  },
+  {
+    version: '1.3.27',
+    date: '2026-06-03',
+    highlights: [
+      '席位区贴底：发言滚动时角色席位固定在底部，不再悬空挡在中间',
+      '专注模式议题条：审议回放时完整展示本场议题',
+    ],
+    highlightsEn: [
+      'Stage dock at bottom; focus mode topic bar during playback',
+    ],
+  },
+  {
+    version: '1.3.17',
+    date: '2026-06-03',
+    highlights: ['继续审议：从本场待澄清自动生成建议追问 chip'],
+    highlightsEn: ['Continue deliberation: suggested follow-ups from open questions'],
+  },
+  {
+    version: '1.3.15',
+    date: '2026-06-03',
+    highlights: ['审议生成中可取消，避免黑箱等待'],
+    highlightsEn: ['Cancel in-flight meeting generation'],
+  },
+  {
+    version: '1.3.13',
+    date: '2026-06-03',
+    highlights: ['议题实时教练：输入时提示是否适合圆桌审议'],
+    highlightsEn: ['Live topic coach while typing'],
+  },
+  {
+    version: '1.3.12',
+    date: '2026-06-03',
+    highlights: [
+      'UI 体系收尾：全工作台高流量按钮迁移至 src/ui/Button；发布说明去重',
+      'Button 支持 href 外链；导出 HTML 字体与议事厅一致',
+    ],
+    highlightsEn: [
+      'UI kit completion: high-traffic controls use src/ui/Button; deduped release notes',
+      'Button href for external links; export HTML typography matches the chamber UI',
+    ],
+  },
+  {
+    version: '1.3.11',
+    date: '2026-06-03',
+    highlights: ['场景列表行主按钮统一为 Button'],
+    highlightsEn: ['Scenario list row select uses Button'],
+  },
+  {
+    version: '1.3.10',
+    date: '2026-06-03',
+    highlights: ['完成态导出/历史/撤销操作全部 Button 化'],
+    highlightsEn: ['Finish-state export, history, and undo actions use Button'],
+  },
+  {
+    version: '1.3.9',
+    date: '2026-06-03',
+    highlights: ['侧栏项目、归档、场景导航 Button 化'],
+    highlightsEn: ['Sidebar project, archive, and scenario nav use Button'],
+  },
+  {
+    version: '1.3.8',
+    date: '2026-06-03',
+    highlights: ['移除导航/侧栏 backdrop-filter，克制玻璃拟态'],
+    highlightsEn: ['Removed nav/sidebar backdrop-filter for calmer overlays'],
+  },
+  {
+    version: '1.3.7',
+    date: '2026-06-03',
+    highlights: ['导出复盘 HTML / 证据矩阵：标题 serif、正文 Source Sans，非 Inter-first'],
+    highlightsEn: ['Export HTML uses chamber serif headings and Source Sans body'],
+  },
+  {
+    version: '1.3.6',
+    date: '2026-06-03',
+    highlights: ['官网 hero 仅保留一个 primary；演示降为 ghost'],
+    highlightsEn: ['Landing hero keeps one primary; demo CTA is ghost'],
+  },
+  {
+    version: '1.3.5',
+    date: '2026-06-03',
+    highlights: ['干预台、气泡重生成、人设抽屉 Button 化'],
+    highlightsEn: ['Console, turn regen, and persona drawer use Button'],
+  },
+  {
+    version: '1.3.4',
+    date: '2026-06-03',
+    highlights: ['项目记忆审批面板 Button 化'],
+    highlightsEn: ['Memory approval panel uses Button'],
+  },
+  {
+    version: '1.3.3',
+    date: '2026-06-03',
+    highlights: ['首次成功向导与 .env 配置引导 Button 化'],
+    highlightsEn: ['Onboarding wizard and setup guide use Button'],
   },
   {
     version: '1.3.2',
     date: '2026-06-02',
     highlights: [
-      '场景编写说明页 /scenario-guide；内置场景可编辑、隐藏、复制为我的场景',
-      '场景管理内编写提示与议题示例；侧栏链至说明页',
-      '官网可纵向滚动；首页探索卡片与区块入场动效',
+      '议事厅档案感视觉重构：五级按钮、侧栏分组、样式分层与官网色板对齐',
+      '场景编写说明 /scenario-guide；内置场景可编辑/隐藏/复制；官网可滚动与入场动效',
     ],
     highlightsEn: [
-      'Scenario writing guide at /scenario-guide; built-ins editable, hideable, forkable',
-      'In-app tips and default-topic examples; sidebar link to the guide',
-      'Landing page scrolls; home sections animate in',
+      'Archival UI: five-level buttons, sidebar sections, split CSS, aligned landing palette',
+      'Scenario guide; editable built-ins; scrollable landing with section animations',
     ],
   },
   {
@@ -154,7 +297,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.3.2',
+    version: '1.3.29',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -270,7 +413,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.3.2',
+    version: '1.3.29',
     language: '中文',
     brand: 'Roundtable',
     nav: [

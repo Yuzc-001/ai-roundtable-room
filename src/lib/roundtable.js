@@ -230,6 +230,19 @@ export function removeMeetingFromProject(project, meetingEntryId) {
   };
 }
 
+/** Update user-facing label for a saved meeting (does not change generated title). */
+export function updateMeetingDisplayLabel(project, meetingEntryId, displayLabel) {
+  const label = String(displayLabel ?? '').trim().slice(0, 80);
+  const meetings = (project.meetings ?? []).map((m) => (
+    m.id === meetingEntryId ? { ...m, displayLabel: label || undefined } : m
+  ));
+  return {
+    ...project,
+    updatedAt: new Date().toISOString(),
+    meetings,
+  };
+}
+
 export function approveProjectMemoryChanges(project, changeIds = []) {
   const selectedIds = new Set(changeIds);
   const pending = project.pendingMemoryChanges ?? [];

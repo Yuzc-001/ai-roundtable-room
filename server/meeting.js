@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { enforceMeetingEvidence } from './evidence.js';
 import { PERSONAS, PRESETS } from '../shared/personas.js';
+import { humanizeUserFacingText } from './userFacingText.js';
 
 const StanceSchema = z.enum(['for', 'against', 'neutral']);
 const ReactionSchema = z.enum(['agree', 'disagree', 'curious', 'thinking']);
@@ -573,7 +574,7 @@ async function generateModeratorIntervention({ router, input, workspace, transcr
   const violStr = violations.length ? `注意到的 contract 违规：${violations.join('；')}` : '目前无违规。';
 
   const sys = `你是“${mod.name}”，主持人和协议执行器。当前阶段：${currentPhase}。
-你的唯一职责是执行治理：检查 workspace 状态，必要时以 PROBE 追问具体 tension/evidence，或以 META 记录阶段推进理由、指出合同违规并要求纠正。
+你的唯一职责是执行治理：检查工作台状态，必要时以 PROBE 追问具体分歧或证据缺口，或以 META 记录阶段推进理由、指出合同违规并要求纠正。禁止在 text 中使用内部编号或英文字段名。
 **只做 1-2 句简短发言**，act 必须是 PROBE 或 META，phase 反映当前或下一阶段。
 不要替任何人做决定，只指出问题、要求澄清或推进流程。`;
 
@@ -751,6 +752,7 @@ const SYSTEM_PROMPT = `你是“AI Roundtable Room”的认知编排器。你的
 - 每条发言必须标注 act、phase、confidence、evidenceLabel。
 - 主持人是协议执行器，负责探询、门控、分歧保留、用户介入节点和最终封装，不替用户做价值判断。
 - 每段发言不超过 3 句话，避免空话。
+- **发言 text 面向真实用户**：禁止出现 tension-xxx、question-xxx、workspace、openQuestions、evidencePool 等内部 id 或 JSON 字段名；用自然中文描述「核心分歧」「待澄清问题」「相关证据」。
 - 不要伪造论文、链接或具体来源；没有用户提供来源时 citations 返回空数组。
 - 必须保留风险、未解决分歧、证据状态、行动项、重开条件和下一步可选路径。
 - 只输出 JSON 对象，不要 Markdown，不要解释。`;
@@ -861,7 +863,7 @@ async function generateWithProviderFallback({ router, speakerId, index, request,
 
 function buildTurnPrompt({ input, speaker, transcript, workspaceSnapshot, currentPhase }) {
   return JSON.stringify({
-    task: '请以指定判断函数完成这一轮认知碰撞，并回应前文。必须参考当前 Workspace 状态中的 tensions/evidence/openQuestions，必要时在发言中自然引用其 id 或核心描述；目标是暴露盲区、压迫假设或给出下一步选择，而不是完成角色表演。',
+    task: '请以指定判断函数完成这一轮认知碰撞，并回应前文。必须参考当前工作台中的核心分歧、证据与待澄清问题，用自然中文复述其含义（禁止写出 tension-xxx、question-xxx 等内部编号）；目标是暴露盲区、压迫假设或给出下一步选择，而不是完成角色表演。',
     topic: input.topic,
     context: input.context,
     preset: input.preset,
@@ -914,7 +916,11 @@ async function createCompleteMeeting({ provider, input }) {
   if (!hasWorkspaceContent(ws)) {
     ws = evolveWorkspaceFromTurns(parsed.turns || [], input.personas);
   }
-  return { ...parsed, workspace: ws, usage };
+  const turns = (parsed.turns || []).map((turn) => ({
+    ...turn,
+    text: humanizeUserFacingText(turn.text ?? '', ws),
+  }));
+  return { ...parsed, turns, workspace: ws, usage };
 }
 
 async function createRoutedMeeting({ router, input }) {
@@ -938,7 +944,7 @@ async function createRoutedMeeting({ router, input }) {
       speakerId: speaker.id,
       index,
       request: {
-        systemPrompt: `你是“${speaker.name}”，身份是“${speaker.title}”。${speaker.background}\n\n判断函数职责合约：${JSON.stringify(speaker.contract ?? {})}\n\n当前阶段：${currentPhase}。请参考 userPrompt 中的 workspace 快照（tensions/evidence/openQuestions）来组织回应，必要时自然引用其中的 id 或描述。保持 contract 边界；目标是让问题经受你的独特认知压力，而不是完成角色表演。\n${TURN_OUTPUT_CONTRACT}`,
+        systemPrompt: `你是“${speaker.name}”，身份是“${speaker.title}”。${speaker.background}\n\n判断函数职责合约：${JSON.stringify(speaker.contract ?? {})}\n\n当前阶段：${currentPhase}。请参考 userPrompt 中的工作台快照（核心分歧/证据/待澄清问题）组织回应，用用户能读懂的中文描述，**禁止**在 text 中出现任何内部编号（如 tension-b1redx）。保持 contract 边界；目标是让问题经受你的独特认知压力，而不是完成角色表演。\n${TURN_OUTPUT_CONTRACT}`,
         userPrompt: buildTurnPrompt({ input, speaker, transcript: turns, workspaceSnapshot: snap, currentPhase }),
       },
       parse: (text) => TurnDraftSchema.parse(parseModelJson(text)),
@@ -955,6 +961,7 @@ async function createRoutedMeeting({ router, input }) {
       providerId: provider.id,
       providerName: provider.name,
       ...parsed,
+      text: humanizeUserFacingText(parsed.text ?? '', workspace),
       phase: parsed.phase || currentPhase,
     };
 
@@ -985,7 +992,7 @@ async function createRoutedMeeting({ router, input }) {
             index: turns.length,
             request: {
               systemPrompt: `你是“${modPersona.name}”，主持人和协议执行器。当前阶段：${currentPhase}。
-你的唯一职责是执行治理：检查 workspace 状态，必要时以 PROBE 追问具体 tension/evidence，或以 META 记录阶段推进理由、指出合同违规并要求纠正。
+你的唯一职责是执行治理：检查工作台状态，必要时以 PROBE 追问具体分歧或证据缺口，或以 META 记录阶段推进理由、指出合同违规并要求纠正。禁止在 text 中使用内部编号或英文字段名。
 **只做 1-2 句简短发言**，act 必须是 PROBE 或 META，phase 反映当前或下一阶段。
 不要替任何人做决定，只指出问题、要求澄清或推进流程。\n${TURN_OUTPUT_CONTRACT}`,
               userPrompt: JSON.stringify({
@@ -1006,6 +1013,7 @@ async function createRoutedMeeting({ router, input }) {
               providerId: provider.id,
               providerName: provider.name,
               ...parsed,
+              text: humanizeUserFacingText(parsed.text ?? '', workspace),
               act: ['PROBE', 'META'].includes(parsed?.act) ? parsed.act : 'META',
               phase: parsed?.phase || currentPhase,
             },

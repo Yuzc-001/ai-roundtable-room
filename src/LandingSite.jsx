@@ -31,7 +31,7 @@ function LandingNav({ copy, page, onNavigate, onToggleLang, onEnter }) {
       </nav>
       <div className="landing-nav-actions">
         <Button type="button" variant="ghost" className="landing-lang" onClick={onToggleLang}>{copy.language}</Button>
-        <a className="btn btn-ghost" href={GITHUB_URL} target="_blank" rel="noreferrer">{copy.github}</a>
+        <Button href={GITHUB_URL} variant="ghost" target="_blank" rel="noreferrer">{copy.github}</Button>
         <Button type="button" variant="secondary" onClick={onEnter}>{copy.primary}</Button>
       </div>
     </header>
@@ -90,7 +90,7 @@ function LandingHome({ copy, onNavigate, onEnter, onDemo }) {
         <p className="landing-deck">{h.deck}</p>
         <div className="landing-cta-row">
           <Button type="button" variant="primary" className="landing-cta" onClick={onEnter}>{copy.primary}</Button>
-          <Button type="button" variant="secondary" className="landing-cta" onClick={onDemo}>{copy.demo}</Button>
+          <Button type="button" variant="ghost" className="landing-cta" onClick={onDemo}>{copy.demo}</Button>
         </div>
       </section>
       <section className="landing-shot landing-animate-in landing-animate-in--delay-1">

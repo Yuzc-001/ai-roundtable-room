@@ -1,19 +1,112 @@
-import { useEffect, useState } from 'react';
-import { Button } from './ui/index.js';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, Chip } from './ui/index.js';
 import { getVerifyStepContinueLabel } from './lib/healthCheck.js';
+import { buildContinueSuggestions } from './lib/continueSuggestions.js';
 import { formatDecisionTypeLabel } from './lib/minutes.js';
+import { assessTopic } from './lib/topicCoach.js';
+import { STANCE_FULL } from './lib/turnDisplay.js';
+import { formatPhaseLabel, humanizeUserFacingText } from './lib/userFacingText.js';
+import { Logo } from './components/Logo.jsx';
 
-export function Logo() {
+export { Logo };
+export {
+  SessionRoom,
+  SessionChrome,
+  SessionMinutes,
+  SessionPresence,
+  SessionClosure,
+  MinuteEntry,
+  WorkbenchDraft,
+} from './components/session/index.js';
+
+export function TopicCoach({ topic }) {
+  const assessment = useMemo(() => assessTopic(topic), [topic]);
+  if (assessment.level === 'idle') return null;
+  const items = [...assessment.warnings, ...assessment.tips];
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      {/* The Aperture of Insight */}
-      <circle cx="12" cy="12" r="10" stroke="var(--line-strong)" strokeWidth="1" strokeDasharray="3 2" />
-      <path d="M12 2C12 2 12 5 12 7" stroke="var(--moderator)" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M12 22V17" stroke="var(--moderator)" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M2 12H7" stroke="var(--moderator)" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M22 12H17" stroke="var(--moderator)" strokeWidth="2.5" strokeLinecap="round" />
-      <rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="var(--academy)" stroke="var(--moderator)" strokeWidth="0.5" />
-    </svg>
+    <div
+      className={`topic-coach topic-coach--${assessment.level}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="topic-coach-count">{assessment.charCount} 字</span>
+      <ul className="topic-coach-list">
+        {items.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function TopicPreflightBar({
+  topic,
+  health,
+  scenarioName,
+  taskTitle,
+  memoryEnabled,
+  phaseCount = DELIBERATION_PHASES.length,
+}) {
+  const assessment = assessTopic(topic);
+  const topicOk = assessment.level === 'ok' || (assessment.level === 'hint' && !assessment.warnings.length);
+  const apiOk = health?.aiConfigured === true;
+  if (!topic.trim()) return null;
+
+  return (
+    <div className="topic-preflight" role="region" aria-label="发起审议前检查">
+      <span className="topic-preflight-title">发起前确认（都通过即可点「启动审议」）</span>
+      <ul className="topic-preflight-checks">
+        <li data-ok={topicOk ? 'true' : 'false'}>
+          <span className="topic-preflight-mark" aria-hidden="true">{topicOk ? '✓' : '!'}</span>
+          <span>{topicOk ? '议题已写清，可以开会' : '议题还偏空或太笼统，请看下方教练提示'}</span>
+        </li>
+        <li data-ok={apiOk ? 'true' : 'false'}>
+          <span className="topic-preflight-mark" aria-hidden="true">{apiOk ? '✓' : '○'}</span>
+          <span>{apiOk ? 'AI 模型已连接，可真实生成' : '当前为演示模式（未配置 API Key 也能先看流程）'}</span>
+        </li>
+        <li data-ok="true">
+          <span className="topic-preflight-mark" aria-hidden="true">✓</span>
+          <span>审议场景：{scenarioName || '未选'}</span>
+        </li>
+        {taskTitle ? (
+          <li data-ok="true">
+            <span className="topic-preflight-mark" aria-hidden="true">✓</span>
+            <span>绑定任务：{taskTitle}</span>
+          </li>
+        ) : null}
+        <li data-ok="true">
+          <span className="topic-preflight-mark" aria-hidden="true">✓</span>
+          <span>本场约 {phaseCount} 个阶段 · 项目记忆{memoryEnabled ? '已开启' : '已关闭'}</span>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+export function ConfigReminderBar({ snippet, steps, onCopied, onOpenGuide }) {
+  return (
+    <div className="config-reminder" role="region" aria-label="配置提醒">
+      <p>
+        <b>尚未配置 API Key</b>
+        <span>当前为演示模式。填写 .env 并重启服务后可发起真实审议。</span>
+      </p>
+      <div className="config-reminder-actions">
+        <Button type="button" variant="secondary" size="sm" onClick={onOpenGuide}>查看配置步骤</Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            try {
+              await navigator.clipboard?.writeText(snippet);
+              onCopied?.();
+            } catch { /* ignore */ }
+          }}
+        >
+          复制 .env 片段
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -89,36 +182,34 @@ export function Stage({ allPersonas, speakerId, onSeatClick }) {
   );
 }
 
-const ACT_LABELS = {
-  CLAIM: '主张',
-  EVIDENCE: '证据',
-  OBJECTION: '异议',
-  REFINE: '精炼',
-  CONCEDE: '让步',
-  RESERVE: '保留',
-  ANALOGY: '类比',
-  EMPATHY: '共情',
-  PROBE: '探询',
-  META: '元治理',
-};
+export { ACT_LABELS, EVIDENCE_LABELS, EVIDENCE_TOOLTIPS } from './lib/turnDisplay.js';
 
-export const EVIDENCE_LABELS = {
-  fact: '事实',
-  inference: '推断',
-  assumption: '假设',
-  opinion: '观点',
-  project_memory: '项目记忆',
-  user_input: '用户输入',
-};
+function BubbleProtocolDetails({ act, phase, evidenceLabel, confidence, providerName }) {
+  const hasProtocol = act || phase || evidenceLabel || typeof confidence === 'number' || providerName;
+  if (!hasProtocol) return null;
 
-export const EVIDENCE_TOOLTIPS = {
-  fact: '可核对的事实陈述',
-  inference: '由事实推导，尚未独立验证',
-  assumption: '审议中的前提，待验证',
-  opinion: '立场性判断，非客观事实',
-  project_memory: '来自已批准的项目记忆',
-  user_input: '来自你提供的议题或材料',
-};
+  return (
+    <details className="bubble-protocol-details">
+      <summary>记录标注</summary>
+      <div className="bubble-protocol">
+        {phase && <span className="tag tag-phase">{formatPhaseLabel(phase)}</span>}
+        {act && <span className={`tag tag-act-${(act || '').toLowerCase()}`}>{ACT_LABELS[act] || act}</span>}
+        {evidenceLabel && (
+          <span
+            className={`tag tag-evidence tag-evidence--${evidenceLabel}`}
+            title={EVIDENCE_TOOLTIPS[evidenceLabel] || EVIDENCE_LABELS[evidenceLabel]}
+          >
+            {EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}
+          </span>
+        )}
+        {typeof confidence === 'number' && (
+          <span className="tag">置信 {Math.round(confidence * 100)}%</span>
+        )}
+        {providerName && <span className="tag tag-provider">{providerName}</span>}
+      </div>
+    </details>
+  );
+}
 
 export function Bubble({
   persona,
@@ -137,19 +228,21 @@ export function Bubble({
   canRegenerate,
   regenerating,
   onRegenerate,
+  workspace,
 }) {
+  const displayText = humanizeUserFacingText(text, workspace);
+
   if (isUser) {
     return (
       <div className="bubble user">
         <div className="bubble-meta">
           <span className="bubble-name">执行官 (你)</span>
         </div>
-        <div className="bubble-text">{text}</div>
+        <div className="bubble-text">{displayText}</div>
       </div>
     );
   }
 
-  const stanceLabels = { for: '支持战略', against: '持审慎异议', neutral: '客观观察' };
   return (
     <div
       className={`bubble${isLive ? ' live' : ' past'}${dimmed ? ' bubble--dimmed' : ''}`}
@@ -164,38 +257,31 @@ export function Bubble({
         </div>
         <div className="bubble-name">{persona.name}</div>
         {stance && (
-          <div className="bubble-stance" data-stance={stance}>{stanceLabels[stance]}</div>
+          <div className="bubble-stance" data-stance={stance}>{STANCE_FULL[stance]}</div>
         )}
         {canRegenerate && onRegenerate && (
-          <button
+          <Button
             type="button"
-            className="btn btn-ghost btn-sm bubble-regen-btn"
+            variant="ghost"
+            size="sm"
+            className="bubble-regen-btn"
             disabled={regenerating}
             onClick={onRegenerate}
             title="保留前后文，仅重生成该角色这一轮发言"
           >
             {regenerating ? '生成中…' : '重生成'}
-          </button>
+          </Button>
         )}
       </div>
-      {(act || phase || evidenceLabel || typeof confidence === 'number' || providerName) && (
-        <div className="bubble-protocol">
-          {phase && <span className="tag tag-phase">{phase}</span>}
-          {act && <span className={`tag tag-act-${(act || '').toLowerCase()}`}>{ACT_LABELS[act] || act}</span>}
-          {evidenceLabel && (
-            <span
-              className={`tag tag-evidence tag-evidence--${evidenceLabel}`}
-              title={EVIDENCE_TOOLTIPS[evidenceLabel] || EVIDENCE_LABELS[evidenceLabel]}
-            >
-              {EVIDENCE_LABELS[evidenceLabel] || evidenceLabel}
-            </span>
-          )}
-          {typeof confidence === 'number' && <span className="tag">置信度 {Math.round(confidence * 100)}%</span>}
-          {providerName && <span className="tag">{providerName}</span>}
-        </div>
-      )}
+      <BubbleProtocolDetails
+        act={act}
+        phase={phase}
+        evidenceLabel={evidenceLabel}
+        confidence={confidence}
+        providerName={providerName}
+      />
       <div className="bubble-text">
-        {text}
+        {displayText}
         {isStreaming && <span className="caret" />}
       </div>
       {citations?.length > 0 && (
@@ -211,7 +297,7 @@ export function Bubble({
   );
 }
 
-export function VoteCard({ vote, personas }) {
+export function VoteCard({ vote, personas, workspace }) {
   const yes = Object.values(vote.results).filter((result) => result.vote === 'yes').length;
   const total = Object.keys(vote.results).length;
   return (
@@ -231,13 +317,15 @@ export function VoteCard({ vote, personas }) {
               <div className="vote-pill" data-vote={result.vote}>
                 {result.vote === 'yes' ? '● 赞成' : '○ 存疑'}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{result.reason}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                {humanizeUserFacingText(result.reason, workspace)}
+              </div>
             </div>
           );
         })}
       </div>
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--line)', fontStyle: 'italic', color: 'var(--ink-2)', fontSize: 15, lineHeight: 1.7 }}>
-        {vote.summary}
+        {humanizeUserFacingText(vote.summary, workspace)}
       </div>
     </div>
   );
@@ -275,12 +363,12 @@ export function WorkspacePanel({ workspace, isCompact }) {
       <div className="structured-panel-head">
         <div className="panel-title-wrap">
           <span className="panel-icon">▤</span>
-          <span>认知碰撞台 · Session Workspace</span>
+          <span>审议工作台</span>
         </div>
         <b>{openTensions.length} 个开放分歧</b>
       </div>
       <div className="structured-grid">
-        <div className="workspace-section">
+        <div id="workspace-tensions" className="workspace-section">
           <h4><span className="dot danger"></span> 未解决分歧</h4>
           {openTensions.length ? openTensions.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
@@ -288,7 +376,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
             </div>
           )) : <p className="empty-text">暂无开放中的核心分歧。</p>}
         </div>
-        <div className="workspace-section">
+        <div id="workspace-questions" className="workspace-section">
           <h4><span className="dot warning"></span> 开放问题</h4>
           {questions.length ? questions.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
@@ -296,7 +384,7 @@ export function WorkspacePanel({ workspace, isCompact }) {
             </div>
           )) : <p className="empty-text">暂无需要用户补充或裁决的问题。</p>}
         </div>
-        <div className="workspace-section">
+        <div id="workspace-evidence" className="workspace-section">
           <h4><span className="dot info"></span> 证据池</h4>
           {evidence.length ? evidence.slice(0, 5).map((item) => (
             <div key={item.id} className="workspace-item">
@@ -399,27 +487,27 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
 
       {!generating && (
         <div className="console-actions">
-          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('probe')}>
+          <Button variant="subtle" className="console-btn" onClick={() => onAction?.('probe')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
             </svg>
             补缺口
-          </button>
-          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('summarize')}>
+          </Button>
+          <Button variant="subtle" className="console-btn" onClick={() => onAction?.('summarize')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 6h18M3 12h18M3 18h12" />
             </svg>
             收束判断
-          </button>
-          <button className="btn btn-subtle console-btn" onClick={() => onAction?.('tensions')}>
+          </Button>
+          <Button variant="subtle" className="console-btn" onClick={() => onAction?.('tensions')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m17 5 5 5-5 5" />
               <path d="m7 19-5-5 5-5" />
               <path d="M2 14h20" />
             </svg>
             处理分歧
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -428,7 +516,7 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
 
 /** 审议完成态：四格一览（路径 / 待澄清 / 行动 / 导出），降低复盘认知负担 */
 export function DeliberationOutcomePanel({
-  meeting, pendingMemoryCount = 0, panelRef, showContinueLink = false,
+  meeting, pendingMemoryCount = 0, panelRef, showContinueLink = false, onJumpToWorkspace,
 }) {
   const packet = meeting?.decisionPacket;
   const workspace = meeting?.workspace;
@@ -453,7 +541,7 @@ export function DeliberationOutcomePanel({
   const confidence =
     typeof selected.confidence === 'number' ? `${Math.round(selected.confidence * 100)}%` : null;
   const voteLine = meeting?.vote?.summary
-    ? clipWorkspaceText(meeting.vote.summary, 120)
+    ? clipWorkspaceText(humanizeUserFacingText(meeting.vote.summary, workspace), 120)
     : null;
 
   const allOpenTensions = (workspace?.tensions ?? []).filter((t) => t.status === 'open');
@@ -524,7 +612,21 @@ export function DeliberationOutcomePanel({
             <p className="outcome-empty">无登记中的开放问题、核心分歧或保留异议。</p>
           )}
           {showWorkspaceFootnote && (
-            <p className="outcome-foot">完整列表见下方「认知碰撞台」</p>
+            <p className="outcome-foot">
+              完整列表见
+              {' '}
+              <button type="button" className="outcome-jump-link" onClick={() => onJumpToWorkspace?.('workspace-tensions')}>
+                审议工作台 · 分歧
+              </button>
+              {questionItems.length > 0 && (
+                <>
+                  {' · '}
+                  <button type="button" className="outcome-jump-link" onClick={() => onJumpToWorkspace?.('workspace-questions')}>
+                    开放问题
+                  </button>
+                </>
+              )}
+            </p>
           )}
         </section>
 
@@ -634,15 +736,15 @@ export function MemoryReviewPanel({ changes = [], onApprove, onReject }) {
           <p>{change.text || change.issue}</p>
           {change.mitigation && <em>{change.mitigation}</em>}
           <div className="memory-change-actions">
-            <button className="btn btn-ghost" onClick={() => onReject([change.id])}>暂不入库</button>
-            <button className="btn btn-secondary" onClick={() => onApprove([change.id])}>确认入库此判断</button>
+            <Button variant="ghost" onClick={() => onReject([change.id])}>暂不入库</Button>
+            <Button variant="secondary" onClick={() => onApprove([change.id])}>确认入库此判断</Button>
           </div>
         </div>
       ))}
       {changes.length > 1 && (
         <div className="memory-review-actions">
-          <button className="btn btn-ghost" onClick={() => onReject(changes.map((item) => item.id))}>全部暂不入库</button>
-          <button className="btn btn-secondary" onClick={() => onApprove(changes.map((item) => item.id))}>全部确认入库</button>
+          <Button variant="ghost" onClick={() => onReject(changes.map((item) => item.id))}>全部暂不入库</Button>
+          <Button variant="secondary" onClick={() => onApprove(changes.map((item) => item.id))}>全部确认入库</Button>
         </div>
       )}
     </div>
@@ -657,7 +759,7 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)', zIndex: 200 }} onClick={onClose} />
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200 }} onClick={onClose} />
       <div className="drawer">
         <div className="drawer-head">
           <div className="avatar lg" style={{ '--ai-color': draft.color }}>{draft.name}</div>
@@ -665,7 +767,7 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
             <div style={{ fontSize: 20, fontWeight: 800 }}>档案：{draft.name}</div>
             <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>此配置将同步至机要处</div>
           </div>
-          <button className="btn btn-subtle" onClick={onClose} style={{ fontSize: 24, opacity: 0.4 }}>✕</button>
+          <Button variant="subtle" onClick={onClose} style={{ fontSize: 24, opacity: 0.4 }} aria-label="关闭">✕</Button>
         </div>
         <div className="drawer-body">
           <div className="field">
@@ -704,8 +806,8 @@ export function PersonaDrawer({ persona, onSave, onClose, onReset }) {
           </div>
         </div>
         <div className="drawer-foot">
-          <button className="btn btn-ghost" onClick={onReset}>恢复初始</button>
-          <button className="btn btn-primary" onClick={() => { onSave(draft); onClose(); }}>保存档案</button>
+          <Button variant="ghost" onClick={onReset}>恢复初始</Button>
+          <Button variant="primary" onClick={() => { onSave(draft); onClose(); }}>保存档案</Button>
         </div>
       </div>
     </>
@@ -742,9 +844,9 @@ export function SetupGuidePanel({ snippet, steps, onCopied }) {
       </ol>
       <pre className="setup-guide-snippet">{snippet}</pre>
       <div className="setup-guide-actions">
-        <button type="button" className={`btn btn-primary${copied ? ' export-success' : ''}`} onClick={handleCopy}>
+        <Button type="button" variant="primary" className={copied ? 'export-success' : ''} onClick={handleCopy}>
           {copied ? '已复制到剪贴板' : '复制最小 .env 配置'}
-        </button>
+        </Button>
         <code className="setup-guide-hint">npm run doctor</code>
       </div>
     </section>
@@ -827,7 +929,7 @@ export function OnboardingWizard({
       <div className="onboarding-wizard-head">
         <b>首次成功路径</b>
         <span>步骤 {step + 1}/{totalSteps} · {labels[step]}</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onSkip}>跳过</button>
+        <Button type="button" variant="ghost" size="sm" onClick={onSkip}>跳过</Button>
       </div>
       <div className="onboarding-steps" role="tablist" aria-label="向导进度">
         {labels.map((label, idx) => (
@@ -843,15 +945,15 @@ export function OnboardingWizard({
       {step === 0 && (
         <div className="onboarding-body">
           <p>圆桌智库把议题审议成可回看的判断资产：审议结束后可用结果一览、证据标注、单轮重生成与继续审议，而不是一次性对话。</p>
-          <p>首次路径：配置模型 → 验证连接 → 演示或发起真实审议。演示无需 API Key。</p>
-          <button type="button" className="btn btn-primary" onClick={onAdvance}>开始</button>
+          <p>首次路径：配置模型 → 验证连接 → 演示（直接看结论）或发起真实审议。演示无需 API Key。</p>
+          <Button type="button" variant="primary" onClick={onAdvance}>开始</Button>
         </div>
       )}
 
       {step === 1 && (
         <div className="onboarding-body">
           <SetupGuidePanel snippet={snippet} steps={steps} onCopied={onCopied} />
-          <button type="button" className="btn btn-primary" onClick={onAdvance}>已配置，下一步</button>
+          <Button type="button" variant="primary" onClick={onAdvance}>已配置，下一步</Button>
         </div>
       )}
 
@@ -859,15 +961,15 @@ export function OnboardingWizard({
         <div className="onboarding-body">
           <p>确认本地服务已识别 API Key（修改 .env 后需重启 <code>npm run dev</code>）。启动时已检测到配置将直接显示就绪。</p>
           <div className="onboarding-actions">
-            <button
+            <Button
               type="button"
-              className="btn btn-ghost"
+              variant="ghost"
               onClick={handleCheckHealth}
               disabled={checking}
-              aria-busy={checking}
+              loading={checking}
             >
               {checking ? '检查中…' : '检查连接'}
-            </button>
+            </Button>
             {aiReady ? (
               <span className="onboarding-ok">已连接：{health.providerName} · {health.model}</span>
             ) : checkError ? (
@@ -881,21 +983,21 @@ export function OnboardingWizard({
           {checkedLabel && (
             <p className="onboarding-check-meta">上次检查：{checkedLabel}{aiReady && !checking ? ' · 可继续' : ''}</p>
           )}
-          <button type="button" className="btn btn-primary" onClick={onAdvance}>
+          <Button type="button" variant="primary" onClick={onAdvance}>
             {getVerifyStepContinueLabel(aiReady)}
-          </button>
+          </Button>
         </div>
       )}
 
       {step === 3 && (
         <div className="onboarding-body">
-          <p>完成首场审议后，工作台将展示结果一览与导出；你可继续审议、查看证据标注，或对单轮发言重生成。演示可先看完整流程，真实审议需连接已就绪。</p>
+          <p>完成首场审议后，工作台将展示<strong>审议结果一览</strong>与导出。演示会<strong>直接打开示例结论</strong>（也可之后选择逐条回放）。真实审议需模型已就绪。</p>
           <div className="onboarding-actions">
-            <button type="button" className="btn btn-ghost" onClick={handleStartDemo}>先看演示审议</button>
-            <button type="button" className="btn btn-primary" onClick={handleStartFirstMeeting} disabled={!aiReady}>
+            <Button type="button" variant="ghost" onClick={handleStartDemo}>打开演示结论</Button>
+            <Button type="button" variant="primary" onClick={handleStartFirstMeeting} disabled={!aiReady}>
               发起真实审议
-            </button>
-            <button type="button" className="btn btn-subtle" onClick={onComplete}>已完成，收起向导</button>
+            </Button>
+            <Button type="button" variant="subtle" onClick={onComplete}>已完成，收起向导</Button>
           </div>
         </div>
       )}
@@ -904,8 +1006,13 @@ export function OnboardingWizard({
 }
 
 export function ContinueDeliberationPanel({
-  value, onChange, onSubmit, disabled, disabledHint, panelRef,
+  value, onChange, onSubmit, disabled, disabledHint, panelRef, meeting,
 }) {
+  const suggestions = useMemo(
+    () => (meeting ? buildContinueSuggestions(meeting, 3) : []),
+    [meeting],
+  );
+
   return (
     <section
       ref={panelRef}
@@ -917,6 +1024,23 @@ export function ContinueDeliberationPanel({
         <b>继续审议</b>
         <span id="continue-panel-hint">{disabledHint || '带着本场结论与风险登记，发起下一场继续审议。'}</span>
       </div>
+      {suggestions.length > 0 && (
+        <div className="continue-suggestions" aria-label="建议追问">
+          <span className="continue-suggestions-label">从本场待澄清出发：</span>
+          <div className="continue-suggestions-chips">
+            {suggestions.map((s) => (
+              <Chip
+                key={s}
+                className="continue-suggestion-chip"
+                onClick={() => !disabled && onChange(s)}
+                title={s}
+              >
+                {s.length > 42 ? `${s.slice(0, 40)}…` : s}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
       <textarea
         className="textarea continue-panel-input"
         rows={2}

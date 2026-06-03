@@ -44,7 +44,8 @@ describe('DeliberationOutcomePanel', () => {
     expect(html).toContain('完成 5 个访谈');
     expect(html).toContain('项目记忆审批');
     expect(html).toContain('<b>2</b>');
-    expect(html).toContain('完整列表见下方「认知碰撞台」');
+    expect(html).toContain('审议工作台');
+    expect(html).toContain('outcome-jump-link');
     expect(html).toContain('分享链接与 HTML 文件包含完整审议内容');
   });
 
@@ -107,7 +108,8 @@ describe('DeliberationOutcomePanel', () => {
     );
     expect(html).toContain('需要多少样本？');
     expect(html).not.toContain('分歧 A');
-    expect(html).toContain('完整列表见下方「认知碰撞台」');
+    expect(html).toContain('审议工作台');
+    expect(html).toContain('outcome-jump-link');
   });
 
   test('shows footnote when more than two open tensions and no questions', () => {
@@ -126,7 +128,8 @@ describe('DeliberationOutcomePanel', () => {
       />,
     );
     expect(html).toContain('分歧 1');
-    expect(html).toContain('完整列表见下方「认知碰撞台」');
+    expect(html).toContain('审议工作台');
+    expect(html).toContain('outcome-jump-link');
   });
 
   test('merges residual objections when primary unresolved list is thin', () => {
@@ -205,7 +208,9 @@ describe('completion layout contract', () => {
 
   test('App.jsx orders outcome → export → copy mode → continue → full record → usage', async () => {
     const source = await readFile(new URL('./App.jsx', import.meta.url), 'utf8');
-    const completionBlock = source.slice(source.indexOf('{showVote &&'), source.indexOf('{error &&'));
+    const closureStart = source.indexOf('closure={showVote ?');
+    const closureEnd = source.indexOf(') : null}\n          />', closureStart);
+    const completionBlock = source.slice(closureStart, closureEnd);
     const outcomeIdx = completionBlock.indexOf('<DeliberationOutcomePanel');
     const finishLabelIdx = completionBlock.indexOf('带走审议成果');
     const finishActionsIdx = completionBlock.indexOf('id="finish-actions"');

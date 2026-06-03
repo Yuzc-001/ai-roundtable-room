@@ -12,6 +12,7 @@ describe('styles import chain', () => {
     expect(master).toContain('./src/styles/components/buttons.css');
     expect(master).toContain('./src/styles/layout/shell.css');
     expect(master).toContain('./src/styles/landing.css');
+    expect(master).toContain('./src/styles/deliberation-session.css');
 
     const buttons = readFileSync(join(root, 'src/styles/components/buttons.css'), 'utf8');
     expect(buttons).toContain('.ui-chip');

@@ -24,6 +24,7 @@ export const Button = forwardRef(function Button({
   disabled = false,
   loading = false,
   type = 'button',
+  href,
   children,
   ...rest
 }, ref) {
@@ -32,23 +33,42 @@ export const Button = forwardRef(function Button({
     console.warn(`[Button] Unknown variant "${variant}", falling back to ghost.`);
   }
   const isDisabled = disabled || loading;
+  const classes = joinClasses(
+    'btn',
+    mapped || VARIANT_CLASS.ghost,
+    size === 'sm' && 'btn-sm',
+    loading && 'btn-loading',
+    className,
+  );
+  const label = (
+    <>
+      {loading ? <span className="btn-spinner" aria-hidden="true" /> : null}
+      <span className={loading ? 'btn-label btn-label--loading' : 'btn-label'}>{children}</span>
+    </>
+  );
+  if (href) {
+    return (
+      <a
+        ref={ref}
+        href={href}
+        className={classes}
+        aria-disabled={isDisabled || undefined}
+        {...rest}
+      >
+        {label}
+      </a>
+    );
+  }
   return (
     <button
       ref={ref}
       type={type}
-      className={joinClasses(
-        'btn',
-        mapped || VARIANT_CLASS.ghost,
-        size === 'sm' && 'btn-sm',
-        loading && 'btn-loading',
-        className,
-      )}
+      className={classes}
       disabled={isDisabled}
       aria-busy={loading || undefined}
       {...rest}
     >
-      {loading ? <span className="btn-spinner" aria-hidden="true" /> : null}
-      <span className={loading ? 'btn-label btn-label--loading' : 'btn-label'}>{children}</span>
+      {label}
     </button>
   );
 });

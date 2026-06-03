@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Bubble,
   ContinueDeliberationPanel,
   DeliberationOutcomePanel,
   DecisionPacketCard,
@@ -11,8 +10,13 @@ import {
   OnboardingWizard,
   PersonaDrawer,
   SetupGuidePanel,
+  ConfigReminderBar,
+  SessionRoom,
+  TopicCoach,
+  TopicPreflightBar,
   ScenarioManager,
   Stage,
+  WorkbenchDraft,
   TaskPanel,
   VoteCard,
   WorkspacePanel,
@@ -22,8 +26,8 @@ import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useOnboarding } from './hooks/useOnboarding.js';
 import { useTypewriter } from './hooks/useTypewriter.js';
 import { formatMeetingMarkdown, formatMeetingHTML, sanitizeDownloadName } from './lib/minutes.js';
-import { formatEvidenceMatrixExportPage } from './lib/evidenceMatrix.js';
-import { filterMeetings } from './lib/historyFilter.js';
+import { formatEvidenceMatrixExportPage, formatEvidenceMatrixMarkdown } from './lib/evidenceMatrix.js';
+import { filterMeetings, filterMeetingsByTask, getMeetingDisplayLabel } from './lib/historyFilter.js';
 import { TOPIC_TEMPLATES } from './data/topicTemplates.js';
 import {
   addTaskToProject,
@@ -49,6 +53,7 @@ import {
   rejectProjectMemoryChanges,
   removeMeetingFromProject,
   restoreArchivedProject,
+  updateMeetingDisplayLabel,
   updateProjectWithMeeting,
 } from './lib/roundtable.js';
 import {
@@ -105,7 +110,11 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playbackStarted, setPlaybackStarted] = useState(false);
+  const [leftPanelOpen, setLeftPanelOpen] = useLocalStorage('roundtable:leftPanelOpen', true);
+  const [rightPanelOpen, setRightPanelOpen] = useLocalStorage('roundtable:rightPanelOpen', true);
   const [focusMode, setFocusMode] = useState(false);
+  const panelsBeforeFocusRef = useRef(null);
+  const sessionPanelsCollapsedRef = useRef(false);
   const [sharedMode, setSharedMode] = useState(false);
   const [showVote, setShowVote] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -124,6 +133,11 @@ export default function App() {
   // Temp feedback for export buttons (state change + toast for closure)
   const [exportFeedback, setExportFeedback] = useState(null); // 'html' | 'md' | 'evidence' | null
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyTaskFilterId, setHistoryTaskFilterId] = useState(null);
+  const [configGuideExpanded, setConfigGuideExpanded] = useState(false);
+  const [historyLabelEditId, setHistoryLabelEditId] = useState(null);
+  const [historyLabelDraft, setHistoryLabelDraft] = useState('');
+  const genAbortRef = useRef(null);
 
   // History deletion with thoughtful undo (optimistic + 5s reversible window)
   const [loadedHistoryId, setLoadedHistoryId] = useState(null);
@@ -159,10 +173,10 @@ export default function App() {
     () => findScenario(allScenarios, selectedScenarioId) || allScenarios[0],
     [allScenarios, selectedScenarioId],
   );
-  const filteredHistoryMeetings = useMemo(
-    () => filterMeetings(activeProject?.meetings, historySearchQuery),
-    [activeProject?.meetings, historySearchQuery],
-  );
+  const filteredHistoryMeetings = useMemo(() => {
+    const byTask = filterMeetingsByTask(activeProject?.meetings, historyTaskFilterId);
+    return filterMeetings(byTask, historySearchQuery);
+  }, [activeProject?.meetings, historyTaskFilterId, historySearchQuery]);
   const showHistorySearch = (activeProject?.meetings?.length ?? 0) > 3;
   const preset = PRESETS[selectedScenario?.presetId ?? presetId] ?? PRESETS.product;
   const memoryEnabled = activeProject?.memoryEnabled !== false;
@@ -313,9 +327,11 @@ export default function App() {
       const preferContinue = health?.aiConfigured !== false
         && meetingSource !== 'demo'
         && !followUpNote.trim();
-      const target = preferContinue
-        ? continuePanelRef.current
-        : (document.getElementById('finish-actions') ?? outcomePanelRef.current);
+      const target = meetingSource === 'demo'
+        ? (outcomePanelRef.current ?? document.getElementById('finish-actions'))
+        : (preferContinue
+          ? continuePanelRef.current
+          : (document.getElementById('finish-actions') ?? outcomePanelRef.current));
       target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
     return () => clearTimeout(timer);
@@ -345,6 +361,18 @@ export default function App() {
     }, 3800);
     return () => clearInterval(iv);
   }, [status]);
+
+  // 进入审议回放：默认收起双侧栏，把版面留给议题与发言（偏好仍可手动展开）
+  useEffect(() => {
+    if (!playbackStarted) {
+      sessionPanelsCollapsedRef.current = false;
+      return;
+    }
+    if (sessionPanelsCollapsedRef.current || sharedMode) return;
+    sessionPanelsCollapsedRef.current = true;
+    setLeftPanelOpen(false);
+    setRightPanelOpen(false);
+  }, [playbackStarted, sharedMode]);
 
   // Mobile hamburger sidebar: lock main content scroll when open (prevents background scroll mis-ops on real phones)
   useEffect(() => {
@@ -412,7 +440,7 @@ export default function App() {
     setTopic(historyItem.topic || '');
     setPresetId(historyItem.presetId || 'product');
 
-    // 恢复为已完成状态，可直接查看 Decision Packet 等
+    // 恢复为已完成状态，可直接查看决策纪要包等
     setPlaybackStarted(true);
     setShowVote(true);
     setStatus('idle');
@@ -538,6 +566,14 @@ export default function App() {
     notify(`已恢复到「${restoredName}」`);
   };
 
+  const cancelGeneration = () => {
+    genAbortRef.current?.abort();
+    genAbortRef.current = null;
+    setStatus('idle');
+    setSimPhaseIdx(0);
+    notify('已取消审议生成');
+  };
+
   const startMeeting = async (customTopic, { extraContextNotes = [], successMessage } = {}) => {
     const finalTopic = customTopic || topic;
     if (!finalTopic.trim()) {
@@ -545,12 +581,19 @@ export default function App() {
       return false;
     }
     const contextNotes = [projectMemoryContext, ...extraContextNotes].filter(Boolean);
+    genAbortRef.current?.abort();
+    const controller = new AbortController();
+    genAbortRef.current = controller;
     setStatus('generating');
     setError('');
     setShowVote(false);
     setFocusSpeakerId(null);
+    setSimPhaseIdx(0);
     try {
-      const payload = await createMeetingRequest({ payload: buildMeetingPayload({ topic: finalTopic, presetId, contextNotes, roster: allOnStage }) });
+      const payload = await createMeetingRequest({
+        payload: buildMeetingPayload({ topic: finalTopic, presetId, contextNotes, roster: allOnStage }),
+        signal: controller.signal,
+      });
       const entry = {
         id: Date.now(),
         topic: finalTopic,
@@ -579,11 +622,27 @@ export default function App() {
       notify(successMessage || '审议已生成，正在回放结构化发言');
       return true;
     } catch (e) {
+      if (e?.name === 'AbortError') {
+        return false;
+      }
       setError(e.message || '启动审议失败，请检查模型配置');
       return false;
     } finally {
+      if (genAbortRef.current === controller) genAbortRef.current = null;
       setStatus('idle');
     }
+  };
+
+  const saveHistoryDisplayLabel = (meetingEntryId) => {
+    const label = historyLabelDraft.trim();
+    setProjects((items) => (Array.isArray(items) ? items : projectList).map((project) => (
+      project.id === activeProject.id
+        ? updateMeetingDisplayLabel(project, meetingEntryId, label)
+        : project
+    )));
+    setHistoryLabelEditId(null);
+    setHistoryLabelDraft('');
+    notify(label ? '历史备注已保存' : '已清除备注');
   };
 
   const continueFromMeeting = async () => {
@@ -686,7 +745,7 @@ export default function App() {
       });
       applyMeetingSnapshot(updated);
       setTurnRegenUndo(null);
-      notify('已根据最新发言重算投票与 Decision Packet');
+      notify('已根据最新发言重算投票与决策纪要包');
     } catch (e) {
       setError(e.message || '收束重算失败');
     } finally {
@@ -711,17 +770,32 @@ export default function App() {
     }
   };
 
-  const showDemoMeeting = () => {
+  /** 跳过打字机回放，直接展示完整发言与审议结果（复盘/演示默认） */
+  const jumpToPlaybackOutcome = (targetMeeting = meeting) => {
+    const turns = targetMeeting?.turns ?? [];
+    setHistory(turns);
+    setCurrentIdx(turns.length);
+    shouldScrollToOutcomeRef.current = true;
+    setShowVote(true);
+  };
+
+  /** @param {{ animate?: boolean }} opts — animate=true 时逐条回放，默认直接看结论 */
+  const showDemoMeeting = ({ animate = false } = {}) => {
     setTopic(DEFAULT_TOPIC);
     setMeeting(DEMO_MEETING);
     setMeetingSource('demo');
     setError('');
-    setHistory([]);
-    setCurrentIdx(0);
-    setShowVote(false);
     setPlaybackStarted(true);
     setLoadedHistoryId(null);
-    notify('已载入演示审议');
+    if (animate) {
+      setHistory([]);
+      setCurrentIdx(0);
+      setShowVote(false);
+      notify('演示回放中 · 可点「跳过播放」直接看结论与导出');
+    } else {
+      jumpToPlaybackOutcome(DEMO_MEETING);
+      notify('已打开演示结论 · 可查看结果一览并导出');
+    }
     onboarding.complete();
   };
   const enterWorkbench = () => {
@@ -813,10 +887,18 @@ export default function App() {
       );
       setExportFeedback('evidence');
       notify('证据矩阵 HTML 已导出 · 含发言与证据池对照表');
+    } else if (format === 'evidence-md') {
+      save(
+        formatEvidenceMatrixMarkdown({ ...base, generatedAt: new Date().toISOString() }),
+        'text/markdown;charset=utf-8',
+        '-证据矩阵.md',
+      );
+      setExportFeedback('evidence');
+      notify('证据矩阵 Markdown 已导出');
     } else if (format === 'html' && typeof formatMeetingHTML === 'function') {
       save(formatMeetingHTML(base), 'text/html;charset=utf-8', '.html');
       setExportFeedback('html');
-      notify('HTML 已导出 · 可直接分享给同事复盘（含 Decision Packet + 行动项）');
+      notify('HTML 已导出 · 可直接分享给同事复盘（含决策纪要包与行动项）');
     } else {
       save(formatMeetingMarkdown(base), 'text/markdown;charset=utf-8', '.md');
       setExportFeedback('md');
@@ -826,6 +908,7 @@ export default function App() {
   };
 
   const exportEvidenceMatrix = () => exportMinutes('evidence-html');
+  const exportEvidenceMatrixMd = () => exportMinutes('evidence-md');
 
   // 复制模式状态（默认从 localStorage 恢复）
   const [copyMode, setCopyMode] = useState(() => {
@@ -981,6 +1064,12 @@ export default function App() {
   const showEmptySessionPrimary = !playbackStarted && !onboarding.shouldShow;
   const showSidebarStartCta = !playbackStarted && !projectCreatorOpen && !onboarding.shouldShow;
   const startDeliberationDisabled = status === 'generating' || (health?.aiConfigured !== false && !canStart);
+  const sessionReading = playbackStarted && status !== 'generating';
+  const sessionPhaseId = currentTurn?.phase
+    || (history.length > 0 ? history[history.length - 1].phase : null)
+    || DELIBERATION_PHASES[0]?.id;
+  const sessionPhaseLabel = DELIBERATION_PHASES.find((p) => p.id === sessionPhaseId)?.label;
+  const sessionTurnCount = history.length + (currentTurn ? 1 : 0);
 
   const handleStartDeliberation = () => {
     if (health?.aiConfigured === false) showDemoMeeting();
@@ -991,6 +1080,40 @@ export default function App() {
     typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
 
+  const openLeftPanel = () => {
+    setLeftPanelOpen(true);
+    if (focusMode) setFocusMode(false);
+  };
+
+  const openRightPanel = () => {
+    setRightPanelOpen(true);
+    if (focusMode) setFocusMode(false);
+  };
+
+  const closeLeftPanel = () => setLeftPanelOpen(false);
+
+  const closeRightPanel = () => setRightPanelOpen(false);
+
+  const toggleFocusMode = () => {
+    setFocusMode((wasFocus) => {
+      if (!wasFocus) {
+        panelsBeforeFocusRef.current = { left: leftPanelOpen, right: rightPanelOpen };
+        setLeftPanelOpen(false);
+        setRightPanelOpen(false);
+        return true;
+      }
+      const snap = panelsBeforeFocusRef.current;
+      if (snap) {
+        setLeftPanelOpen(snap.left);
+        setRightPanelOpen(snap.right);
+        panelsBeforeFocusRef.current = null;
+      }
+      return false;
+    });
+  };
+
+  const readingLayout = focusMode || (!sharedMode && !leftPanelOpen && !rightPanelOpen);
+
   const scrollToWorkbenchSection = (id) => {
     if (isMobileLayout()) {
       setMobileInfoPanelOpen(true);
@@ -1000,9 +1123,33 @@ export default function App() {
       });
       return;
     }
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!rightPanelOpen) openRightPanel();
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     setMobileMenuOpen(false);
   };
+
+  const jumpToWorkspaceSection = (sectionId) => {
+    scrollToWorkbenchSection(sectionId);
+  };
+
+  useEffect(() => {
+    if (sharedMode || viewMode !== 'workspace') return undefined;
+    const onKeyDown = (event) => {
+      if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return;
+      const el = event.target;
+      const tag = el?.tagName?.toLowerCase();
+      const isTopicBox = tag === 'textarea' && el?.classList?.contains('topic-input');
+      if ((tag === 'textarea' && !isTopicBox) || (tag === 'input' && el?.type !== 'search') || tag === 'select') return;
+      if (status === 'generating' || showVote || !topic.trim()) return;
+      event.preventDefault();
+      if (health?.aiConfigured === false) showDemoMeeting();
+      else startMeeting();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sharedMode, viewMode, status, showVote, topic, health?.aiConfigured]);
 
   if (!sharedMode && viewMode === 'landing') {
     return (
@@ -1022,6 +1169,9 @@ export default function App() {
     <div
       className="app"
       data-focus-mode={focusMode ? 'true' : 'false'}
+      data-reading-layout={readingLayout ? 'true' : 'false'}
+      data-sidebar={!sharedMode && leftPanelOpen ? 'open' : 'collapsed'}
+      data-right-panel={rightPanelOpen ? 'open' : 'collapsed'}
       data-mobile-menu={mobileMenuOpen ? 'true' : 'false'}
       data-mobile-info-panel={mobileInfoPanelOpen ? 'open' : 'false'}
       data-generating={status === 'generating' ? 'true' : 'false'}
@@ -1046,6 +1196,15 @@ export default function App() {
           <div className="brand-section">
             <Logo />
             <span className="brand-text">圆桌智库</span>
+            <IconButton
+              className="desktop-only sidebar-collapse-btn"
+              label="收起项目侧栏"
+              onClick={closeLeftPanel}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 18 9 12l6-6" />
+              </svg>
+            </IconButton>
           </div>
           <div className="sidebar-scroll">
             <nav className="nav-group">
@@ -1056,17 +1215,17 @@ export default function App() {
                 </select>
               </div>
               <div className="project-nav-actions">
-                <button className="btn btn-subtle" onClick={() => { setProjectCreatorOpen((open) => !open); /* keep open for form */ }}>+ 新建</button>
+                <Button variant="subtle" onClick={() => { setProjectCreatorOpen((open) => !open); /* keep open for form */ }}>+ 新建</Button>
                 {deleteConfirmOpen ? (
                   <div className="project-delete-confirm">
                     <span>移入归档箱？</span>
-                    <button className="btn btn-ghost" onClick={() => setDeleteConfirmOpen(false)}>取消</button>
-                    <button className="btn btn-danger" onClick={deleteActiveProject}>删除</button>
+                    <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>取消</Button>
+                    <Button variant="danger" onClick={deleteActiveProject}>删除</Button>
                   </div>
                 ) : (
-                  <button className="btn btn-danger btn-sm" disabled={!canDeleteProject} onClick={() => setDeleteConfirmOpen(true)} title={canDeleteProject ? '删除当前项目' : '默认项目不能删除'}>
+                  <Button variant="danger" size="sm" disabled={!canDeleteProject} onClick={() => setDeleteConfirmOpen(true)} title={canDeleteProject ? '删除当前项目' : '默认项目不能删除'}>
                     删除项目
-                  </button>
+                  </Button>
                 )}
               </div>
               {projectCreatorOpen && (
@@ -1074,20 +1233,20 @@ export default function App() {
                   <label htmlFor="project-name-input">新项目名称</label>
                   <input id="project-name-input" className="input" value={projectDraft} onChange={(event) => setProjectDraft(event.target.value)} placeholder="例如：AI 圆桌上线" maxLength={40} />
                   <div className="project-form-actions">
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setProjectCreatorOpen(false); setProjectDraft(''); }}>取消</button>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={!projectDraft.trim()}>创建</button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setProjectCreatorOpen(false); setProjectDraft(''); }}>取消</Button>
+                    <Button type="submit" variant="primary" size="sm" disabled={!projectDraft.trim()}>创建</Button>
                   </div>
                 </form>
               )}
               <div className="project-sidebar-controls">
                 <div className="nav-hint">{memoryEnabled ? '批准后的结论、风险和分歧会进入项目记忆。' : '项目记忆已关闭，只保留会议记录。'}</div>
-                <button className="btn btn-subtle memory-toggle" data-on={memoryEnabled ? 'true' : 'false'} aria-pressed={memoryEnabled} onClick={() => { toggleProjectMemory(); setMobileMenuOpen(false); }}>
+                <Button variant="subtle" className="memory-toggle" data-on={memoryEnabled ? 'true' : 'false'} aria-pressed={memoryEnabled} onClick={() => { toggleProjectMemory(); setMobileMenuOpen(false); }}>
                   <span>项目记忆</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '10px', opacity: 0.6 }}>{memoryEnabled ? '已开启' : '已关闭'}</span>
                     <span className="memory-toggle-dot" />
                   </div>
-                </button>
+                </Button>
               </div>
               {archivedProjectList.length > 0 && (
                 <div className="archive-box">
@@ -1097,13 +1256,13 @@ export default function App() {
                       <div><b>{project.name}</b><span>{project.meetings?.length ?? 0} 场会议</span></div>
                       {purgeConfirmId === project.id ? (
                         <div className="archive-actions">
-                          <button className="btn btn-ghost btn-sm" onClick={() => setPurgeConfirmId(null)}>取消</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => purgeArchivedProject(project.id)}>确认彻底删除</button>
+                          <Button variant="ghost" size="sm" onClick={() => setPurgeConfirmId(null)}>取消</Button>
+                          <Button variant="danger" size="sm" onClick={() => purgeArchivedProject(project.id)}>确认彻底删除</Button>
                         </div>
                       ) : (
                         <div className="archive-actions">
-                          <button className="btn btn-ghost btn-sm" onClick={() => restoreProject(project)}>恢复</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => setPurgeConfirmId(project.id)}>彻底删除</button>
+                          <Button variant="ghost" size="sm" onClick={() => restoreProject(project)}>恢复</Button>
+                          <Button variant="danger" size="sm" onClick={() => setPurgeConfirmId(project.id)}>彻底删除</Button>
                         </div>
                       )}
                     </div>
@@ -1115,15 +1274,16 @@ export default function App() {
               <div className="nav-title">当前场景</div>
               <div className="nav-list">
                 {sidebarScenarios.map((item) => (
-                  <button
+                  <Button
                     key={item.id}
                     type="button"
-                    className={`btn btn-subtle nav-btn ${selectedScenarioId === item.id ? 'active' : ''}`}
+                    variant="subtle"
+                    className={`nav-btn ${selectedScenarioId === item.id ? 'active' : ''}`}
                     onClick={() => handleSelectScenario(item.id)}
                   >
                     <span className="icon">{item.icon}</span>
                     <span className="label">{item.name}{item.builtin ? '' : ' · 自定义'}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="sidebar-scenario-links">
@@ -1211,8 +1371,219 @@ export default function App() {
           </div>
         </aside>
       )}
-      <main className="main-content">
-        <header className="top-nav">
+      <main className={`main-content${sessionReading ? ' main-content--delib' : ''}`}>
+        {sessionReading ? (
+          <SessionRoom
+            transcriptRef={transcriptRef}
+            chrome={{
+              topic,
+              meetingTitle: meeting?.title,
+              scenarioName: selectedScenario?.name,
+              taskTitle: activeTask?.title,
+              phaseLabel: sessionPhaseLabel,
+              turnCount: sessionTurnCount,
+              sharedMode,
+              mobileMenuOpen,
+              onToggleMenu: () => setMobileMenuOpen((o) => !o),
+              leftPanelOpen,
+              onToggleLeftPanel: () => (leftPanelOpen ? closeLeftPanel() : openLeftPanel()),
+              rightPanelOpen,
+              onToggleRightPanel: () => (rightPanelOpen ? closeRightPanel() : openRightPanel()),
+              focusMode,
+              onToggleFocus: toggleFocusMode,
+              onReturnHome: returnHome,
+              onOpenLanding: openLanding,
+            }}
+            minutes={{
+              history,
+              currentTurn,
+              currentSpeaker,
+              revealed,
+              done,
+              personas,
+              focusSpeakerId,
+              canRegenerate: canRegenerateTurn,
+              regeneratingTurnIndex,
+              onRegenerate: regenerateTurn,
+              workspace: meeting?.workspace,
+            }}
+            presence={{
+              personas,
+              allPersonas: allOnStage,
+              speakerId: currentSpeaker?.id,
+              focusSpeakerId,
+              onSeatClick: (persona) => {
+                setFocusSpeakerId((prev) => (prev === persona.id ? null : persona.id));
+              },
+              onClearFocus: () => setFocusSpeakerId(null),
+              focusNotice: turnRegenUndo && showVote ? '刚完成一轮发言重生成' : null,
+              onUndoRegen: turnRegenUndo && showVote ? undoTurnRegeneration : null,
+            }}
+            banners={(
+              <>
+                {!sharedMode && health?.aiConfigured === false && (
+                  <ConfigReminderBar
+                    snippet={MIN_ENV_SNIPPET}
+                    steps={SETUP_STEPS}
+                    onCopied={() => notify('最小 .env 配置已复制')}
+                    onOpenGuide={() => setConfigGuideExpanded((v) => !v)}
+                  />
+                )}
+                {meetingSource === 'demo' && !showVote && (
+                  <div className="demo-skip-banner" role="region" aria-label="演示回放控制">
+                    <p>正在播放演示发言（约 1 分钟）。也可直接查看结论与导出。</p>
+                    <Button type="button" variant="primary" size="sm" onClick={() => jumpToPlaybackOutcome()}>
+                      跳过播放，直接看结论
+                    </Button>
+                  </div>
+                )}
+                {meetingSource === 'demo' && showVote && (
+                  <div className="demo-session-banner" role="status">
+                    当前为<strong>演示场次</strong>：以下为示例结论与导出能力。配置 API Key 后可对工作台议题发起真实审议。
+                  </div>
+                )}
+              </>
+            )}
+            closure={showVote ? (
+              <>
+                <div className="success-ceremony">
+                  {meeting?.decisionPacket || meeting?.workspace
+                    ? '审议闭环完成 · 决策纪要包已封装'
+                    : '审议已结束 · 记录不完整，请查看下方或重算收束'}
+                </div>
+                <DeliberationOutcomePanel
+                  meeting={meeting}
+                  panelRef={outcomePanelRef}
+                  pendingMemoryCount={pendingMemoryChanges.length}
+                  showContinueLink={health?.aiConfigured !== false}
+                  onJumpToWorkspace={jumpToWorkspaceSection}
+                />
+                <h2 className="finish-actions-label">带走审议成果</h2>
+                <div id="finish-actions" className="finish-actions">
+                  <Button
+                    variant="primary"
+                    className={exportFeedback === 'html' ? 'export-success' : ''}
+                    onClick={() => exportMinutes('html')}
+                    disabled={!!exportFeedback}
+                  >
+                    {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={exportFeedback === 'copied' ? 'export-success' : ''}
+                    onClick={() => copyCoreConclusions()}
+                    disabled={exportFeedback === 'copied'}
+                    title={copyMode === 'concise'
+                      ? '简洁版：适合直接发消息'
+                      : '完整版：适合进文档/正式复盘'}
+                  >
+                    {exportFeedback === 'copied'
+                      ? '✓ 已复制'
+                      : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={exportFeedback === 'share' ? 'export-success' : ''}
+                    onClick={() => generateShareLink()}
+                    disabled={!!exportFeedback}
+                  >
+                    {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={exportFeedback === 'md' ? 'export-success' : ''}
+                    onClick={() => exportMinutes('md')}
+                    disabled={!!exportFeedback}
+                  >
+                    {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={exportFeedback === 'evidence' ? 'export-success' : ''}
+                    onClick={exportEvidenceMatrix}
+                    disabled={!!exportFeedback}
+                    title="按发言轮次与证据池导出对照表"
+                  >
+                    {exportFeedback === 'evidence' ? '✓ 已导出' : '导出证据矩阵 (HTML)'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={exportFeedback === 'evidence' ? 'export-success' : ''}
+                    onClick={exportEvidenceMatrixMd}
+                    disabled={!!exportFeedback}
+                    title="表格版证据矩阵，适合贴进文档"
+                  >
+                    导出证据矩阵 (MD)
+                  </Button>
+                  {health?.aiConfigured !== false && meetingSource !== 'demo' && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={refreshClosure}
+                      disabled={refreshingClosure || regeneratingTurnIndex !== null}
+                      loading={refreshingClosure}
+                    >
+                      {refreshingClosure ? '重算收束中…' : '重算投票与决策纪要包'}
+                    </Button>
+                  )}
+                  <Button variant="ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</Button>
+                </div>
+                <div className="copy-mode-switch">
+                  <span className="copy-mode-label">复制模式</span>
+                  <Button
+                    variant="ghost"
+                    className={copyMode === 'concise' ? 'active' : ''}
+                    onClick={() => {
+                      setCopyMode('concise');
+                      localStorage.setItem('roundtable:copyMode', 'concise');
+                    }}
+                  >
+                    简洁
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={copyMode === 'formal' ? 'active' : ''}
+                    onClick={() => {
+                      setCopyMode('formal');
+                      localStorage.setItem('roundtable:copyMode', 'formal');
+                    }}
+                  >
+                    完整
+                  </Button>
+                </div>
+                {health?.aiConfigured !== false && (
+                  <>
+                    <h2 className="finish-actions-label">后续动作</h2>
+                    <ContinueDeliberationPanel
+                      panelRef={continuePanelRef}
+                      meeting={meeting}
+                      value={followUpNote}
+                      onChange={setFollowUpNote}
+                      onSubmit={continueFromMeeting}
+                      disabled={status === 'generating' || meetingSource === 'demo'}
+                      disabledHint={meetingSource === 'demo'
+                        ? '演示场次不支持继续审议，请在工作台发起真实审议'
+                        : undefined}
+                    />
+                  </>
+                )}
+                <div className="section-divider">— 完整审议记录 —</div>
+                <WorkspacePanel workspace={meeting.workspace} />
+                <DecisionPacketCard packet={meeting.decisionPacket} />
+                <VoteCard vote={meeting.vote} personas={personas} workspace={meeting?.workspace} />
+                {meeting?.usage && (
+                  <div className="usage-indicator">
+                    本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
+                    <span className="usage-detail">(入: {meeting.usage.inputTokens} / 出: {meeting.usage.outputTokens})</span>
+                  </div>
+                )}
+              </>
+            ) : null}
+          />
+        ) : (
+        <>
+        <header className={`top-nav${playbackStarted ? ' top-nav--session' : ' top-nav--lobby'}`}>
+          <div className="top-nav-toolbar">
           {!sharedMode && (
             <IconButton
               className="mobile-only"
@@ -1240,28 +1611,73 @@ export default function App() {
               <span className="share-badge">在线复盘模式</span>
             </div>
           )}
-          <div className="topic-input-wrap" style={{ position: 'relative' }}>
-            <textarea className="textarea topic-input" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="输入一个需要权衡、证据、风险和行动的复杂问题..." disabled={sharedMode || parsingFile || status === 'generating'} rows={2} />
-            {!sharedMode && status !== 'generating' && (
-              <label className="file-upload-lite" title="上传 PDF 报告作为背景数据">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                <input type="file" accept=".pdf" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsingFile} />
-              </label>
-            )}
-            {status === 'generating' && (
-              <div className="parsing-loader" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                <span className="dot-pulse" />
-              </div>
-            )}
-          </div>
+          {!playbackStarted && !sharedMode && status === 'generating' && (
+            <p className="top-nav-generating-hint" role="status">审议生成中…</p>
+          )}
           <div className="top-actions">
             {!sharedMode && (
               <Button variant="subtle" className="workbench-home-btn" onClick={openLanding} title="返回首页">首页</Button>
             )}
+            {!sharedMode && !playbackStarted && (
+              <>
+                <Button
+                  type="button"
+                  variant="subtle"
+                  className={['top-labeled-btn', 'desktop-only', leftPanelOpen && 'active'].filter(Boolean).join(' ')}
+                  onClick={() => (leftPanelOpen ? closeLeftPanel() : openLeftPanel())}
+                  title={leftPanelOpen ? '收起项目侧栏' : '展开项目侧栏'}
+                >
+                  项目
+                </Button>
+                <Button
+                  type="button"
+                  variant="subtle"
+                  className={['top-labeled-btn', 'desktop-only', rightPanelOpen && 'active'].filter(Boolean).join(' ')}
+                  onClick={() => (rightPanelOpen ? closeRightPanel() : openRightPanel())}
+                  title={rightPanelOpen ? '收起情报侧栏' : '展开情报侧栏'}
+                >
+                  情报
+                </Button>
+                <Button
+                  type="button"
+                  variant="subtle"
+                  className={['top-labeled-btn', 'desktop-only', focusMode && 'active'].filter(Boolean).join(' ')}
+                  onClick={toggleFocusMode}
+                  title={focusMode ? '退出专注模式' : '进入专注模式'}
+                >
+                  专注
+                </Button>
+              </>
+            )}
+            {!sharedMode && playbackStarted && (
+              <IconButton
+                className="desktop-only"
+                active={leftPanelOpen}
+                label={leftPanelOpen ? '收起项目侧栏' : '展开项目侧栏'}
+                onClick={() => (leftPanelOpen ? closeLeftPanel() : openLeftPanel())}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {leftPanelOpen ? <path d="M15 18 9 12l6-6" /> : <path d="M9 18 15 12 9 6" />}
+                </svg>
+              </IconButton>
+            )}
+            {playbackStarted && (
+            <IconButton
+              className="desktop-only"
+              active={rightPanelOpen}
+              label={rightPanelOpen ? '收起情报侧栏' : '展开情报侧栏'}
+              onClick={() => (rightPanelOpen ? closeRightPanel() : openRightPanel())}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {rightPanelOpen ? <path d="M9 18 15 12 9 6" /> : <path d="M15 18 9 12l6-6" />}
+              </svg>
+            </IconButton>
+            )}
+            {playbackStarted && (
             <IconButton
               active={focusMode}
               label={focusMode ? '退出专注模式' : '进入专注模式'}
-              onClick={() => setFocusMode(!focusMode)}
+              onClick={toggleFocusMode}
             >
               {focusMode ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1279,6 +1695,7 @@ export default function App() {
                 </svg>
               )}
             </IconButton>
+            )}
             {playbackStarted && !sharedMode && (
               <IconButton label="回工作台" onClick={returnHome}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1296,7 +1713,7 @@ export default function App() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </IconButton>
             )}
-            {showWorkbenchPrimary && (
+            {(showWorkbenchPrimary || showEmptySessionPrimary) && (
               <Button
                 variant="primary"
                 loading={status === 'generating'}
@@ -1307,30 +1724,26 @@ export default function App() {
               </Button>
             )}
           </div>
+          </div>
         </header>
-        <Stage
-          allPersonas={allOnStage}
-          speakerId={currentSpeaker?.id}
-          onSeatClick={(persona) => {
-            if (playbackStarted && !showVote) {
-              setFocusSpeakerId((prev) => (prev === persona.id ? null : persona.id));
-              return;
-            }
-            setEditingId(persona.id);
-          }}
-        />
-        {focusSpeakerId && playbackStarted && !showVote && (
-          <div className="speaker-focus-bar">
-            <span>聚焦：{personas[focusSpeakerId]?.name || focusSpeakerId} 的发言</span>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFocusSpeakerId(null)}>显示全部</button>
+        {!sharedMode && health?.aiConfigured === false && status === 'generating' && (
+          <ConfigReminderBar
+            snippet={MIN_ENV_SNIPPET}
+            steps={SETUP_STEPS}
+            onCopied={() => notify('最小 .env 配置已复制')}
+            onOpenGuide={() => setConfigGuideExpanded((v) => !v)}
+          />
+        )}
+        {!sharedMode && configGuideExpanded && health?.aiConfigured === false && (
+          <div className="config-reminder-expanded">
+            <SetupGuidePanel
+              snippet={MIN_ENV_SNIPPET}
+              steps={SETUP_STEPS}
+              onCopied={() => notify('最小 .env 配置已复制')}
+            />
           </div>
         )}
-        {turnRegenUndo && showVote && (
-          <div className="speaker-focus-bar">
-            <span>刚完成一轮发言重生成</span>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={undoTurnRegeneration}>撤销</button>
-          </div>
-        )}
+        <div className="workbench-body">
         <div className="transcript-area" ref={transcriptRef}>
           {onboarding.shouldShow && !playbackStarted && status !== 'generating' && (
             <OnboardingWizard
@@ -1363,283 +1776,140 @@ export default function App() {
                 <div className="gen-progress-track">
                   <div className="gen-progress-fill" style={{ width: `${genProgressPct}%` }} />
                 </div>
-                <div className="gen-progress-label">
+              <div className="gen-progress-label">
                   阶段 {genCurrentIdx + 1}/{genPhaseCount} · {genCurrentPhase?.label || '进行中'} · {genCurrentIdx === genPhaseCount-1 ? '正在封装结论' : `约需 ${genRemaining}s`}
                 </div>
+                <Button type="button" variant="ghost" size="sm" className="gen-cancel-btn" onClick={cancelGeneration}>
+                  取消生成
+                </Button>
               </div>
               {hasActiveMemory && (
-                <div className="gen-memory-cue">项目记忆已注入 · 历史结论/风险/分歧将参与本场认知碰撞</div>
+                <div className="gen-memory-cue">项目记忆已注入 · 历史结论、风险与分歧将参与本场审议</div>
               )}
               <p className="gen-meta">
-                这不是多角色表演，而是多判断函数的受控碰撞。<br />
-                系统会暴露关键分歧、证据缺口和下一步可选路径，再封装为 Decision Packet。
+                多席按阶段发言，帮你暴露关键分歧、证据缺口与可选路径，<br />
+                最后整理成可导出的<strong>决策纪要包</strong>（结论、行动项与待澄清问题）。
               </p>
             </div>
-          ) : !playbackStarted ? (
-            <div className="empty-session">
-              <div className="empty-eyebrow">议事厅 · 本地决策档案</div>
-              <h1>把复杂问题打磨成可执行判断</h1>
-              <p>输入一个需要权衡证据、风险、用户心智和行动路径的问题。圆桌会按阶段暴露分歧、校准置信度，并把结果封装成可复盘的 Decision Packet。</p>
-              {showEmptySessionPrimary && (
-                <div className="empty-session-cta">
-                  <Button
-                    variant="primary"
-                    className="empty-session-primary"
-                    loading={status === 'generating'}
-                    disabled={startDeliberationDisabled}
-                    onClick={handleStartDeliberation}
-                  >
-                    {primaryActionLabel}
-                  </Button>
-                </div>
-              )}
-              <div className="trust-strip" aria-label="产品可信度说明">
-                <span>本地优先</span>
-                <span>API Key 只在服务端读取</span>
-                <span>记忆需人工批准</span>
-                <span title={healthDetail || undefined}>{healthLabel}</span>
-              </div>
-              <div className="question-coach">
-                <div>
-                  <b>适合圆桌的问题</b>
-                  <span>高价值决策、多目标冲突、证据不完整、需要保留反对意见。</span>
-                </div>
-                <div>
-                  <b>不适合圆桌的问题</b>
-                  <span>简单事实查询、低风险润色、明确单步任务；这些更适合直接问单模型。</span>
-                </div>
-              </div>
-              {health?.aiConfigured === false && !onboarding.shouldShow && (
+          ) : !playbackStarted && !onboarding.shouldShow ? (
+            <WorkbenchDraft
+              topic={topic}
+              onTopicChange={setTopic}
+              topicDisabled={sharedMode || parsingFile || status === 'generating'}
+              parsingFile={parsingFile}
+              onFileUpload={handleFileUpload}
+              topicCoach={!sharedMode && status !== 'generating' && topic.trim() ? (
+                <TopicCoach topic={topic} />
+              ) : null}
+              preflight={!sharedMode && status !== 'generating' && topic.trim() && health?.aiConfigured !== false ? (
+                <TopicPreflightBar
+                  topic={topic}
+                  health={health}
+                  scenarioName={selectedScenario?.name}
+                  taskTitle={activeTask?.title}
+                  memoryEnabled={memoryEnabled}
+                />
+              ) : null}
+              primaryLabel={primaryActionLabel}
+              onPrimary={handleStartDeliberation}
+              primaryDisabled={startDeliberationDisabled}
+              primaryLoading={status === 'generating'}
+              showPrimary={showEmptySessionPrimary}
+              healthLabel={healthLabel}
+              healthDetail={healthDetail}
+              onStarter={(kind) => {
+                if (kind === 'product') {
+                  const t = '我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？';
+                  if (health?.aiConfigured === false) setTopic(t);
+                  else startMeeting(t);
+                } else {
+                  const t = '如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？';
+                  if (health?.aiConfigured === false) setTopic(t);
+                  else startMeeting(t);
+                }
+              }}
+              onDemo={() => showDemoMeeting()}
+              onDemoReplay={() => showDemoMeeting({ animate: true })}
+              scenarios={sidebarScenarios}
+              selectedScenarioId={selectedScenarioId}
+              onSelectScenario={handleSelectScenario}
+              hasMoreScenarios={hasMoreScenarios}
+              onManageScenarios={() => setScenarioManagerOpen(true)}
+              topicTemplates={TOPIC_TEMPLATES}
+              onPickTemplate={(tpl) => {
+                setTopic(tpl.topic);
+                if (tpl.presetId) handleSelectScenario(`builtin:${tpl.presetId}`);
+              }}
+              activeTaskTitle={activeTask?.title}
+              setupGuide={health?.aiConfigured === false && !onboarding.shouldShow ? (
                 <SetupGuidePanel
                   snippet={MIN_ENV_SNIPPET}
                   steps={SETUP_STEPS}
                   onCopied={() => notify('最小 .env 配置已复制，粘贴到项目根目录后填写 API Key')}
                 />
-              )}
-              <div className="starter-grid">
-                <button type="button" className="starter-card btn btn-ghost" aria-label="启动产品认知压测" onClick={() => health?.aiConfigured === false ? setTopic('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？') : startMeeting('我们是否应该把 AI 圆桌会议产品开放给第一批真实用户试用？')}><b>产品认知压测</b><span>输出关键分歧、证据缺口、重开条件和用户下一步。</span></button>
-                <button type="button" className="starter-card btn btn-ghost" aria-label="启动商业判断" onClick={() => health?.aiConfigured === false ? setTopic('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？') : startMeeting('如果我们要把这个产品做成可收费版本，最小可付费价值应该是什么？')}><b>商业判断</b><span>碰撞价值假设、定价风险和验证路径。</span></button>
-                <button type="button" className="starter-card btn btn-ghost" aria-label="启动示例演示" onClick={showDemoMeeting}><b>示例演示</b><span>无需 API Key，先观察完整审议流程与输出结构。</span></button>
-              </div>
-              <div className="template-picker">
-                <div className="template-picker-label">
-                  审议场景
-                  {activeTask && <span className="active-task-pill">当前任务：{activeTask.title}</span>}
-                </div>
-                <div className="template-picker-chips">
-                  {sidebarScenarios.map((s) => (
-                    <Chip
-                      key={s.id}
-                      active={selectedScenarioId === s.id}
-                      className="template-chip"
-                      onClick={() => handleSelectScenario(s.id)}
-                    >
-                      <span className="template-chip-category">{s.builtin ? '内置' : '自定义'}</span>
-                      {s.icon} {s.name}
-                    </Chip>
-                  ))}
-                  {hasMoreScenarios && (
-                    <Chip className="template-chip" onClick={() => setScenarioManagerOpen(true)}>更多</Chip>
-                  )}
-                  <Button type="button" variant="ghost" size="sm" className="template-manage-link" onClick={() => setScenarioManagerOpen(true)}>
-                    管理场景
-                  </Button>
-                </div>
-              </div>
-              <div className="template-picker template-picker--secondary">
-                <div className="template-picker-label">议题快捷填入</div>
-                <div className="template-picker-chips">
-                  {TOPIC_TEMPLATES.map((tpl) => (
-                    <Chip
-                      key={tpl.id}
-                      className="template-chip"
-                      title={tpl.hint}
-                      aria-label={`使用议题模板：${tpl.label}`}
-                      onClick={() => {
-                        setTopic(tpl.topic);
-                        if (tpl.presetId) handleSelectScenario(`builtin:${tpl.presetId}`);
-                      }}
-                    >
-                      <span className="template-chip-category">{tpl.category}</span>
-                      {tpl.label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="feed-container">
-              {playbackStarted && status !== 'generating' && !showVote && (
-                <ModeratorConsole 
-                  phase={currentTurn?.phase || (history.length > 0 ? history[history.length - 1].phase : 'Frame')} 
-                  status={status}
-                  onAction={(action) => notify(`主持协议建议：${action === 'probe' ? '补充信息缺口' : action === 'summarize' ? '收束当前判断' : '优先处理核心分歧'}`)}
-                />
-              )}
-              {history.map((turn, index) => (
-                <Bubble
-                  key={`${index}-${turn.speaker}-${turn.text?.slice(0, 24)}`}
-                  persona={personas[turn.speaker]}
-                  text={turn.text}
-                  stance={turn.stance}
-                  act={turn.act}
-                  phase={turn.phase}
-                  confidence={turn.confidence}
-                  evidenceLabel={turn.evidenceLabel}
-                  citations={turn.citations}
-                  providerName={turn.providerName}
-                  dimmed={focusSpeakerId && turn.speaker !== focusSpeakerId}
-                  canRegenerate={canRegenerateTurn}
-                  regenerating={regeneratingTurnIndex === index}
-                  onRegenerate={() => regenerateTurn(index)}
-                />
-              ))}
-              {currentTurn && (
-                <Bubble
-                  persona={currentSpeaker}
-                  text={revealed}
-                  isLive
-                  isStreaming={!done}
-                  stance={currentTurn.stance}
-                  act={currentTurn.act}
-                  phase={currentTurn.phase}
-                  confidence={currentTurn.confidence}
-                  evidenceLabel={currentTurn.evidenceLabel}
-                  citations={currentTurn.citations}
-                  providerName={currentTurn.providerName}
-                  dimmed={focusSpeakerId && currentTurn.speaker !== focusSpeakerId}
-                />
-              )}
-              {showVote && (
-                <div className="final-block">
-                  <div className="success-ceremony">
-                    {meeting?.decisionPacket || meeting?.workspace
-                      ? '审议闭环完成 · 决策纪要包已封装'
-                      : '审议已结束 · 记录不完整，请查看下方或重算收束'}
-                  </div>
-
-                  <DeliberationOutcomePanel
-                    meeting={meeting}
-                    panelRef={outcomePanelRef}
-                    pendingMemoryCount={pendingMemoryChanges.length}
-                    showContinueLink={health?.aiConfigured !== false}
-                  />
-
-                  <h2 className="finish-actions-label">带走审议成果</h2>
-                  <div id="finish-actions" className="finish-actions">
-                    <button
-                      className={`btn btn-primary ${exportFeedback === 'html' ? 'export-success' : ''}`}
-                      onClick={() => exportMinutes('html')}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'html' ? '✓ 已导出，可分享复盘' : '导出 HTML 复盘包（推荐）'}
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'copied' ? 'export-success' : ''}`}
-                      onClick={() => copyCoreConclusions()}
-                      disabled={exportFeedback === 'copied'}
-                      title={copyMode === 'concise'
-                        ? '简洁版：适合直接发消息'
-                        : '完整版：适合进文档/正式复盘'}
-                    >
-                      {exportFeedback === 'copied'
-                        ? '✓ 已复制'
-                        : copyMode === 'concise' ? '复制核心结论（简洁）' : '复制核心结论（完整）'}
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'share' ? 'export-success' : ''}`}
-                      onClick={() => generateShareLink()}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'share' ? '✓ 已生成链接' : '生成在线分享链接'}
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'md' ? 'export-success' : ''}`}
-                      onClick={() => exportMinutes('md')}
-                      disabled={!!exportFeedback}
-                    >
-                      {exportFeedback === 'md' ? '✓ 已导出' : '导出 MD 笔记'}
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${exportFeedback === 'evidence' ? 'export-success' : ''}`}
-                      onClick={exportEvidenceMatrix}
-                      disabled={!!exportFeedback}
-                      title="按发言轮次与证据池导出对照表"
-                    >
-                      {exportFeedback === 'evidence' ? '✓ 已导出' : '导出证据矩阵 (HTML)'}
-                    </button>
-                    {health?.aiConfigured !== false && meetingSource !== 'demo' && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={refreshClosure}
-                        disabled={refreshingClosure || regeneratingTurnIndex !== null}
-                      >
-                        {refreshingClosure ? '重算收束中…' : '重算投票与决策纪要包'}
-                      </button>
-                    )}
-                    <button className="btn btn-ghost" onClick={returnHome} title="返回工作台继续此项目或发起新审议">返回工作台（继续项目）</button>
-                  </div>
-
-                  <div className="copy-mode-switch">
-                    <span className="copy-mode-label">复制模式</span>
-                    <button
-                      className={`btn btn-ghost ${copyMode === 'concise' ? 'active' : ''}`}
-                      onClick={() => {
-                        setCopyMode('concise');
-                        localStorage.setItem('roundtable:copyMode', 'concise');
-                      }}
-                    >
-                      简洁
-                    </button>
-                    <button
-                      className={`btn btn-ghost ${copyMode === 'formal' ? 'active' : ''}`}
-                      onClick={() => {
-                        setCopyMode('formal');
-                        localStorage.setItem('roundtable:copyMode', 'formal');
-                      }}
-                    >
-                      完整
-                    </button>
-                  </div>
-
-                  {health?.aiConfigured !== false && (
-                    <>
-                      <h2 className="finish-actions-label">后续动作</h2>
-                      <ContinueDeliberationPanel
-                        panelRef={continuePanelRef}
-                        value={followUpNote}
-                        onChange={setFollowUpNote}
-                        onSubmit={continueFromMeeting}
-                        disabled={status === 'generating' || meetingSource === 'demo'}
-                        disabledHint={meetingSource === 'demo'
-                          ? '演示场次不支持继续审议，请在工作台发起真实审议'
-                          : undefined}
-                      />
-                    </>
-                  )}
-
-                  <div className="section-divider">— 完整审议记录 —</div>
-
-                  <WorkspacePanel workspace={meeting.workspace} />
-                  <DecisionPacketCard packet={meeting.decisionPacket} />
-                  <VoteCard vote={meeting.vote} personas={personas} />
-
-                  {meeting?.usage && (
-                    <div className="usage-indicator">
-                      本次审议共消耗约 <b>{(meeting.usage.totalTokens / 1000).toFixed(1)}k</b> Tokens
-                      <span className="usage-detail">(入: {meeting.usage.inputTokens} / 出: {meeting.usage.outputTokens})</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+              ) : null}
+            />
+          ) : null}
         </div>
-        {error && <div className="error-banner">{error}</div>}
+        {status === 'generating' && (
+          <div className="stage-dock" aria-label="审议席位">
+            <Stage
+              allPersonas={allOnStage}
+              speakerId={currentSpeaker?.id}
+              onSeatClick={(persona) => setEditingId(persona.id)}
+            />
+          </div>
+        )}
+        </div>
+        </>
+        )}
       </main>
+      {!sharedMode && !playbackStarted && status !== 'generating' && (
+        <div className="workbench-mobile-bar mobile-only" role="toolbar" aria-label="快速发起">
+          <Button
+            type="button"
+            variant="primary"
+            loading={status === 'generating'}
+            disabled={startDeliberationDisabled}
+            onClick={handleStartDeliberation}
+          >
+            {primaryActionLabel}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => showDemoMeeting()}>
+            演示
+          </Button>
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" role="alert">
+          <span>{error}</span>
+          <button type="button" className="error-banner-dismiss" onClick={() => setError('')} aria-label="关闭提示">
+            ×
+          </button>
+        </div>
+      )}
+      {!sharedMode && !leftPanelOpen && (
+        <button type="button" className="panel-rail panel-rail--left desktop-only" onClick={openLeftPanel} aria-label="展开项目侧栏">
+          <span className="panel-rail-label">项目</span>
+        </button>
+      )}
+      {!sharedMode && !rightPanelOpen && (
+        <button type="button" className="panel-rail panel-rail--right desktop-only" onClick={openRightPanel} aria-label="展开情报侧栏">
+          <span className="panel-rail-label">情报</span>
+        </button>
+      )}
       <aside className="info-panel">
-        <div className="info-header">项目情报</div>
+        <div className="info-header info-header--with-action">
+          <div className="info-header-titles">
+            <span>项目情报</span>
+            <small className="info-header-hint">任务线、记忆审核与导出说明</small>
+          </div>
+          <IconButton className="desktop-only" label="收起情报侧栏" onClick={closeRightPanel}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 18 15 12 9 6" />
+            </svg>
+          </IconButton>
+        </div>
         <div className="project-card">
           <div className="project-card-name">{activeProject.name}</div>
           <div className="project-stat-grid">
@@ -1682,10 +1952,29 @@ export default function App() {
         {meeting?.workspace && playbackStarted && (
           <>
             <div className="info-header">本场审议实况</div>
-            <WorkspacePanel workspace={meeting.workspace} isCompact={focusMode} />
+            <WorkspacePanel workspace={meeting.workspace} isCompact={readingLayout} />
           </>
         )}
-        <div id="workbench-history" className="info-header">历史</div>
+        <div id="workbench-history" className="info-header">
+          历史
+          {(activeProject?.meetings?.length ?? 0) > 0 && (
+            <span className="history-count">{filteredHistoryMeetings.length} / {activeProject.meetings.length}</span>
+          )}
+        </div>
+        {(activeProject?.tasks?.length ?? 0) > 0 && (
+          <div className="history-task-filters" role="group" aria-label="按任务筛选">
+            <Chip active={!historyTaskFilterId} onClick={() => setHistoryTaskFilterId(null)}>全部</Chip>
+            {(activeProject.tasks ?? []).map((t) => (
+              <Chip
+                key={t.id}
+                active={historyTaskFilterId === t.id}
+                onClick={() => setHistoryTaskFilterId(t.id)}
+              >
+                {t.title}
+              </Chip>
+            ))}
+          </div>
+        )}
         {showHistorySearch && (
           <input
             id="history-search"
@@ -1734,14 +2023,34 @@ export default function App() {
                   }}
                 >
                   {/* 主按钮：承载「复盘查看」动作，语义清晰、无角色嵌套 */}
-                  <button
+                  <Button
                     type="button"
-                    className="history-item-main btn btn-ghost"
-                    aria-label={`查看历史会议复盘：${item.meeting.title}`}
-                    onClick={() => viewHistoryMeeting(item)}
+                    variant="ghost"
+                    className="history-item-main"
+                    aria-label={`查看历史会议复盘：${getMeetingDisplayLabel(item)}`}
+                    onClick={() => historyLabelEditId !== item.id && viewHistoryMeeting(item)}
                   >
                     <div className="history-item-body">
-                      <span className="history-item-title" title={item.topic || item.meeting.title}>{item.topic || item.meeting.title}</span>
+                      {historyLabelEditId === item.id ? (
+                        <form
+                          className="history-label-form"
+                          onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); saveHistoryDisplayLabel(item.id); }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            className="input history-label-input"
+                            value={historyLabelDraft}
+                            onChange={(e) => setHistoryLabelDraft(e.target.value)}
+                            placeholder="备注名（便于识别）"
+                            maxLength={80}
+                            autoFocus
+                          />
+                          <Button type="submit" variant="secondary" size="sm">保存</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setHistoryLabelEditId(null); }}>取消</Button>
+                        </form>
+                      ) : (
+                      <span className="history-item-title" title={getMeetingDisplayLabel(item)}>{getMeetingDisplayLabel(item)}</span>
+                      )}
                       {item.topic && item.meeting.title && item.topic !== item.meeting.title && (
                         <span className="history-item-topic" title={item.meeting.title}>{item.meeting.title}</span>
                       )}
@@ -1757,7 +2066,7 @@ export default function App() {
                         {' · 点击复盘'}
                       </span>
                     </div>
-                  </button>
+                  </Button>
 
                   {isConfirmingPermanent ? (
                     /* 就地确认条（A方案）：始终保留上方正常内容（标题+议题可见），下方追加紧凑确认区 */
@@ -1766,28 +2075,43 @@ export default function App() {
                         确定要彻底删除吗？此操作无法撤销。
                       </div>
                       <div className="history-confirm-actions">
-                        <button
+                        <Button
                           type="button"
-                          className="btn btn-ghost"
+                          variant="ghost"
                           onClick={(e) => { e.stopPropagation(); cancelPermanentDelete(); }}
                         >
                           取消
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn btn-danger"
+                          variant="danger"
                           onClick={(e) => { e.stopPropagation(); confirmPermanentDelete(item.id); }}
                         >
                           彻底删除
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
-                    /* 普通删除按钮：hover 显露，触屏常驻；可撤销 */
-                    <button
+                    <>
+                    <Button
                       type="button"
-                      className="btn btn-subtle history-delete-btn"
-                      aria-label={`删除历史会议：${item.meeting.title}（可撤销）`}
+                      variant="subtle"
+                      className="history-rename-btn"
+                      aria-label={`为会议添加备注：${getMeetingDisplayLabel(item)}`}
+                      title="添加备注名"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHistoryLabelEditId(item.id);
+                        setHistoryLabelDraft(item.displayLabel || '');
+                      }}
+                    >
+                      备注
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="subtle"
+                      className="history-delete-btn"
+                      aria-label={`删除历史会议：${getMeetingDisplayLabel(item)}（可撤销）`}
                       title="删除此历史记录（可撤销，5秒内可撤销）"
                       onClick={(e) => { e.stopPropagation(); deleteHistoryItem(item); }}
                       onKeyDown={(e) => {
@@ -1801,7 +2125,8 @@ export default function App() {
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
-                    </button>
+                    </Button>
+                    </>
                   )}
                 </div>
               );
@@ -1816,13 +2141,14 @@ export default function App() {
       {lastDeleted && (
         <div className="toast toast--with-action" role="status" aria-live="polite">
           已删除「{lastDeleted.projectName || '当前项目'}」的历史会议
-          <button
+          <Button
             type="button"
-            className="btn btn-ghost toast-undo-btn"
+            variant="ghost"
+            className="toast-undo-btn"
             onClick={undoDeleteHistoryItem}
           >
             撤销
-          </button>
+          </Button>
           <span className="toast-countdown" aria-hidden="true">5s</span>
         </div>
       )}

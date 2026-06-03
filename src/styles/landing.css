@@ -77,7 +77,7 @@
   padding: 20px 32px;
   border-bottom: 1px solid var(--lp-line);
   background: color-mix(in srgb, var(--lp-bg) 90%, transparent);
-  backdrop-filter: blur(8px);
+  /* 克制玻璃拟态：仅半透明底，无 blur */
 }
 
 .landing-brand,

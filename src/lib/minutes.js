@@ -1,4 +1,9 @@
 import { formatEvidenceMatrixHTML } from './evidenceMatrix.js';
+import { formatPhaseLabel, humanizeUserFacingText } from './userFacingText.js';
+
+/** Standalone HTML exports — align with in-app chamber typography (no Inter-first). */
+export const EXPORT_HEADING_FONT = '"LXGW WenKai","Source Serif 4","Noto Serif SC","PingFang SC",serif';
+export const EXPORT_BODY_FONT = '"Source Sans 3","PingFang SC",system-ui,sans-serif';
 
 export function sanitizeDownloadName(name) {
   return String(name || 'AI圆桌会议纪要').replace(/[\\/:*?"<>|]/g, '-');
@@ -64,14 +69,15 @@ export function formatMeetingMarkdown({
   lines.push('## 发言');
   lines.push('');
 
+  const ws = meeting.workspace;
   for (const turn of meeting.turns) {
     const persona = personas[turn.speaker];
     lines.push(`### ${persona?.name || turn.speaker}｜${persona?.title || ''}`);
     if (turn.act || turn.phase || turn.evidenceLabel || typeof turn.confidence === 'number') {
-      lines.push(`认知动作：${turn.act || '未标注'}｜阶段：${turn.phase || '未标注'}｜证据：${turn.evidenceLabel || '未标注'}｜置信度：${typeof turn.confidence === 'number' ? `${Math.round(turn.confidence * 100)}%` : '未标注'}`);
+      lines.push(`认知动作：${turn.act || '未标注'}｜阶段：${formatPhaseLabel(turn.phase) || '未标注'}｜证据：${turn.evidenceLabel || '未标注'}｜置信度：${typeof turn.confidence === 'number' ? `${Math.round(turn.confidence * 100)}%` : '未标注'}`);
       lines.push('');
     }
-    lines.push(turn.text);
+    lines.push(humanizeUserFacingText(turn.text, ws));
     if (turn.citations?.length > 0) {
       lines.push('');
       lines.push('引用：');
@@ -93,10 +99,10 @@ export function formatMeetingMarkdown({
   lines.push('');
   for (const [id, result] of Object.entries(meeting.vote.results)) {
     const persona = personas[id];
-    lines.push(`- ${persona?.name || id}：${VOTE_LABELS[result.vote] || '未知'}，${result.reason}`);
+    lines.push(`- ${persona?.name || id}：${VOTE_LABELS[result.vote] || '未知'}，${humanizeUserFacingText(result.reason, ws)}`);
   }
   lines.push('');
-  lines.push(meeting.vote.summary);
+  lines.push(humanizeUserFacingText(meeting.vote.summary, ws));
   lines.push('');
 
   if (meeting.decisionPacket) {
@@ -420,9 +426,10 @@ export function formatMeetingHTML({
   :root { --bg:#F8F9F2; --ink:#111814; --ink2:#3E4A45; --accent:#B38B4D; --line:#ddd; --card:#fff; }
   body.dark { --bg:#0D0F0E; --ink:#D1D9D4; --ink2:#A1ACA6; --card:#161A18; --line:#333; }
   * { box-sizing:border-box; }
-  body { font-family: "Inter","PingFang SC",system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); line-height:1.7; margin:0; padding:0; }
+  body { font-family: ${EXPORT_BODY_FONT}; background:var(--bg); color:var(--ink); line-height:1.7; margin:0; padding:0; }
   .wrap { max-width:980px; margin:0 auto; padding:32px 20px 80px; }
   header { border-bottom:2px solid var(--accent); padding-bottom:20px; margin-bottom:32px; }
+  h1,h2,.section h2 { font-family: ${EXPORT_HEADING_FONT}; }
   h1 { font-size:28px; margin:0 0 8px; letter-spacing:-0.02em; }
   .meta { font-size:13px; color:var(--ink2); display:flex; gap:16px; flex-wrap:wrap; }
   .meta span { white-space:nowrap; }

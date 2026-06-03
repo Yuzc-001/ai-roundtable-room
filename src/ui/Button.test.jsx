@@ -29,6 +29,17 @@ describe('Button', () => {
     expect(html).toContain('btn-sm');
   });
 
+  test('renders anchor when href is provided', () => {
+    const html = renderToString(
+      <Button href="https://example.com" variant="ghost" target="_blank" rel="noreferrer">
+        Source
+      </Button>,
+    );
+    expect(html).toContain('<a ');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('btn-ghost');
+  });
+
   test('merges custom className and loading label class', () => {
     const html = renderToString(
       <Button variant="primary" className="empty-session-primary" loading>

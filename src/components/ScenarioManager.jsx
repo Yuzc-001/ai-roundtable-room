@@ -288,9 +288,10 @@ export function ScenarioManager({
                 key={s.id}
                 className={`scenario-row${selectedScenarioId === s.id ? ' is-active' : ''}${s.builtin ? ' is-builtin' : ''}`}
               >
-                <button
+                <Button
                   type="button"
-                  className="scenario-row-main btn btn-ghost"
+                  variant="ghost"
+                  className="scenario-row-main"
                   onClick={() => onSelectScenario(s.id)}
                 >
                   <span className="scenario-icon">{s.icon}</span>
@@ -302,7 +303,7 @@ export function ScenarioManager({
                       {s.builtin && !s.overridden ? ' · 内置' : ''}
                     </small>
                   </span>
-                </button>
+                </Button>
                 <ScenarioRowMenu
                   scenario={s}
                   isBuiltin={Boolean(s.builtin)}
