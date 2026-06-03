@@ -1,0 +1,57 @@
+{
+  "baseUrl": "http://127.0.0.1:5173",
+  "steps": [
+    {
+      "name": "打开首页",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "落地页有入口按钮",
+      "ok": true,
+      "note": "count=2"
+    },
+    {
+      "name": "进入工作台",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "填写议题",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "启动按钮存在",
+      "ok": true,
+      "note": "['务审议任务 (0)', '启动结构化审议', '演演示审议', '启动结构化审议', '启动结构化审议']"
+    },
+    {
+      "name": "演示审议进入发言/回放",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "侧栏收起时有边缘展开条",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "API /api/health",
+      "ok": true,
+      "note": "aiConfigured=True"
+    }
+  ],
+  "issues": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "summary": {
+    "total_issues": 0,
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0,
+    "steps_passed": 8,
+    "steps_total": 8
+  }
+}

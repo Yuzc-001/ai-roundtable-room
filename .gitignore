@@ -6,3 +6,5 @@ server/shares
 .DS_Store
 npm-debug.log*
 *.log
+agent-tools/
+terminals/
