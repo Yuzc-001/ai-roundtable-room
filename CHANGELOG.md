@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.5.0 — 2026-06-03
+
+### 当真决策工具 · 可交付重做
+
+**决策就绪（工作台）**
+- 统一 `DecisionReadinessPanel`：就绪评分环、准入结论、检查清单、议题教练折叠；合并原议题教练 + 预检双入口
+- 单模型类议题需显式确认「仍开圆桌审议」后方可启动
+
+**项目情报库（右侧 Tab）**
+- `IntelWorkbench`：材料库入库 / 议题检索预览 / 本场 URL 抓取
+- PDF 上传自动入库并勾选参与本场；关键词段落检索注入审议
+
+**生成中介入（审议控制台）**
+- 全屏 `DeliberationConsole`：阶段时间线、暂停、注入约束与方向、继续或取消
+- `useSteppedDeliberation` 封装分阶段 API；认知议会三档 + 碰撞可暂停推进
+
+**分叉对比**
+- `ForkCompareWorkbench`：历史场次下拉选择、并排 Decision Packet、行动项与分歧 diff
+- 主区可打开对比工作台；分叉完成后自动引导至对比 Tab
+
+**工程**
+- 新样式模块 `v15-decision-workbench.css`；侧栏 `DecisionSidebar` 四 Tab（概览 / 情报库 / 干预 / 对比）
+- 结论区一键打开假设对比；移动端侧栏 Tab 横滑与审议控制台贴底适配
+- API：`GET /api/deliberation/sessions/:id` 返回中文阶段标签
+
+## 1.4.0 — 2026-06-03
+
+### 认知议会主线（1.4.0–1.4.3）
+
+- **1.4.0 异构席位 + 三阶段审议**：多 API 配置下默认启用并行首答 → 盲评互排（长度校正防偏见）→ 主席 Decision 简报，再进入受控碰撞回合
+- **1.4.1 审议干预包**：干预约束/方向指令注入 context；从检查点 fork 第二场对比（`POST /api/meetings/fork`）
+- **1.4.2 情报接入**：`POST /api/intelligence/ingest` 支持 URL 抓取与文本片段，写入 evidence pool 并约束 EVIDENCE 发言挂钩
+- **1.4.3 可信度**：盲评长度校正防偏见；导出「认知议会审计页」（谁挑战了谁 + 盲评排名）
+
 ## 1.3.29 — 2026-06-03
 
 ### 小白路径与演示体验修复（全量测试项）

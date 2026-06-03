@@ -1,17 +1,19 @@
 /** Landing sub-page copy (zh / en). Release notes mirror CHANGELOG.md. */
 export const RELEASE_NOTES = [
   {
-    version: '1.3.29',
+    version: '1.5.0',
     date: '2026-06-03',
     highlights: [
-      '演示默认直达结论与导出，无需等待打字机播完',
-      '首启向导与空工作台互斥；专注模式、议题教练、继续审议能力保留',
-      '移动端底栏固定启动/演示；错误提示置顶可关闭',
+      '决策就绪评估：该不该开圆桌、评分环与检查清单（合并议题教练）',
+      '项目情报库：材料入库、议题检索预览、审议自动引用',
+      '审议控制台：分阶段暂停、注入约束后继续',
+      '假设对比工作台；专注模式与继续审议保留',
     ],
     highlightsEn: [
-      'Demo opens outcomes and export instantly; focus mode retained',
-      'Onboarding no longer stacks over workbench lobby; topic coach unchanged',
-      'Mobile bottom bar for start/demo; continue deliberation supported',
+      'Decision readiness gate (topic coach merged into checklist)',
+      'Project intel library with retrieval preview',
+      'Deliberation console: pause and inject mid-run',
+      'Fork compare; focus mode and continue deliberation retained',
     ],
   },
   {
@@ -297,7 +299,7 @@ export const RELEASE_NOTES = [
 
 export const LANDING_SITE = {
   zh: {
-    version: '1.3.29',
+    version: '1.5.0',
     language: 'EN',
     brand: '圆桌智库',
     nav: [
@@ -413,7 +415,7 @@ export const LANDING_SITE = {
     },
   },
   en: {
-    version: '1.3.29',
+    version: '1.5.0',
     language: '中文',
     brand: 'Roundtable',
     nav: [

@@ -10,6 +10,10 @@ export function migrateProject(project) {
     ...project,
     tasks: Array.isArray(project.tasks) ? project.tasks : [],
     activeTaskId: project.activeTaskId ?? null,
+    intelDocuments: Array.isArray(project.intelDocuments) ? project.intelDocuments : [],
+    selectedIntelDocIds: Array.isArray(project.selectedIntelDocIds)
+      ? project.selectedIntelDocIds
+      : [],
   };
 }
 

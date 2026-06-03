@@ -28,7 +28,7 @@ export function deriveMemory(history) {
   return memory;
 }
 
-export function buildMeetingPayload({ topic, presetId, contextNotes, roster }) {
+export function buildMeetingPayload({ topic, presetId, contextNotes, roster, councilExtras = {} }) {
   return {
     topic,
     presetId,
@@ -41,6 +41,7 @@ export function buildMeetingPayload({ topic, presetId, contextNotes, roster }) {
       background: persona.background,
       contract: persona.contract,
     })),
+    ...councilExtras,
   };
 }
 
@@ -77,6 +78,8 @@ export function createDefaultProject({ id = 'default-project', name = '默认项
     memory: createEmptyMemory(),
     pendingMemoryChanges: [],
     rejectedMemoryChanges: [],
+    intelDocuments: [],
+    selectedIntelDocIds: [],
   };
 }
 

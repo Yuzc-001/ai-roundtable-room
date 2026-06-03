@@ -1,3 +1,4 @@
+import { formatCouncilAuditMarkdown } from './cognitiveCouncil.js';
 import { formatEvidenceMatrixHTML } from './evidenceMatrix.js';
 import { formatPhaseLabel, humanizeUserFacingText } from './userFacingText.js';
 
@@ -153,6 +154,13 @@ export function formatMeetingMarkdown({
     lines.push(`- ${action}`);
   }
   lines.push('');
+
+  const auditMd = formatCouncilAuditMarkdown(meeting, { topic });
+  if (auditMd) {
+    lines.push(auditMd);
+    lines.push('');
+  }
+
   return lines.join('\n');
 }
 

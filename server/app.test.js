@@ -355,6 +355,30 @@ describe('createApp', () => {
     expect(response.body.error).toBe('模型服务认证失败，请检查 API Key 是否正确。');
   });
 
+  test('topic admission API returns fit assessment', async () => {
+    const app = await createApp({
+      config: loadConfig({ OPENAI_API_KEY: 'secret-key' }),
+      attachClient: false,
+    });
+
+    const good = await request(app, {
+      method: 'POST',
+      path: '/api/topics/admission',
+      body: { topic: '我们是否应该在 Q3 上线收费，风险与路径如何权衡？' },
+    });
+    expect(good.status).toBe(200);
+    expect(good.body.fit).toBe('roundtable_recommended');
+
+    const weak = await request(app, {
+      method: 'POST',
+      path: '/api/topics/admission',
+      body: { topic: '什么是 OKR' },
+    });
+    expect(weak.status).toBe(200);
+    expect(weak.body.fit).toBe('single_model_better');
+    expect(weak.body.requiresConfirm).toBe(true);
+  });
+
   test('reports provider rate limits as an actionable public reason', async () => {
     const generateMeeting = vi.fn().mockRejectedValue(Object.assign(new Error('Rate limit reached'), {
       status: 429,

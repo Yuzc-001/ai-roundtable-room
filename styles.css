@@ -4,6 +4,7 @@
 @import url("./src/styles/layout/shell.css");
 @import url("./src/styles/landing.css");
 @import url("./src/styles/deliberation-session.css");
+@import url("./src/styles/v15-decision-workbench.css");
 
 /* Legacy structural note — see tokens.css for palette */
 /* Reading layout — stage dock centered when both panels collapsed */

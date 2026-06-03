@@ -9,10 +9,22 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
 import {
   createMeeting,
+  forkMeetingAtCheckpoint,
   normalizeTopic,
   refreshMeetingClosure,
   regenerateSpeakerTurn,
 } from './meeting.js';
+import { ingestIntelligence } from './intelligence.js';
+import {
+  advanceDeliberationSession,
+  createDeliberationSession,
+  getDeliberationSession,
+  injectDeliberationSession,
+  pauseDeliberationSession,
+  resumeDeliberationSession,
+  STEP_LABELS,
+} from './deliberation-session.js';
+import { assessTopicAdmission } from '../src/lib/topicAdmission.js';
 import { createModelProvider } from './model-providers.js';
 import { saveProjectSnapshot } from './project-files.js';
 import { createFixedWindowRateLimit } from './rate-limit.js';
@@ -254,6 +266,12 @@ function registerApiRoutes(app, {
         presetId: req.body?.presetId,
         context: req.body?.context,
         personas: req.body?.personas,
+        council: req.body?.council,
+        intelligence: req.body?.intelligence,
+        intervention: req.body?.intervention,
+        forkFrom: req.body?.forkFrom,
+        intelDocuments: req.body?.intelDocuments,
+        admissionOverride: Boolean(req.body?.admissionOverride),
       };
       const meeting = await generateMeeting({
         ...request,
@@ -266,6 +284,138 @@ function registerApiRoutes(app, {
     } catch (error) {
       logger.error(error);
       return res.status(502).json(classifyGenerationError(error));
+    }
+  });
+
+  app.post('/api/topics/admission', (req, res) => {
+    try {
+      const topic = normalizeTopic(req.body?.topic);
+      return res.json(assessTopicAdmission(topic, {
+        forceRoundtable: Boolean(req.body?.admissionOverride),
+      }));
+    } catch (error) {
+      return res.status(400).json({ error: error.message, reason: 'validation_error' });
+    }
+  });
+
+  app.post('/api/deliberation/sessions', async (req, res) => {
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+    if (config.roundtable.configuredProviders.length === 0) {
+      return res.status(503).json({ error: '未配置 API Key', reason: 'no_api_key' });
+    }
+    try {
+      normalizeTopic(req.body?.topic);
+    } catch (error) {
+      return res.status(400).json({ error: error.message, reason: 'validation_error' });
+    }
+    try {
+      const result = createDeliberationSession({
+        provider: providerFactory(config),
+        topic: req.body?.topic,
+        presetId: req.body?.presetId,
+        context: req.body?.context,
+        personas: req.body?.personas,
+        council: req.body?.council,
+        intelligence: req.body?.intelligence,
+        intelDocuments: req.body?.intelDocuments ?? [],
+        intervention: req.body?.intervention,
+        admissionOverride: Boolean(req.body?.admissionOverride),
+      });
+      return res.json(result);
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({ error: error.message || '创建审议会话失败' });
+    }
+  });
+
+  app.get('/api/deliberation/sessions/:id', (req, res) => {
+    const session = getDeliberationSession(req.params.id);
+    if (!session) return res.status(404).json({ error: '会话不存在或已过期' });
+    return res.json({
+      sessionId: session.id,
+      stepIndex: session.stepIndex,
+      steps: session.steps.map((id) => ({ id, label: STEP_LABELS[id] || id })),
+      paused: session.paused,
+      completed: Boolean(session.meeting),
+      meeting: session.meeting,
+    });
+  });
+
+  app.post('/api/deliberation/sessions/:id/advance', async (req, res) => {
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+    try {
+      const status = await advanceDeliberationSession(req.params.id);
+      return res.json(status);
+    } catch (error) {
+      logger.error(error);
+      return res.status(502).json(classifyGenerationError(error));
+    }
+  });
+
+  app.post('/api/deliberation/sessions/:id/inject', (req, res) => {
+    try {
+      const result = injectDeliberationSession(req.params.id, {
+        constraints: req.body?.constraints,
+        directive: req.body?.directive,
+      });
+      return res.json(result);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/deliberation/sessions/:id/pause', (req, res) => {
+    try {
+      return res.json(pauseDeliberationSession(req.params.id));
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/deliberation/sessions/:id/resume', (req, res) => {
+    try {
+      return res.json(resumeDeliberationSession(req.params.id));
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/intelligence/ingest', async (req, res) => {
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+    try {
+      const result = await ingestIntelligence({
+        urls: req.body?.urls,
+        snippets: req.body?.snippets,
+      });
+      return res.json(result);
+    } catch (error) {
+      logger.error(error);
+      return res.status(400).json({ error: error.message || '情报接入失败' });
+    }
+  });
+
+  app.post('/api/meetings/fork', async (req, res) => {
+    if (!req.body?.meeting?.turns?.length) {
+      return res.status(400).json({ error: '缺少可分叉的会议记录', reason: 'validation_error' });
+    }
+    if (config.accessCode && !hasValidSession(req, config)) {
+      return res.status(401).json({ error: '请先完成访问验证', reason: 'auth_required' });
+    }
+    try {
+      const forkMeta = forkMeetingAtCheckpoint(req.body.meeting, {
+        turnIndex: Number(req.body?.turnIndex ?? 0),
+        label: req.body?.label,
+        intervention: req.body?.intervention,
+      });
+      return res.json(forkMeta);
+    } catch (error) {
+      return res.status(400).json({ error: error.message, reason: 'validation_error' });
     }
   });
 

@@ -1,5 +1,19 @@
 import { z } from 'zod';
+import { parseModelJson } from './model-json.js';
+import {
+  attachCouncilToMeeting,
+  councilStage1ToTurns,
+  runCognitiveCouncil,
+  shouldUseCognitiveCouncil,
+} from './cognitive-council.js';
 import { enforceMeetingEvidence } from './evidence.js';
+import {
+  ingestIntelligence,
+  mergeIntelligenceIntoContext,
+  seedWorkspaceEvidence,
+} from './intelligence.js';
+import { assessTopicAdmission } from '../src/lib/topicAdmission.js';
+import { hitsToEvidenceItems, retrieveIntelChunks } from '../src/lib/intelRetrieval.js';
 import { PERSONAS, PRESETS } from '../shared/personas.js';
 import { humanizeUserFacingText } from './userFacingText.js';
 
@@ -158,6 +172,23 @@ export const MeetingResultSchema = z.object({
     outputTokens: z.number().default(0),
     totalTokens: z.number().default(0),
   }).optional(),
+  council: z.object({
+    enabled: z.boolean().optional(),
+    stage1: z.array(z.any()).optional(),
+    stage2: z.array(z.any()).optional(),
+    peerRanking: z.array(z.any()).optional(),
+    chairman: z.any().optional(),
+    audit: z.any().optional(),
+    challenges: z.array(z.any()).optional(),
+  }).optional(),
+  fork: z.object({
+    id: z.string(),
+    parentMeetingId: z.string().nullable().optional(),
+    fromTurnIndex: z.number(),
+    label: z.string(),
+    intervention: z.any().optional(),
+    createdAt: z.string(),
+  }).optional(),
 });
 
 const GenerationTurnSchema = z.object({
@@ -305,20 +336,7 @@ export function extractParsedMeeting(response) {
   throw new Error('模型没有返回可解析的会议结果');
 }
 
-export function parseModelJson(text) {
-  const raw = String(text ?? '').trim();
-  if (!raw) throw new Error('模型没有返回内容');
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fenced) return JSON.parse(fenced[1].trim());
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start >= 0 && end > start) return JSON.parse(raw.slice(start, end + 1));
-    throw new Error('模型没有返回可解析的 JSON');
-  }
-}
+export { parseModelJson } from './model-json.js';
 
 function generationToMeeting(parsed) {
   if (parsed?.vote?.results && !Array.isArray(parsed.vote.results)) return parsed;
@@ -848,7 +866,7 @@ function providerCandidates(router, speakerId, index) {
   ].filter(Boolean);
 }
 
-async function generateWithProviderFallback({ router, speakerId, index, request, parse }) {
+export async function generateWithProviderFallback({ router, speakerId, index, request, parse }) {
   const errors = [];
   for (const provider of providerCandidates(router, speakerId, index)) {
     try {
@@ -1238,31 +1256,200 @@ export async function refreshMeetingClosure({
   return { ...withArtifacts, workspace: finalWorkspace };
 }
 
+function requireEvidenceRefs(turns, evidencePool = []) {
+  const ids = new Set((evidencePool ?? []).map((e) => e.id));
+  if (ids.size === 0) return turns;
+  return turns.map((turn) => {
+    if (turn.act !== 'EVIDENCE' && turn.evidenceLabel !== 'fact') return turn;
+    const cites = turn.citations ?? [];
+    const hasRef = cites.some((c) => /情报|evidence-|intel-/i.test(c.label || ''))
+      || /\[情报|证据池|evidence-/i.test(turn.text || '');
+    if (hasRef) return turn;
+    const firstId = [...ids][0];
+    return {
+      ...turn,
+      citations: [...cites, { label: `相关证据（${firstId}）` }].slice(0, 3),
+    };
+  });
+}
+
+export function forkMeetingAtCheckpoint(meeting, {
+  turnIndex = 0,
+  label = '分支审议',
+  intervention = {},
+} = {}) {
+  const parsed = MeetingResultSchema.parse(meeting);
+  const idx = Number(turnIndex);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= parsed.turns.length) {
+    throw new Error('无效的检查点序号');
+  }
+
+  const keptTurns = parsed.turns.slice(0, idx + 1);
+  const forkId = `fork-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  return {
+    parentMeetingId: parsed.id ?? null,
+    forkId,
+    label: String(label).slice(0, 80),
+    checkpointIndex: idx,
+    checkpointTurn: { ...keptTurns[keptTurns.length - 1] },
+    meeting: {
+      ...parsed,
+      title: `${parsed.title} · ${label}`.slice(0, 80),
+      turns: keptTurns,
+      fork: {
+        id: forkId,
+        parentMeetingId: parsed.id ?? null,
+        fromTurnIndex: idx,
+        label,
+        intervention: {
+          constraints: intervention.constraints ?? '',
+          directive: intervention.directive ?? '',
+          newEvidence: intervention.newEvidence ?? [],
+        },
+        createdAt: new Date().toISOString(),
+      },
+      vote: undefined,
+      decisionPacket: undefined,
+    },
+    resumeContext: buildForkResumeContext(parsed, idx, intervention),
+  };
+}
+
+function buildForkResumeContext(meeting, turnIndex, intervention) {
+  const turns = meeting.turns.slice(0, turnIndex + 1);
+  const lines = turns.map((t) => `${t.speaker}: ${t.text}`);
+  const parts = [
+    '[Fork 分支审议]',
+    `从第 ${turnIndex + 1} 轮后分叉，保留此前 ${turns.length} 条发言。`,
+    ...lines,
+  ];
+  if (intervention.constraints) {
+    parts.push(`[分支约束] ${intervention.constraints}`);
+  }
+  if (intervention.directive) {
+    parts.push(`[分支方向] ${intervention.directive}`);
+  }
+  return parts.join('\n');
+}
+
 export async function createMeeting({
   provider,
   topic,
   presetId,
   context,
   personas,
+  council = {},
+  intelligence = {},
+  intelDocuments = [],
+  intervention = {},
+  forkFrom = null,
+  prebuiltCouncil = null,
+  admissionOverride = false,
 }) {
-  const input = buildMeetingInput({ topic, presetId, context, personas });
+  const admission = assessTopicAdmission(topic, { forceRoundtable: admissionOverride });
+  let effectiveContext = String(context ?? '').trim();
+  let intelItems = [];
+
+  if (intelDocuments?.length) {
+    const hits = retrieveIntelChunks(intelDocuments, `${topic}\n${effectiveContext}`, 8);
+    if (hits.length) {
+      intelItems = hitsToEvidenceItems(hits);
+      effectiveContext = mergeIntelligenceIntoContext(effectiveContext, intelItems);
+    }
+  }
+
+  if (intelligence?.urls?.length || intelligence?.snippets?.length) {
+    const ingested = await ingestIntelligence(intelligence);
+    intelItems = ingested.items;
+    effectiveContext = mergeIntelligenceIntoContext(effectiveContext, intelItems);
+    if (ingested.errors?.length) {
+      effectiveContext += `\n[情报抓取部分失败] ${ingested.errors.map((e) => e.url).join(', ')}`;
+    }
+  }
+
+  const interventionBlock = [
+    intervention?.constraints ? `[用户约束] ${intervention.constraints}` : '',
+    intervention?.directive ? `[用户指令] ${intervention.directive}` : '',
+    forkFrom?.resumeContext ?? '',
+  ].filter(Boolean).join('\n');
+  if (interventionBlock) {
+    effectiveContext = [effectiveContext, interventionBlock].filter(Boolean).join('\n\n');
+  }
+
+  const input = buildMeetingInput({ topic, presetId, context: effectiveContext, personas });
   const providerCount = Object.keys(provider?.providers ?? {}).length;
+
+  let councilResult = prebuiltCouncil ?? null;
+  if (!councilResult && shouldUseCognitiveCouncil(provider, council)) {
+    councilResult = await runCognitiveCouncil({
+      router: provider,
+      input: {
+        ...input,
+        context: effectiveContext,
+        workspaceHints: { intelCount: intelItems.length },
+      },
+      intervention,
+    });
+  }
+  if (councilResult?.briefForDeliberation) {
+    input.context = [effectiveContext, councilResult.briefForDeliberation].filter(Boolean).join('\n\n');
+  }
+
   const generated = providerCount > 1
     ? await createRoutedMeeting({ router: provider, input })
     : await createCompleteMeeting({ provider: provider?.defaultProvider ?? provider, input });
-  const parsed = generationToMeeting(generated);
-  const meeting = MeetingResultSchema.parse(parsed);
+
+  let parsed = generationToMeeting(generated);
+
+  if (councilResult) {
+    const councilTurns = councilStage1ToTurns(councilResult.stage1);
+    parsed = {
+      ...parsed,
+      turns: [...councilTurns, ...parsed.turns].slice(0, 12),
+    };
+    if (councilResult.chairman?.decisionSummary && parsed.vote) {
+      parsed.vote = {
+        ...parsed.vote,
+        summary: `${councilResult.chairman.decisionSummary}\n\n${parsed.vote.summary}`.slice(0, 500),
+      };
+    }
+  }
+
+  let meeting = MeetingResultSchema.parse(parsed);
   const sanitized = sanitizeMeeting(meeting, input.personas.map((persona) => persona.id), input);
-  const withArtifacts = completeDeliberationArtifacts(sanitized, input);
-  // 最终保障：优先保留“已提供且有内容”的 workspace（模型输出或 routed live 演化结果）；
-  // 仅当缺失或为空时，才用 evolve 从最终 turns 的 act 反推，确保测试兼容 + 真实生成时结构可信。
+  let withArtifacts = completeDeliberationArtifacts(sanitized, input);
+
   const currentWs = withArtifacts.workspace;
-  // 使用 hasWorkspaceContent（任一数组非空即信任），而非仅看 tensions/evidence。
-  // 这样 live 演化出的 candidateOptions（CLAIM/REFINE）+ openQuestions（PROBE）也能被保留，
-  // 避免合法的 governance 状态被 evolve 覆盖（Issue 2）。
   const hasRealWs = hasWorkspaceContent(currentWs);
-  const finalWorkspace = hasRealWs
+  let finalWorkspace = hasRealWs
     ? currentWs
     : evolveWorkspaceFromTurns(withArtifacts.turns || [], input.personas);
-  return { ...withArtifacts, workspace: finalWorkspace };
+  finalWorkspace = {
+    ...finalWorkspace,
+    evidencePool: seedWorkspaceEvidence(finalWorkspace.evidencePool, intelItems),
+  };
+
+  let turns = requireEvidenceRefs(withArtifacts.turns, finalWorkspace.evidencePool);
+  let result = { ...withArtifacts, turns, workspace: finalWorkspace };
+
+  if (councilResult) {
+    result = attachCouncilToMeeting(result, councilResult);
+    result.usage = generated.usage ?? result.usage;
+  }
+
+  if (forkFrom?.meeting) {
+    const forkMeta = forkMeetingAtCheckpoint(forkFrom.meeting, {
+      turnIndex: forkFrom.turnIndex,
+      label: forkFrom.label,
+      intervention: forkFrom.intervention,
+    });
+    result = {
+      ...result,
+      fork: forkMeta.meeting.fork,
+      title: forkMeta.meeting.title,
+    };
+  }
+
+  return { ...result, admission };
 }

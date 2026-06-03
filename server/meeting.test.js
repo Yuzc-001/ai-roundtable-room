@@ -262,6 +262,7 @@ describe('createMeeting', () => {
       },
       topic: '是否需要多 API 圆桌？',
       presetId: 'product',
+      council: { enabled: false },
     });
 
     expect(result.title).toBe('多模型圆桌');
@@ -325,6 +326,7 @@ describe('createMeeting', () => {
       },
       topic: '主模型失败时怎么办？',
       presetId: 'product',
+      council: { enabled: false },
     });
 
     expect(result.title).toBe('备用模型圆桌');

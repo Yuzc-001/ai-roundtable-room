@@ -7,6 +7,14 @@ import { assessTopic } from './lib/topicCoach.js';
 import { STANCE_FULL } from './lib/turnDisplay.js';
 import { formatPhaseLabel, humanizeUserFacingText } from './lib/userFacingText.js';
 import { Logo } from './components/Logo.jsx';
+import { CognitiveCouncilPanel } from './components/session/CognitiveCouncilPanel.jsx';
+export {
+  DecisionReadinessPanel,
+  IntelWorkbench,
+  DeliberationConsole,
+  ForkCompareWorkbench,
+  DecisionSidebar,
+} from './components/v15/index.js';
 
 export { Logo };
 export {
@@ -516,7 +524,15 @@ export function ModeratorConsole({ phase, status, onAction, generating = false }
 
 /** 审议完成态：四格一览（路径 / 待澄清 / 行动 / 导出），降低复盘认知负担 */
 export function DeliberationOutcomePanel({
-  meeting, pendingMemoryCount = 0, panelRef, showContinueLink = false, onJumpToWorkspace,
+  meeting,
+  pendingMemoryCount = 0,
+  panelRef,
+  showContinueLink = false,
+  onJumpToWorkspace,
+  topic = '',
+  onExportCouncilAudit,
+  onOpenForkCompare,
+  forkCompareAvailable = false,
 }) {
   const packet = meeting?.decisionPacket;
   const workspace = meeting?.workspace;
@@ -583,6 +599,11 @@ export function DeliberationOutcomePanel({
 
   return (
     <div ref={panelRef} className="outcome-panel" role="region" aria-label="审议结果一览">
+      <CognitiveCouncilPanel
+        meeting={meeting}
+        topic={topic}
+        onExportAudit={onExportCouncilAudit}
+      />
       <div className="outcome-panel-head">
         <h2>审议结果一览</h2>
         <p>30 秒内看清：定了什么、还缺什么、下一步做什么、如何带走成果</p>
@@ -653,6 +674,15 @@ export function DeliberationOutcomePanel({
             <li><a className="outcome-export-link" href="#finish-actions">导出证据矩阵 (HTML)</a> — 发言与证据池对照表</li>
             <li><a className="outcome-export-link" href="#finish-actions">复制核心结论</a> — 发消息或贴进文档</li>
             <li><a className="outcome-export-link" href="#finish-actions">生成分享链接</a> — 在线只读复盘</li>
+            {forkCompareAvailable && onOpenForkCompare ? (
+              <li>
+                <button type="button" className="outcome-jump-link" onClick={onOpenForkCompare}>
+                  打开假设对比工作台
+                </button>
+                {' '}
+                — 并排查看两场结论差异
+              </li>
+            ) : null}
             {showContinueLink ? (
               <li>
                 <a className="outcome-export-link" href="#continue-deliberation">或于下方「后续动作」继续审议</a>

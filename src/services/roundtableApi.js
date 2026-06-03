@@ -88,6 +88,104 @@ export async function regenerateTurnRequest({ payload, signal }) {
   return body;
 }
 
+export async function assessTopicAdmissionRequest({ topic, admissionOverride = false }) {
+  const response = await fetch('/api/topics/admission', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ topic, admissionOverride }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '议题评估失败');
+  return body;
+}
+
+export async function createDeliberationSessionRequest(payload) {
+  const response = await fetch('/api/deliberation/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const resolver = REASON_MESSAGES[body.reason];
+    throw new Error(resolver ? resolver(body) : (body.error || '创建审议会话失败'));
+  }
+  return body;
+}
+
+export async function advanceDeliberationSessionRequest(sessionId, { signal } = {}) {
+  const response = await fetch(`/api/deliberation/sessions/${sessionId}/advance`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    signal,
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const resolver = REASON_MESSAGES[body.reason];
+    throw new Error(resolver ? resolver(body) : (body.error || '审议推进失败'));
+  }
+  return body;
+}
+
+export async function injectDeliberationSessionRequest(sessionId, { constraints, directive }) {
+  const response = await fetch(`/api/deliberation/sessions/${sessionId}/inject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ constraints, directive }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '注入失败');
+  return body;
+}
+
+export async function pauseDeliberationSessionRequest(sessionId) {
+  const response = await fetch(`/api/deliberation/sessions/${sessionId}/pause`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '暂停失败');
+  return body;
+}
+
+export async function resumeDeliberationSessionRequest(sessionId) {
+  const response = await fetch(`/api/deliberation/sessions/${sessionId}/resume`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '继续失败');
+  return body;
+}
+
+export async function ingestIntelligenceRequest({ urls = [], snippets = [] }) {
+  const response = await fetch('/api/intelligence/ingest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ urls, snippets }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '情报接入失败');
+  return body;
+}
+
+export async function forkMeetingRequest({ meeting, turnIndex, label, intervention }) {
+  const response = await fetch('/api/meetings/fork', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ meeting, turnIndex, label, intervention }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || '分叉失败');
+  return body;
+}
+
 export async function createMeetingRequest({ payload, signal }) {
   const response = await fetch('/api/meetings', {
     method: 'POST',

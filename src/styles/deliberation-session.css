@@ -620,3 +620,80 @@
     padding: 32px 16px 64px;
   }
 }
+
+/* 1.4 认知议会 */
+.cognitive-council-panel {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2, rgba(255, 255, 255, 0.12));
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+}
+
+.cognitive-council-panel__head h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.cognitive-council-panel__stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.council-stage {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-3, rgba(255, 255, 255, 0.06));
+  color: var(--ink-3, #9ca3af);
+}
+
+.council-stage--done {
+  color: var(--accent, #7dd3fc);
+  border: 1px solid var(--accent-dim, rgba(125, 211, 252, 0.35));
+}
+
+.council-ranking ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+}
+
+.council-chair {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent, #7dd3fc);
+  font-size: 13px;
+}
+
+.intel-ingest-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.intel-ingest-block input {
+  width: 100%;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2, rgba(255, 255, 255, 0.15));
+  background: var(--surface-1, transparent);
+  color: inherit;
+}
+
+.intervention-block textarea {
+  width: 100%;
+  min-height: 56px;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2, rgba(255, 255, 255, 0.15));
+  background: var(--surface-1, transparent);
+  color: inherit;
+  resize: vertical;
+}
+

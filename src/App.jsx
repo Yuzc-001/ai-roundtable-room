@@ -12,8 +12,10 @@ import {
   SetupGuidePanel,
   ConfigReminderBar,
   SessionRoom,
-  TopicCoach,
-  TopicPreflightBar,
+  DecisionReadinessPanel,
+  DeliberationConsole,
+  ForkCompareWorkbench,
+  DecisionSidebar,
   ScenarioManager,
   Stage,
   WorkbenchDraft,
@@ -57,7 +59,21 @@ import {
   updateProjectWithMeeting,
 } from './lib/roundtable.js';
 import {
+  buildCouncilPayloadExtras,
+  formatCouncilAuditHtml,
+  formatCouncilAuditMarkdown,
+} from './lib/cognitiveCouncil.js';
+import {
+  addIntelDocumentToProject,
+  createIntelDocument,
+  getSelectedIntelDocuments,
+} from './lib/intelDocuments.js';
+import { buildDecisionReadiness } from './lib/decisionReadiness.js';
+import { useSteppedDeliberation } from './hooks/useSteppedDeliberation.js';
+import {
   createMeetingRequest,
+  forkMeetingRequest,
+  ingestIntelligenceRequest,
   regenerateTurnRequest,
   refreshClosureRequest,
   createSessionRequest,
@@ -148,6 +164,15 @@ export default function App() {
   // For inline permanent delete confirmation (right-click / long-press)
   const [permanentConfirmId, setPermanentConfirmId] = useState(null); // which history item is in "confirm permanent delete" state
   const [followUpNote, setFollowUpNote] = useState('');
+  const [interventionConstraints, setInterventionConstraints] = useState('');
+  const [interventionDirective, setInterventionDirective] = useState('');
+  const [intelUrl, setIntelUrl] = useState('');
+  const [intelSnippets, setIntelSnippets] = useState([]);
+  const [ingestingIntel, setIngestingIntel] = useState(false);
+  const [admissionOverride, setAdmissionOverride] = useState(false);
+  const [rightSidebarTab, setRightSidebarTab] = useState('overview');
+  const [showForkCompareMain, setShowForkCompareMain] = useState(false);
+  const stepped = useSteppedDeliberation();
   const [focusSpeakerId, setFocusSpeakerId] = useState(null);
   const [regeneratingTurnIndex, setRegeneratingTurnIndex] = useState(null);
   const [turnRegenUndo, setTurnRegenUndo] = useState(null);
@@ -569,18 +594,72 @@ export default function App() {
   const cancelGeneration = () => {
     genAbortRef.current?.abort();
     genAbortRef.current = null;
+    stepped.cancel();
     setStatus('idle');
     setSimPhaseIdx(0);
     notify('已取消审议生成');
   };
 
-  const startMeeting = async (customTopic, { extraContextNotes = [], successMessage } = {}) => {
+  const selectedIntelDocs = useMemo(
+    () => getSelectedIntelDocuments(activeProject),
+    [activeProject],
+  );
+
+  const decisionReadiness = useMemo(
+    () => buildDecisionReadiness({
+      topic,
+      health,
+      scenarioName: selectedScenario?.name,
+      taskTitle: activeTask?.title,
+      memoryEnabled,
+      admissionOverride,
+      intelSelectedCount: selectedIntelDocs.length,
+      phaseCount: DELIBERATION_PHASES.length,
+    }),
+    [topic, health, selectedScenario?.name, activeTask?.title, memoryEnabled, admissionOverride, selectedIntelDocs.length],
+  );
+
+  const startMeeting = async (customTopic, { extraContextNotes = [], successMessage, forceStepped = true } = {}) => {
     const finalTopic = customTopic || topic;
     if (!finalTopic.trim()) {
       setError('请输入要审议的问题');
       return false;
     }
+    const ready = buildDecisionReadiness({
+      topic: finalTopic,
+      health,
+      scenarioName: selectedScenario?.name,
+      taskTitle: activeTask?.title,
+      memoryEnabled,
+      admissionOverride,
+      intelSelectedCount: selectedIntelDocs.length,
+      phaseCount: DELIBERATION_PHASES.length,
+    });
+    if (!ready.canStart) {
+      setError(ready.requiresConfirm && !admissionOverride
+        ? '请先确认「仍开圆桌审议」，或调整议题后再启动'
+        : '议题尚未满足发起条件，请查看决策就绪评估');
+      return false;
+    }
     const contextNotes = [projectMemoryContext, ...extraContextNotes].filter(Boolean);
+    const councilExtras = buildCouncilPayloadExtras({
+      intelligenceUrls: intelSnippets.map((s) => s.url).filter(Boolean),
+      intelligenceSnippets: intelSnippets,
+      intelDocuments: selectedIntelDocs,
+      intervention: {
+        constraints: interventionConstraints.trim() || undefined,
+        directive: interventionDirective.trim() || undefined,
+      },
+      councilEnabled: (health?.configuredProviders?.length ?? 0) > 1,
+      admissionOverride,
+    });
+    const meetingPayloadBase = buildMeetingPayload({
+      topic: finalTopic,
+      presetId,
+      contextNotes,
+      roster: allOnStage,
+      councilExtras,
+    });
     genAbortRef.current?.abort();
     const controller = new AbortController();
     genAbortRef.current = controller;
@@ -589,11 +668,20 @@ export default function App() {
     setShowVote(false);
     setFocusSpeakerId(null);
     setSimPhaseIdx(0);
+    let endedPaused = false;
     try {
-      const payload = await createMeetingRequest({
-        payload: buildMeetingPayload({ topic: finalTopic, presetId, contextNotes, roster: allOnStage }),
+      const useStepped = forceStepped && health?.aiConfigured !== false;
+      const result = await stepped.start({
+        meetingPayload: meetingPayloadBase,
+        useStepped,
         signal: controller.signal,
       });
+      if (result.paused) {
+        endedPaused = true;
+        setStatus('paused');
+        return false;
+      }
+      const payload = result.meeting;
       const entry = {
         id: Date.now(),
         topic: finalTopic,
@@ -629,6 +717,49 @@ export default function App() {
       return false;
     } finally {
       if (genAbortRef.current === controller) genAbortRef.current = null;
+      if (!endedPaused) {
+        stepped.cancel();
+        setStatus('idle');
+      }
+    }
+  };
+
+  const finishPausedMeeting = async ({ inject = false } = {}) => {
+    setStatus('generating');
+    try {
+      const loopResult = await stepped.resume({
+        inject,
+        constraints: interventionConstraints,
+        directive: interventionDirective,
+      });
+      if (!loopResult?.meeting) return;
+      const entry = {
+        id: Date.now(),
+        topic,
+        meeting: loopResult.meeting,
+        contextNotes: [projectMemoryContext].filter(Boolean),
+        source: 'live',
+        savedAt: new Date().toISOString(),
+      };
+      setProjects((items) => {
+        const list = Array.isArray(items) && items.length ? items : [activeProject];
+        return list.map((project) => (
+          project.id === activeProject.id
+            ? updateProjectWithMeeting(project, entry, { taskId: activeProject.activeTaskId })
+            : migrateProject(project)
+        ));
+      });
+      setMeeting(loopResult.meeting);
+      setMeetingSource('live');
+      setPlaybackStarted(true);
+      setHistory([]);
+      setCurrentIdx(0);
+      setShowVote(true);
+      notify('审议已完成');
+    } catch (e) {
+      setError(e.message || '恢复审议失败');
+    } finally {
+      stepped.cancel();
       setStatus('idle');
     }
   };
@@ -824,8 +955,15 @@ export default function App() {
       setParsingFile(true);
       notify('正在解析 PDF 文档，提取核心背景...');
       const text = await extractTextRequest(file);
-      setTopic((prev) => `${prev}\n\n[文件上下文]：\n${text.slice(0, 3000)}`);
-      notify(`PDF 解析成功！已提取约 ${text.length} 字背景信息`);
+      const excerpt = text.slice(0, 12000);
+      patchActiveProject((p) => addIntelDocumentToProject(p, createIntelDocument({
+        title: file.name.replace(/\.pdf$/i, '') || 'PDF 材料',
+        text: excerpt,
+        source: 'PDF 导入',
+      })));
+      setRightSidebarTab('intel');
+      openRightPanel();
+      notify(`PDF 已入库情报库（约 ${excerpt.length} 字），已勾选参与本场`);
     } catch (err) {
       notify(`文件解析失败: ${err.message}`);
     } finally {
@@ -909,6 +1047,73 @@ export default function App() {
 
   const exportEvidenceMatrix = () => exportMinutes('evidence-html');
   const exportEvidenceMatrixMd = () => exportMinutes('evidence-md');
+
+  const exportCouncilAudit = () => {
+    if (!meeting?.council) {
+      notify('本场未启用认知议会流程');
+      return;
+    }
+    const md = formatCouncilAuditMarkdown(meeting, { topic });
+    const html = formatCouncilAuditHtml(meeting, { topic });
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `认知议会审计-${sanitizeDownloadName(meeting.title)}.html`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(md).catch(() => {});
+    }
+    notify('审计页已导出（HTML），Markdown 已尝试复制');
+  };
+
+  const ingestIntelUrl = async () => {
+    const url = intelUrl.trim();
+    if (!url) return;
+    setIngestingIntel(true);
+    try {
+      const { items, errors } = await ingestIntelligenceRequest({ urls: [url] });
+      if (items?.length) {
+        setIntelSnippets((prev) => [...prev, ...items.map((it) => ({
+          title: it.source,
+          text: it.meta?.excerpt || it.claim,
+          url: it.meta?.url,
+        }))].slice(0, 8));
+        notify(`已接入情报：${items[0].claim.slice(0, 40)}…`);
+        setIntelUrl('');
+      }
+      if (errors?.length) notify(errors[0].error || '部分 URL 抓取失败');
+    } catch (e) {
+      notify(e.message || '情报接入失败');
+    } finally {
+      setIngestingIntel(false);
+    }
+  };
+
+  const forkFromCurrentTurn = async () => {
+    if (!meeting?.turns?.length || meetingSource === 'demo' || status === 'generating') return;
+    const turnIndex = Math.max(0, (showVote ? meeting.turns.length : currentIdx) - 1);
+    try {
+      const forkMeta = await forkMeetingRequest({
+        meeting,
+        turnIndex,
+        label: '分支对比',
+        intervention: {
+          constraints: interventionConstraints,
+          directive: interventionDirective,
+        },
+      });
+      await startMeeting(topic, {
+        extraContextNotes: [forkMeta.resumeContext],
+        successMessage: `已从第 ${turnIndex + 1} 轮分叉发起新审议`,
+      });
+      setRightSidebarTab('compare');
+      setShowForkCompareMain(true);
+    } catch (e) {
+      setError(e.message || '分叉审议失败');
+    }
+  };
 
   // 复制模式状态（默认从 localStorage 恢复）
   const [copyMode, setCopyMode] = useState(() => {
@@ -1063,7 +1268,8 @@ export default function App() {
   const showWorkbenchPrimary = !sharedMode && playbackStarted && !showVote;
   const showEmptySessionPrimary = !playbackStarted && !onboarding.shouldShow;
   const showSidebarStartCta = !playbackStarted && !projectCreatorOpen && !onboarding.shouldShow;
-  const startDeliberationDisabled = status === 'generating' || (health?.aiConfigured !== false && !canStart);
+  const startDeliberationDisabled = status === 'generating' || status === 'paused'
+    || (health?.aiConfigured !== false && (!canStart || !decisionReadiness.canStart));
   const sessionReading = playbackStarted && status !== 'generating';
   const sessionPhaseId = currentTurn?.phase
     || (history.length > 0 ? history[history.length - 1].phase : null)
@@ -1453,10 +1659,18 @@ export default function App() {
                 </div>
                 <DeliberationOutcomePanel
                   meeting={meeting}
+                  topic={topic}
                   panelRef={outcomePanelRef}
                   pendingMemoryCount={pendingMemoryChanges.length}
                   showContinueLink={health?.aiConfigured !== false}
                   onJumpToWorkspace={jumpToWorkspaceSection}
+                  onExportCouncilAudit={meeting?.council ? exportCouncilAudit : undefined}
+                  forkCompareAvailable={(activeProject.meetings?.length ?? 0) >= 2}
+                  onOpenForkCompare={() => {
+                    setShowForkCompareMain(true);
+                    setRightSidebarTab('compare');
+                    openRightPanel();
+                  }}
                 />
                 <h2 className="finish-actions-label">带走审议成果</h2>
                 <div id="finish-actions" className="finish-actions">
@@ -1515,6 +1729,11 @@ export default function App() {
                   >
                     导出证据矩阵 (MD)
                   </Button>
+                  {meeting?.council && (
+                    <Button variant="ghost" onClick={exportCouncilAudit}>
+                      导出认知议会审计页
+                    </Button>
+                  )}
                   {health?.aiConfigured !== false && meetingSource !== 'demo' && (
                     <Button
                       type="button"
@@ -1611,8 +1830,11 @@ export default function App() {
               <span className="share-badge">在线复盘模式</span>
             </div>
           )}
-          {!playbackStarted && !sharedMode && status === 'generating' && (
-            <p className="top-nav-generating-hint" role="status">审议生成中…</p>
+          {!playbackStarted && !sharedMode && (status === 'generating' || status === 'paused') && (
+            <p className="top-nav-generating-hint" role="status">
+              {status === 'paused' ? '审议已暂停' : '审议生成中'}
+              {stepped.currentLabel ? ` · ${stepped.currentLabel}` : '…'}
+            </p>
           )}
           <div className="top-actions">
             {!sharedMode && (
@@ -1763,8 +1985,15 @@ export default function App() {
               )}
             />
           )}
-          {status === 'generating' ? (
-            /* #1 生成过程阶段提示 + 感知进度：复用 ModeratorConsole 的 phase stepper + 模拟推进，彻底消除等待黑箱焦虑 */
+          {showForkCompareMain && !sharedMode && (activeProject.meetings?.length ?? 0) >= 2 && (
+            <div className="v15-fork--overlay">
+              <ForkCompareWorkbench
+                meetings={activeProject.meetings}
+                onClose={() => setShowForkCompareMain(false)}
+              />
+            </div>
+          )}
+          {status === 'generating' && (!stepped.sessionId || health?.aiConfigured === false) ? (
             <div className="generating-area">
               <ModeratorConsole
                 phase={DELIBERATION_PHASES[simPhaseIdx]?.id || 'Frame'}
@@ -1798,16 +2027,22 @@ export default function App() {
               topicDisabled={sharedMode || parsingFile || status === 'generating'}
               parsingFile={parsingFile}
               onFileUpload={handleFileUpload}
-              topicCoach={!sharedMode && status !== 'generating' && topic.trim() ? (
-                <TopicCoach topic={topic} />
-              ) : null}
-              preflight={!sharedMode && status !== 'generating' && topic.trim() && health?.aiConfigured !== false ? (
-                <TopicPreflightBar
+              topicCoach={null}
+              preflight={!sharedMode && status !== 'generating' && status !== 'paused' && topic.trim() ? (
+                <DecisionReadinessPanel
                   topic={topic}
                   health={health}
                   scenarioName={selectedScenario?.name}
                   taskTitle={activeTask?.title}
                   memoryEnabled={memoryEnabled}
+                  admissionOverride={admissionOverride}
+                  onAdmissionOverrideChange={setAdmissionOverride}
+                  intelSelectedCount={selectedIntelDocs.length}
+                  phaseCount={DELIBERATION_PHASES.length}
+                  onOpenIntel={() => {
+                    setRightSidebarTab('intel');
+                    openRightPanel();
+                  }}
                 />
               ) : null}
               primaryLabel={primaryActionLabel}
@@ -1901,8 +2136,8 @@ export default function App() {
       <aside className="info-panel">
         <div className="info-header info-header--with-action">
           <div className="info-header-titles">
-            <span>项目情报</span>
-            <small className="info-header-hint">任务线、记忆审核与导出说明</small>
+            <span>决策工作台</span>
+            <small className="info-header-hint">情报库 · 干预 · 假设对比</small>
           </div>
           <IconButton className="desktop-only" label="收起情报侧栏" onClick={closeRightPanel}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1910,19 +2145,80 @@ export default function App() {
             </svg>
           </IconButton>
         </div>
-        <div className="project-card">
-          <div className="project-card-name">{activeProject.name}</div>
-          <div className="project-stat-grid">
-            <div className="project-stat-box"><span>历史场次</span><b>{activeProject.meetings?.length ?? 0}</b></div>
-            <div className="project-stat-box"><span>已入库决策</span><b>{activeProject.memory?.decisions?.length ?? activeProject.memory?.summaries?.length ?? 0}</b></div>
-            <div className="project-stat-box"><span>风险登记</span><b>{activeProject.memory?.riskRegister?.length ?? activeProject.memory?.risks?.length ?? 0}</b></div>
-            <div className="project-stat-box"><span>记忆待审</span><b>{pendingMemoryChanges.length}</b></div>
-          </div>
-          {( (activeProject.memory?.decisions?.length || activeProject.memory?.summaries?.length || activeProject.memory?.riskRegister?.length || 0) > 0 ) && (
-            <div className="memory-active-badge">✓ 记忆已激活 · 自动用于新审议</div>
-          )}
-        </div>
         <MemoryReviewPanel changes={pendingMemoryChanges} onApprove={approveMemoryChanges} onReject={rejectMemoryChanges} />
+        <DecisionSidebar
+          activeTab={rightSidebarTab}
+          onTabChange={setRightSidebarTab}
+          onClose={closeRightPanel}
+          overview={(
+            <>
+              <div className="project-card">
+                <div className="project-card-name">{activeProject.name}</div>
+                <div className="project-stat-grid">
+                  <div className="project-stat-box"><span>历史场次</span><b>{activeProject.meetings?.length ?? 0}</b></div>
+                  <div className="project-stat-box"><span>情报材料</span><b>{activeProject.intelDocuments?.length ?? 0}</b></div>
+                  <div className="project-stat-box"><span>记忆待审</span><b>{pendingMemoryChanges.length}</b></div>
+                </div>
+              </div>
+              {( (activeProject.memory?.decisions?.length || activeProject.memory?.summaries?.length || 0) > 0) && (
+                <div className="memory-active-badge">记忆已激活 · 新审议自动引用</div>
+              )}
+              {(activeProject.meetings?.length ?? 0) >= 2 && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="v15-open-compare-btn"
+                  onClick={() => {
+                    setShowForkCompareMain(true);
+                    setRightSidebarTab('compare');
+                  }}
+                >
+                  打开假设对比工作台
+                </Button>
+              )}
+            </>
+          )}
+          intelProps={{
+            project: activeProject,
+            topic,
+            onPatchProject: patchActiveProject,
+            intelUrl,
+            onIntelUrlChange: setIntelUrl,
+            onIngestUrl: ingestIntelUrl,
+            ingesting: ingestingIntel,
+            sessionSnippets: intelSnippets,
+          }}
+          intervene={(
+            <div className="v15-intervene">
+              <p className="v15-intervene-hint">发起前写入的约束会贯穿整场；审议进行中请在控制台暂停后注入。</p>
+              <label>
+                <span>干预约束</span>
+                <textarea
+                  value={interventionConstraints}
+                  onChange={(e) => setInterventionConstraints(e.target.value)}
+                  placeholder="例：预算上限、合规红线、不可碰的技术债"
+                />
+              </label>
+              <label>
+                <span>方向指令</span>
+                <textarea
+                  value={interventionDirective}
+                  onChange={(e) => setInterventionDirective(e.target.value)}
+                  placeholder="例：优先比较 A/B 方案，不要发散到品牌叙事"
+                />
+              </label>
+              {meeting?.turns?.length > 0 && meetingSource !== 'demo' && (
+                <Button type="button" variant="ghost" size="sm" onClick={forkFromCurrentTurn}>
+                  从当前进度分叉第二场
+                </Button>
+              )}
+            </div>
+          )}
+          compare={(
+            <ForkCompareWorkbench meetings={activeProject.meetings ?? []} embedded />
+          )}
+        />
         <div id="workbench-tasks">
         <TaskPanel
           project={activeProject}
@@ -2152,6 +2448,25 @@ export default function App() {
           <span className="toast-countdown" aria-hidden="true">5s</span>
         </div>
       )}
+      <DeliberationConsole
+        open={(status === 'generating' || status === 'paused') && health?.aiConfigured !== false && Boolean(stepped.sessionId)}
+        steps={stepped.steps}
+        stepIndex={stepped.stepIndex}
+        currentLabel={stepped.currentLabel}
+        paused={stepped.paused || status === 'paused'}
+        constraints={interventionConstraints}
+        directive={interventionDirective}
+        onConstraintsChange={setInterventionConstraints}
+        onDirectiveChange={setInterventionDirective}
+        onPause={async () => {
+          await stepped.pause();
+          setStatus('paused');
+        }}
+        onCancel={cancelGeneration}
+        onInjectResume={() => finishPausedMeeting({ inject: true })}
+        onResume={() => finishPausedMeeting({ inject: false })}
+        simPhaseLabel={DELIBERATION_PHASES[simPhaseIdx]?.label}
+      />
       <ScenarioManager
         open={scenarioManagerOpen}
         lang={landingLang === 'en' ? 'en' : 'zh'}

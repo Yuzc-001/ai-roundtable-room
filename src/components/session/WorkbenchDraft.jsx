@@ -67,7 +67,7 @@ export function WorkbenchDraft({
 
         <p className="delib-draft-lead">
           {hasTopic
-            ? '确认上方检查项后，点「启动审议」。多席会按阶段发言，最后导出结论包。'
+            ? '查看决策就绪评分与检查项，确认后启动。审议中可在控制台暂停并注入约束。'
             : '先在上方输入议题，或点下面卡片一键填入示例。'}
         </p>
         {showPrimary && (
@@ -83,7 +83,7 @@ export function WorkbenchDraft({
         )}
         <p className="delib-draft-trust" title={healthDetail || undefined}>{healthLabel}</p>
         <p className="delib-draft-hint">
-          顶栏「首页」回介绍页；「项目 / 情报」打开左右侧栏；收起侧栏时屏幕边缘有竖条可再展开。
+          右侧「情报」侧栏可入库材料、预览检索命中；两场审议后可用「假设对比」并排查看差异。
         </p>
       </header>
 

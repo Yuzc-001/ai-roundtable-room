@@ -57,6 +57,11 @@ describe('App initial experience', () => {
     expect(source).toContain('<IconButton');
     expect(source).toContain('SIDEBAR_SCENARIO_LIMIT');
     expect(source).toContain('<WorkbenchDraft');
+    expect(source).toContain('DecisionReadinessPanel');
+    expect(source).toContain('DeliberationConsole');
+    expect(source).toContain('DecisionSidebar');
+    expect(source).toContain('ForkCompareWorkbench');
+    expect(source).toContain('useSteppedDeliberation');
     expect(source).toContain('primaryActionLabel');
     expect(source).toContain('showEmptySessionPrimary');
     expect(source).toContain('showSidebarStartCta');
